@@ -1,4 +1,5 @@
 import { recordAudit } from '@businessos/audit';
+import { subscribeToDefaultPlan } from '@businessos/billing';
 import { createInvitation, setActiveOrganization } from '@businessos/auth';
 import { invitations, roles, users, withTenant } from '@businessos/database';
 import {
@@ -69,6 +70,10 @@ export function organizationRoutes(app: FastifyInstance): void {
             target: { type: 'organization', id: created.organization.id },
             metadata: { name: created.organization.name },
           }),
+        // New organizations start on the platform's default plan (if one is configured).
+        async (tx, created) => {
+          await subscribeToDefaultPlan(tx, created.organization.id, request.id);
+        },
       ],
     });
     await setActiveOrganization(app.deps.db.db, auth, organization.id);

@@ -123,6 +123,13 @@ threat model and the control catalogue; it is updated whenever a control is adde
 - Email jobs carry links containing single-use tokens; they live in Redis only until the job
   completes (`removeOnComplete`) — Redis must be private and encrypted in transit in production.
 
+### Billing integrity (Phase 6)
+
+- Clients can never change plan state: no write endpoints; tenant scope has no RLS write policy
+  on subscriptions/overrides/billing events; catalogue writes require system scope.
+- Limits are enforced server-side at the point of use; quota consumption is atomic and
+  idempotent; seat checks lock the organization row.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·

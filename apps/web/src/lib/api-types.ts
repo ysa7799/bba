@@ -100,6 +100,51 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+export interface MoneyJson {
+  amount: string;
+  currency: string;
+}
+
+export interface CatalogPlan {
+  id: string;
+  key: string;
+  name: string;
+  description: string;
+  isDefault: boolean;
+  version: number;
+  entitlements: Record<string, boolean | number | null>;
+  prices: (MoneyJson & { id: string; interval: 'month' | 'year' })[];
+}
+
+export interface EntitlementsResponse {
+  entitlements: Record<string, boolean | number | null>;
+  sources: Record<string, 'plan' | 'override' | 'fallback'>;
+  usage: Record<string, { used: number; limit?: number | null; periodStart?: string }>;
+}
+
+export interface BillingCustomer {
+  legalName: string;
+  billingEmail: string;
+  taxId: string | null;
+  countryCode: string;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  postalCode: string | null;
+}
+
+export interface SubscriptionResponse {
+  subscription: {
+    id: string;
+    status: string;
+    provider: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+  } | null;
+  plan: CatalogPlan | null;
+}
+
 export interface OrganizationSettings {
   'general.week_start_day': number;
   'general.fiscal_year_start_month': number;

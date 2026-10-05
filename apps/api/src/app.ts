@@ -9,6 +9,7 @@ import { QueueMailer } from './lib/mailer';
 import { DEFAULT_RATE_LIMITS, RateLimiter, type RateLimitPolicies } from './lib/rate-limiter';
 import { auditRoutes } from './modules/audit/routes';
 import { authRoutes } from './modules/auth/routes';
+import { billingCatalogRoutes, organizationBillingRoutes } from './modules/billing/routes';
 import { healthRoutes } from './modules/health/routes';
 import { invitationRoutes } from './modules/invitations/routes';
 import { meRoutes } from './modules/me/routes';
@@ -97,6 +98,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(meRoutes, { prefix: '/app/me' });
   await app.register(organizationRoutes, { prefix: '/app/orgs' });
   await app.register(auditRoutes, { prefix: '/app/orgs/:orgId/audit-logs' });
+  await app.register(billingCatalogRoutes, { prefix: '/app/billing' });
+  await app.register(organizationBillingRoutes, { prefix: '/app/orgs/:orgId/billing' });
   await app.register(invitationRoutes, { prefix: '/app/invitations' });
 
   return app;

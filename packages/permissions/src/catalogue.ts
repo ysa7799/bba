@@ -43,6 +43,13 @@ export const PERMISSION_DEFINITIONS = [
     roles: [],
   },
   {
+    key: 'settings.billing.manage',
+    module: 'settings',
+    label: 'Manage billing',
+    description: 'View the subscription and manage the billing profile.',
+    roles: [],
+  },
+  {
     key: 'audit.read',
     module: 'settings',
     label: 'View audit log',

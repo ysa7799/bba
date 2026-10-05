@@ -4,3 +4,4 @@ export * from './organizations';
 export * from './rbac';
 export * from './auth';
 export * from './platform';
+export * from './billing';

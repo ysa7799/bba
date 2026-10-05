@@ -34,6 +34,23 @@ export const EVENT_DEFINITIONS = {
       removedRoleIds: z.array(z.uuid()),
     }),
   },
+  'subscription.started': {
+    version: 1,
+    schema: z.object({ subscriptionId: z.uuid(), planVersionId: z.uuid() }),
+  },
+  'subscription.changed': {
+    version: 1,
+    schema: z.object({
+      subscriptionId: z.uuid(),
+      fromPlanVersionId: z.uuid(),
+      toPlanVersionId: z.uuid(),
+      status: z.string(),
+    }),
+  },
+  'subscription.canceled': {
+    version: 1,
+    schema: z.object({ subscriptionId: z.uuid() }),
+  },
   'member.removed': {
     version: 1,
     schema: z.object({

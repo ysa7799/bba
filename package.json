@@ -19,7 +19,8 @@
     "db:setup": "bash scripts/db/setup.sh",
     "db:generate": "pnpm --filter @businessos/database db:generate",
     "db:migrate": "pnpm --filter @businessos/database db:migrate",
-    "db:migrate:test": "pnpm --filter @businessos/database db:migrate:test"
+    "db:migrate:test": "pnpm --filter @businessos/database db:migrate:test",
+    "db:seed": "pnpm --filter @businessos/billing seed"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

@@ -2,9 +2,47 @@
 
 ## Current Phase
 
-Phase 6 — Billing + Entitlements
+Phase 7 — Payments
 
 Status: IN_PROGRESS
+
+---
+
+## Phase 6 — Billing + Entitlements
+
+Status: PASSED
+
+### Completed
+
+- Plans as data with versions, prices (BHD minor units) and typed entitlements; resolution with
+  overrides and a restrictive fallback; subscriptions changed only via system paths.
+- Atomic, idempotent monthly quota metering in the organization's timezone; seat limits.
+- Billing endpoints and page; example catalogue seed.
+
+### Tests
+
+- billing (20): registry validation, timezone periods, catalogue versioning/visibility,
+  invalid catalogue input, unpublished versions refused, fallback/plan/past_due/paused
+  resolution, override precedence and expiry, plan change events, default plan subscription
+  (rolled-back transaction), single live subscription, tenant write attempts blocked by RLS
+  (subscriptions, overrides, billing events, catalogue), tenant read isolation, 25 concurrent
+  consumes → exactly 10 succeed, idempotency keys, rollback on exceeded quota, unlimited
+  quotas, local-month metering, cross-tenant consumption blocked, concurrent seat reservation.
+- API (13): invitation limit 402, re-invite seat neutrality, 6 concurrent invites → 2 succeed,
+  join blocked after downgrade, reactivation blocked, read-only entitlements, tenant isolation,
+  no subscription write routes / smuggled fields, billing permission, profile validation and
+  audit, catalogue prices as BHD decimal strings.
+- Full suite: 248 unit/integration + 4 E2E passing.
+
+### Risks
+
+- Gauge limits beyond seats are enforced as modules land (contacts, pipelines, workflows,
+  storage).
+- Annual vs monthly quota alignment is calendar-month only (ADR-024).
+
+### Next
+
+- Phase 7: payment provider abstraction, Tap adapter, webhooks, checkout for subscriptions.
 
 ---
 

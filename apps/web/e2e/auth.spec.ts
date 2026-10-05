@@ -29,6 +29,11 @@ test('register → verify → sign in → create organization → members → si
   await expect(page.getByText('BHD')).toBeVisible();
   await expect(page.getByText('Asia/Bahrain')).toBeVisible();
 
+  // Billing shows the baseline plan limits for an organization without a subscription.
+  await page.getByRole('link', { name: 'Billing' }).click();
+  await expect(page.getByText('No subscription — baseline limits apply.')).toBeVisible();
+  await expect(page.getByText('1 / 3')).toBeVisible();
+
   await page.getByRole('link', { name: 'Members' }).click();
   await expect(page.getByRole('cell', { name: email })).toBeVisible();
   await page.getByPlaceholder('Search members').fill('nobody-matches-this');

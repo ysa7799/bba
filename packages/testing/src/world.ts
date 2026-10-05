@@ -2,6 +2,7 @@ import {
   createDatabase,
   membershipRoles,
   memberships,
+  plans,
   roles,
   users,
   withSystem,
@@ -12,8 +13,16 @@ import {
 } from '@businessos/database';
 import { requireEnv } from '@businessos/database/testing';
 import { createOrganization, resolveMembership, type MemberActor } from '@businessos/organizations';
+import {
+  createPlan,
+  createPlanVersion,
+  ENTITLEMENTS,
+  latestPublishedVersion,
+  publishPlanVersion,
+  startSubscription,
+} from '@businessos/billing';
 import type { SystemRoleKey } from '@businessos/permissions';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 
 /** Connects as the runtime role so RLS is enforced in tests. */
@@ -127,6 +136,11 @@ export async function createTestWorld(db: Database): Promise<TestWorld> {
   const bAdmin = await createTestUser(db, { name: `B Admin ${suffix}` });
   await addTestMember(db, orgB.id, bAdmin.id, { role: 'admin' });
 
+  // Fixture organizations are on a generous plan so tests exercise features, not limits.
+  const planVersionId = await ensureTestPlan(db);
+  await subscribeTestOrganization(db, orgA.id, planVersionId);
+  await subscribeTestOrganization(db, orgB.id, planVersionId);
+
   return {
     orgA: { organization: orgA, users: { owner: aOwner, ...aUsers } },
     orgB: { organization: orgB, users: { owner: bOwner, admin: bAdmin } },
@@ -163,4 +177,41 @@ export async function systemRoleId(
     if (!role) throw new Error(`system role ${key} missing`);
     return role.id;
   });
+}
+
+const TEST_PLAN_KEY = 'test-unlimited';
+
+/**
+ * A generous, non-default plan for fixtures (idempotent; safe under parallel test files).
+ * Returns the published version id.
+ */
+export async function ensureTestPlan(db: Database): Promise<string> {
+  // System scope: platform catalogue fixture.
+  return withSystem(db, async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${TEST_PLAN_KEY}))`);
+    const [existing] = await tx.select().from(plans).where(eq(plans.key, TEST_PLAN_KEY));
+    const plan =
+      existing ??
+      (await createPlan(tx, { key: TEST_PLAN_KEY, name: 'Test unlimited', isPublic: false }));
+    const published = await latestPublishedVersion(tx, plan.id);
+    if (published) return published.id;
+    const values: Record<string, unknown> = {};
+    for (const [key, definition] of Object.entries(ENTITLEMENTS)) {
+      values[key] = definition.kind === 'feature' ? true : null;
+    }
+    const version = await createPlanVersion(tx, plan.id, values);
+    await publishPlanVersion(tx, version.id);
+    return version.id;
+  });
+}
+
+export async function subscribeTestOrganization(
+  db: Database,
+  organizationId: string,
+  planVersionId: string,
+): Promise<void> {
+  // System scope: subscription state only changes through system paths.
+  await withSystem(db, (tx) =>
+    startSubscription(tx, { organizationId, planVersionId, status: 'active', provider: 'manual' }),
+  );
 }

@@ -145,3 +145,15 @@ enqueue (Redis down) is recoverable by the user (resend / request again).
 The dispatcher polls (500 ms idle, continuous while backlogged) instead of using LISTEN/NOTIFY.
 It is simple, works through connection poolers, and latency is acceptable. LISTEN/NOTIFY can be
 added as a wake-up hint later without changing semantics.
+
+## ADR-023 — Entitlements are data; billing state is system-written
+
+Plans, versions, prices and entitlement values are rows; code references entitlement keys from a
+registry with typed kinds and a restrictive fallback. Tenant scope may read but not write
+subscription state (RLS), so a tenant-side bug cannot upgrade an organization.
+
+## ADR-024 — Monthly quotas in the organization's timezone
+
+Quota periods are calendar months in the organization's IANA timezone (stored as the local
+`YYYY-MM-01`), matching how GCC businesses think about monthly allowances. Subscription-period
+aligned quotas can be added later per key if needed.

@@ -101,6 +101,19 @@ Cursor-based for lists: `?limit=50&cursor=<opaque>` → `{ data: [...], nextCurs
 | ------ | ----------------------------- | ------------ | -------------------------------------------------------- |
 | GET    | `/app/orgs/:orgId/audit-logs` | `audit.read` | `?limit&cursor&action&actorUserId&from&to`, newest first |
 
+### Billing (Phase 6)
+
+| Method  | Path                                    | Permission                | Notes                                                                |
+| ------- | --------------------------------------- | ------------------------- | -------------------------------------------------------------------- |
+| GET     | `/app/billing/plans`                    | signed in                 | public plans, latest published versions, prices `{amount, currency}` |
+| GET     | `/app/orgs/:orgId/billing/entitlements` | member                    | resolved values, sources, usage (seats, monthly quotas)              |
+| GET     | `/app/orgs/:orgId/billing/subscription` | `settings.billing.manage` | live subscription + plan                                             |
+| GET/PUT | `/app/orgs/:orgId/billing/customer`     | `settings.billing.manage` | billing profile (audited)                                            |
+
+There is intentionally no tenant endpoint that changes a subscription; plan changes arrive with
+verified payments (Phase 7) or platform administration (Phase 24). Limit violations return
+`402 entitlement_exceeded`.
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

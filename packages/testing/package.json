@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@businessos/billing": "workspace:*",
     "@businessos/database": "workspace:*",
     "@businessos/organizations": "workspace:*",
     "@businessos/permissions": "workspace:*",

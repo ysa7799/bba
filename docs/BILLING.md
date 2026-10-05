@@ -1,6 +1,7 @@
 # Billing, Entitlements and Money
 
-_Billing/entitlements land in Phase 6, payments in Phase 7, commerce in Phase 14._
+Billing/entitlements: implemented in Phase 6 (`packages/billing`). Payments: Phase 7.
+Commerce: Phase 14.
 
 ## Money
 
@@ -32,7 +33,39 @@ consumeUsage(org, 'email.monthly_limit', 1);
 ```
 
 Entitlement evaluation is independent of any payment provider. Subscription status changes
-only from verified provider events or admin action.
+only from verified provider events or admin action — enforced in the database: tenant scope can
+read `subscriptions`, `subscription_items`, `entitlement_overrides` and `billing_events` but has
+no write policy on them (RLS), and the catalogue tables are writable only in system scope.
+
+### Resolution
+
+`override (unexpired) > plan version of the live subscription (trialing, active, past_due) >
+registry fallback`. Paused, incomplete and canceled subscriptions fall back to the baseline.
+Unknown or malformed stored values are ignored (never broaden access).
+
+Stored values use an envelope `{ "value": … }` so that `null` (unlimited) is distinct from SQL
+NULL.
+
+### Kinds
+
+| Kind    | Meaning                                           | Enforcement                                                                                                                    |
+| ------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| feature | boolean switch                                    | `requireFeature` (402 when off)                                                                                                |
+| limit   | concurrent maximum (null = unlimited)             | caller counts rows under a row lock, `assertWithinLimit`                                                                       |
+| quota   | per calendar month in the organization's timezone | `consumeUsage`: one conditional `UPDATE … WHERE used + n <= limit`, idempotency keys, rolls back with the caller's transaction |
+
+### Seats
+
+`users.max` counts active members plus pending, unexpired invitations; checked (with an
+organization row lock) on invitation, on joining (in case the plan was lowered) and on
+reactivation.
+
+### Plans
+
+`plans → plan_versions (draft → published → retired) → plan_entitlements, prices`. Editing a plan
+means publishing a new version; existing subscribers stay on their version until moved
+(`changeSubscriptionPlan`). New organizations are subscribed to the default plan (if one is
+configured). `pnpm db:seed` loads an example BHD catalogue for development.
 
 ## Entitlement keys (initial)
 

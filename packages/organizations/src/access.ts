@@ -21,6 +21,7 @@ import {
   type SystemRoleKey,
 } from '@businessos/permissions';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@businessos/shared';
+import { assertSeatsAvailable } from '@businessos/billing';
 import { emitEvent } from '@businessos/events';
 import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
@@ -384,8 +385,12 @@ export async function setMemberStatus(
     throw new ForbiddenError('You cannot suspend yourself');
   }
   await lockOrganization(tx, organizationId);
-  await getMembership(tx, organizationId, membershipId);
+  const membership = await getMembership(tx, organizationId, membershipId);
   await assertCanManage(tx, actor, membershipId);
+  if (status === 'active' && membership.status !== 'active') {
+    // Reactivation takes a seat back.
+    await assertSeatsAvailable(tx, organizationId, 1);
+  }
   await tx
     .update(memberships)
     .set({ status })

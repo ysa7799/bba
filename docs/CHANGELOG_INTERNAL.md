@@ -2,6 +2,20 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 6 — Billing and entitlements (2026-10-05)
+
+- Schema: plan catalogue (`plans`, `plan_versions`, `plan_entitlements`, `prices`), tenant
+  billing (`billing_customers`, `subscriptions`, `subscription_items`, `entitlement_overrides`,
+  `usage_counters`, `usage_records`, `billing_events`) with system-only write policies where
+  tenants must not write.
+- `@businessos/billing`: entitlement registry, catalogue management, subscriptions (start,
+  default plan, change, status, cancel) with billing + domain events, entitlement resolution,
+  atomic idempotent quota metering, seat limits; example BHD catalogue seed.
+- `users.max` enforced on invitation, join and reactivation; `settings.billing.manage`.
+- API: plan catalogue, entitlements/usage, subscription, billing profile endpoints.
+- Web: billing page (plan, usage bars, catalogue, billing profile).
+- Tooling: `order-migration.mjs` post-generate step; `pnpm db:seed`.
+
 ## Phase 5 — Audit, events and jobs (2026-10-05)
 
 - Schema: `audit_logs` (append-only), `outbox_events`, `processed_events`, `job_failures`.

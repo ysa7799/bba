@@ -28,6 +28,7 @@ import { generateToken, hashToken, isWellFormedToken } from './crypto';
 import type { AuthEmail } from './mailer';
 import { hashPassword, passwordSchema } from './password';
 import { recordAudit } from '@businessos/audit';
+import { assertSeatsAvailable } from '@businessos/billing';
 import { emitEvent } from '@businessos/events';
 import {
   toSessionUser,
@@ -83,6 +84,9 @@ export async function createInvitation(
         eq(invitations.status, 'pending'),
       ),
     );
+
+  // The new pending invitation occupies a seat until accepted or revoked.
+  await assertSeatsAvailable(tx, organization.id, 1);
 
   const token = generateToken();
   const [invitation] = await tx
@@ -204,6 +208,11 @@ async function joinOrganization(
       ),
     )
     .for('update');
+  // The pending invitation already holds a seat; joining converts it. Re-check in case the
+  // plan's member limit was lowered after the invitation was sent.
+  if (existing?.status !== 'active') {
+    await assertSeatsAvailable(tx, invitation.organizationId, 0);
+  }
   let membershipId: string;
   if (!existing) {
     const [created] = await tx
