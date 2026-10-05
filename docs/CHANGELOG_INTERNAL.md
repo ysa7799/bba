@@ -2,6 +2,24 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 13 — Automation V1 (2026-10-05)
+
+- Schema: `automation_workflows`, `automation_workflow_versions`, `automation_nodes`,
+  `automation_edges`, `automation_runs`, `automation_run_steps`, `automation_run_logs`
+  (migrations 0025–0026).
+- `@businessos/automation`: triggers, actions, conditions, templates, definition validation,
+  workflow lifecycle, run engine (durable waits, retries, timeouts, manual retry/cancel),
+  loop protection, SSRF-hardened HTTP client, event subscriber.
+- Permissions `automation.workflow.read/manage`; events `workflow.started/completed/failed`;
+  audit actions `automation.workflow.*`, `automation.run.*`; jobs `automation.run`,
+  `automation.resume`; queue `automation`; CRM actor type `workflow`.
+- API: `/app/orgs/:orgId/automation/*`, `/webhooks/automation/:token` (rate limits
+  `automationWebhookIp`, `automationWebhookToken`; token masked in logs); env
+  `AUTOMATION_ALLOW_PRIVATE_NETWORK`.
+- Worker: automation subscriber, `automation.run` and `automation.resume` (every minute).
+- Web: Workflows list, builder and run history; E2E (with a plan that includes automation).
+- Fixes: workflow job ids, a fixed-date UUIDv7 test.
+
 ## Phase 12 — Forms (2026-10-05)
 
 - Schema: `forms`, `form_versions`, `form_fields`, `form_submissions` (migrations 0023–0024).

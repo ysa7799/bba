@@ -9,6 +9,7 @@ import {
   type CalendarProviderRegistry,
   type CalendarServices,
 } from '@businessos/calendar';
+import type { AutomationServices } from '@businessos/automation';
 import { captchaFromEnv, type CaptchaVerifier } from '@businessos/forms';
 import type { JobQueue } from '@businessos/jobs';
 import type { PaymentProviderRegistry, PaymentServices } from '@businessos/payments';
@@ -21,6 +22,7 @@ import { QueueMailer } from './lib/mailer';
 import { createPaymentProviders, paymentServices } from './lib/payments';
 import { DEFAULT_RATE_LIMITS, RateLimiter, type RateLimitPolicies } from './lib/rate-limiter';
 import { auditRoutes } from './modules/audit/routes';
+import { automationRoutes, automationWebhookRoutes } from './modules/automation/routes';
 import { authRoutes } from './modules/auth/routes';
 import { billingCatalogRoutes, organizationBillingRoutes } from './modules/billing/routes';
 import { calendarRoutes } from './modules/calendar/routes';
@@ -84,6 +86,7 @@ declare module 'fastify' {
     communications: CommunicationsServices;
     calendar: CalendarServices;
     forms: { captcha: CaptchaVerifier | null; renderTokens: RenderTokenStore };
+    automation: AutomationServices;
   }
 }
 
@@ -160,6 +163,17 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     captcha: deps.captcha !== undefined ? deps.captcha : captchaFromEnv(env),
     renderTokens: new RenderTokenStore(deps.redis, env.REDIS_KEY_PREFIX),
   });
+  app.decorate('automation', {
+    allowPrivateNetwork: env.AUTOMATION_ALLOW_PRIVATE_NETWORK,
+    ownHosts: [new URL(env.API_PUBLIC_URL).hostname, new URL(env.APP_URL).hostname],
+    enqueue: (name, payload, options) =>
+      deps.jobs.enqueue(name, payload as never, {
+        organizationId: options.organizationId,
+        ...(options.jobId ? { jobId: options.jobId } : {}),
+        ...(options.delayMs ? { delayMs: options.delayMs } : {}),
+        ...(options.correlationId ? { correlationId: options.correlationId } : {}),
+      }),
+  } satisfies AutomationServices);
   app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
@@ -197,6 +211,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(publicBookingRoutes, { prefix: '/public/booking' });
   await app.register(formRoutes, { prefix: '/app/orgs/:orgId/forms' });
   await app.register(publicFormRoutes, { prefix: '/public/forms' });
+  await app.register(automationRoutes, { prefix: '/app/orgs/:orgId/automation' });
+  await app.register(automationWebhookRoutes, { prefix: '/webhooks/automation' });
   if (env.NODE_ENV !== 'production' && env.COMMUNICATIONS_FAKE_PROVIDERS) {
     await app.register(devCommunicationRoutes, { prefix: '/app/dev/communications/:orgId' });
   }

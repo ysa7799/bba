@@ -84,6 +84,8 @@ export const apiEnvSchema = z
     TURNSTILE_SECRET_KEY: z.string().min(10).max(200).optional(),
     /** Development/test captcha that accepts the token `pass`. */
     FORMS_FAKE_CAPTCHA: booleanFromEnv.default(false),
+    /** Development/test: workflow webhook actions may target http:// and private addresses. */
+    AUTOMATION_ALLOW_PRIVATE_NETWORK: booleanFromEnv.default(false),
     PASSWORD_HASH_MEMORY_KIB: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
     PASSWORD_HASH_TIME_COST: z.coerce.number().int().min(1).max(10).default(2),
   })
@@ -103,6 +105,13 @@ export const apiEnvSchema = z
       });
     }
     if (env.NODE_ENV !== 'production') return;
+    if (env.AUTOMATION_ALLOW_PRIVATE_NETWORK) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AUTOMATION_ALLOW_PRIVATE_NETWORK'],
+        message: 'private network access for workflows is not allowed in production',
+      });
+    }
     if (env.FORMS_FAKE_CAPTCHA) {
       ctx.addIssue({
         code: 'custom',

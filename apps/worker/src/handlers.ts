@@ -1,3 +1,4 @@
+import { executeRun, resumeDueRuns, type AutomationServices } from '@businessos/automation';
 import {
   processDueReminders,
   syncAppointmentEvents,
@@ -17,6 +18,7 @@ export interface HandlerDeps {
   db: Database;
   communications: CommunicationsServices;
   calendar: CalendarServices;
+  automation: AutomationServices;
   /** Public web app URL for links in job-sent emails. */
   appUrl: string;
   registry: SubscriberRegistry;
@@ -90,6 +92,23 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
       );
       deps.logger.info({ appointmentId: payload.appointmentId, outcome }, 'calendar sync');
       return outcome;
+    },
+
+    'automation.run': async (payload) => {
+      const outcome = await executeRun(
+        deps.db,
+        deps.automation,
+        payload.organizationId,
+        payload.runId,
+      );
+      deps.logger.info({ runId: payload.runId, outcome }, 'workflow run');
+      return { outcome };
+    },
+
+    'automation.resume': async () => {
+      const result = await resumeDueRuns(deps.db, deps.automation);
+      if (result.queued > 0) deps.logger.info(result, 'workflow runs resumed');
+      return result;
     },
 
     'crm.import': async (payload) => {

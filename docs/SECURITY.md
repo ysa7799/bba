@@ -228,6 +228,30 @@ threat model and the control catalogue; it is updated whenever a control is adde
   validated, re-validated by the web proxy, `'none'` on any doubt or API failure).
 - Redirects after submission are staff-configured `https://` URLs without credentials.
 
+### Automation (Phase 13)
+
+- Runs execute in the worker in their tenant's scope; the scheduler that finds due runs is the
+  only cross-tenant reader (system scope, justified) and executes each run in its own tenant.
+  Workflows can only reference records of their organization (validated at save and publish),
+  and events of one organization never start another's workflows.
+- Idempotency: one run per (workflow, trigger occurrence) by a unique key, so redelivered
+  events and webhook retries (`Idempotency-Key`) start one run; one step per (run, step) and
+  each internal step commits atomically with its effects, so concurrent or repeated jobs never
+  repeat an action. External calls are claimed with a lease and carry an `Idempotency-Key`
+  header (at least once, deduplicated by the receiver).
+- Loop protection (ADR-044): a workflow's own changes never start it again; chains of
+  workflows starting each other stop at depth 3; at most 20 runs per workflow and contact per
+  hour; steps form a tree (no cycles); runs time out after 90 days; plan quotas
+  (`automation.workflows.max`, `automation.monthly_executions`).
+- Webhook action (SSRF): https only, no credentials, no redirects, 10 s timeout, response
+  discarded; every resolved address must be public (checked at connect time against DNS
+  rebinding); BusinessOS's own hosts are refused. `AUTOMATION_ALLOW_PRIVATE_NETWORK` exists for
+  development/tests and is refused in production.
+- Inbound webhooks: 256-bit tokens stored as SHA-256, shown once, masked in logs, revoked on
+  rotation and archiving; JSON objects ≤ 64 KB; rate limited per IP and per workflow.
+- Templates only substitute plain values from allow-listed paths (no expressions); deal values
+  are fixed by staff, never taken from trigger data.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -239,6 +263,8 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 | Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                         |
 | ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 2026-10-05 | 13    | MEDIUM   | A workflow's webhook action could call BusinessOS itself (e.g. its own inbound webhook URL), a loop the run-chain depth cannot see (bounded only by rate limits and quotas). Found in phase review.      | Fixed: own hosts refused at save and send + regression test                    |
+| 2026-10-05 | 13    | LOW      | Job ids for workflow runs and their messages contained `:`, which the queue rejects: runs would not have been queued in production (the test queue did not check). Found while wiring the API.           | Fixed: ids use `-`; the test queue enforces the production pattern             |
 | 2026-10-05 | 12    | LOW      | Some form queries relied on RLS alone (no explicit `organization_id` filter), against the defense-in-depth rule. No exposure (RLS enforced). Found in phase review.                                      | Fixed: explicit filters on every forms query                                   |
 | 2026-10-05 | 11    | MEDIUM   | Invitee manage-link tokens travel in URL paths and would have been written to request logs (same class as the Phase 10 webhook-token finding). Found in phase review before release.                     | Fixed: `redactUrlForLog` masks them + regression tests                         |
 | 2026-10-05 | 10    | HIGH     | Request logs included full URLs, so per-connection webhook tokens (path) and WhatsApp `hub.verify_token` (query) would have been written to logs. Found in phase review before release.                  | Fixed: redacting `req` serializer (`redactUrlForLog`) + regression tests       |

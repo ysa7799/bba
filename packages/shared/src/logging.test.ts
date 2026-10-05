@@ -45,5 +45,8 @@ describe('redactUrlForLog', () => {
     expect(redactUrlForLog('/webhooks/communications/fake_email')).toBe(
       '/webhooks/communications/fake_email',
     );
+    expect(redactUrlForLog('/webhooks/automation/AbCdEf0123456789_-xyzAbCdEf0123456789abcde')).toBe(
+      '/webhooks/automation/[REDACTED]',
+    );
   });
 });

@@ -46,6 +46,8 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
     'formReadIp',
     'formSubmitIp',
     'formSubmitForm',
+    'automationWebhookToken',
+    'automationWebhookIp',
     'crmImportOrg',
     'crmExportOrg',
     'crmBulkOrg',

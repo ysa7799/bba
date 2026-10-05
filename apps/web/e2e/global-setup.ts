@@ -35,7 +35,9 @@ export default async function globalSetup(): Promise<void> {
     );
     await client.query(
       `insert into plan_entitlements (plan_version_id, key, value)
-       values ($1, 'users.max', '{"value": 25}'), ($1, 'projects.enabled', '{"value": true}')`,
+       values ($1, 'users.max', '{"value": 25}'), ($1, 'projects.enabled', '{"value": true}'),
+              ($1, 'automation.workflows.max', '{"value": 10}'),
+              ($1, 'automation.monthly_executions', '{"value": 1000}')`,
       [versionId],
     );
     await client.query(

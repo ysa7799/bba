@@ -58,6 +58,7 @@ export default async function OrganizationLayout({
               {m.app.nav.leadCaptureSection}
             </p>
             <NavLink href={`${base}/forms`} label={m.app.nav.forms} />
+            <NavLink href={`${base}/automation`} label={m.app.nav.workflows} />
             <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
               {m.app.nav.adminSection}
             </p>

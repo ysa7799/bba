@@ -11,3 +11,4 @@ export * from './activities';
 export * from './communications';
 export * from './calendar';
 export * from './forms';
+export * from './automation';

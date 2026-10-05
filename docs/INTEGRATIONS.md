@@ -108,6 +108,17 @@ refreshing them needs the OAuth integrations framework (Phase 18), so a pasted t
 until it expires. Zoom meetings also wait for Phase 18 (organization-level OAuth); video links
 come from the calendar providers (Meet, Teams) or the type's location text.
 
+## Workflow webhooks (Phase 13)
+
+- **Outbound** (`http.request` step): `POST` JSON `{workflowId, runId, trigger: {type, data},
+contact?, deal}` with `Idempotency-Key: <runId>:<step>`, `X-BusinessOS-Workflow-Id` and
+  `X-BusinessOS-Run-Id`. 2xx is success; 408/429/5xx and network errors are retried after 1, 5
+  and 30 minutes; other answers fail the run. Requests are not signed yet — receivers should
+  use an unguessable URL until signed outbound webhooks arrive (Phase 17).
+- **Inbound** (`webhook.received` trigger): `POST /webhooks/automation/<token>` with a JSON
+  object; the body is available to steps as `{{trigger.body.<field>}}`. Send an
+  `Idempotency-Key` header to make retries safe.
+
 ## Captcha for public forms (Phase 12)
 
 `CaptchaVerifier` (`packages/forms/src/spam.ts`): `verify(token, remoteIp)`. Cloudflare

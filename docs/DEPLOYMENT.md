@@ -88,6 +88,17 @@ re-enter them); keys belong in the secrets manager, never in the repository.
 - Captcha (optional): `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` on the API (secret in the
   secrets manager). `FORMS_FAKE_CAPTCHA` is for development/tests and refused in production.
 
+## Automation configuration (Phase 13)
+
+- The worker consumes a dedicated `automation` queue (workflow runs) and schedules
+  `automation.resume` every minute; run continuation does not depend on Redis keeping delayed
+  jobs (the database is the source of truth).
+- `AUTOMATION_ALLOW_PRIVATE_NETWORK` (API + worker) lets webhook actions call http:// and
+  private addresses for development and tests only; refused in production.
+- Inbound workflow webhooks are served by the API at `/webhooks/automation/<token>` under
+  `API_PUBLIC_URL`; `API_PUBLIC_URL` and `APP_URL` are also used to refuse workflow calls to
+  BusinessOS itself.
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

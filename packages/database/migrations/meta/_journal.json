@@ -176,6 +176,20 @@
       "when": 1791194567644,
       "tag": "0024_force_rls_forms",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791197466324,
+      "tag": "0025_automation",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791197471990,
+      "tag": "0026_force_rls_automation",
+      "breakpoints": true
     }
   ]
 }

@@ -250,6 +250,23 @@ export const EVENT_DEFINITIONS = {
       to: z.enum(['scheduled', 'cancelled', 'completed', 'no_show']),
     }),
   },
+  'workflow.started': {
+    version: 1,
+    schema: z.object({
+      workflowId: z.uuid(),
+      versionId: z.uuid(),
+      runId: z.uuid(),
+      triggerType: z.string().max(60),
+    }),
+  },
+  'workflow.completed': {
+    version: 1,
+    schema: z.object({ workflowId: z.uuid(), runId: z.uuid() }),
+  },
+  'workflow.failed': {
+    version: 1,
+    schema: z.object({ workflowId: z.uuid(), runId: z.uuid(), error: z.string().max(500) }),
+  },
   'form.submitted': {
     version: 1,
     schema: z.object({

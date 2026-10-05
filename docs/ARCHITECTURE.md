@@ -178,6 +178,15 @@ deal, note; each step in a savepoint so a failed step becomes a note, not a lost
 with `form.submitted` in the outbox. The embed route gets its per-form `frame-ancestors` from
 the web app's request proxy (`apps/web/src/proxy.ts`).
 
+Automation (`@businessos/automation`) stores workflows as versions with a trigger and a tree of
+steps. The `automation` event subscriber starts runs for matching published workflows (unique
+per workflow and event) and queues `automation.run`; the executor runs one step per
+transaction until the run waits, finishes or fails. Waits and retry backoff are stored on the
+run (`resume_at`) and picked up by `automation.resume` every minute, so they survive restarts
+and a lost queue; the queue only speeds things up. Actions call the CRM and communications
+services as the workflow actor; the webhook action is the only step performed outside a
+transaction.
+
 ## 8. Frontend
 
 - Next.js App Router, React 19, Tailwind CSS 4, accessible primitives (Radix-based,

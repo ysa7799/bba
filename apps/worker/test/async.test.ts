@@ -150,6 +150,7 @@ beforeAll(async () => {
         publicApiUrl: 'http://localhost:4000',
       },
       calendar: { providers: createCalendarProviders({ fake: true }), secretBox: null },
+      automation: { allowPrivateNetwork: false, enqueue: () => Promise.resolve() },
       appUrl: 'http://localhost:3000',
       registry,
       email: new FileEmailTransport(emailFile),

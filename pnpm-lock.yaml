@@ -38,6 +38,9 @@ importers:
       '@businessos/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@businessos/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
       '@businessos/billing':
         specifier: workspace:*
         version: link:../../packages/billing
@@ -181,6 +184,9 @@ importers:
       '@businessos/activities':
         specifier: workspace:*
         version: link:../../packages/activities
+      '@businessos/automation':
+        specifier: workspace:*
+        version: link:../../packages/automation
       '@businessos/calendar':
         specifier: workspace:*
         version: link:../../packages/calendar
@@ -335,6 +341,46 @@ importers:
       '@businessos/config':
         specifier: workspace:*
         version: link:../config
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/automation:
+    dependencies:
+      '@businessos/billing':
+        specifier: workspace:*
+        version: link:../billing
+      '@businessos/communications':
+        specifier: workspace:*
+        version: link:../communications
+      '@businessos/crm':
+        specifier: workspace:*
+        version: link:../crm
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../events
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../organizations
       '@businessos/testing':
         specifier: workspace:*
         version: link:../testing

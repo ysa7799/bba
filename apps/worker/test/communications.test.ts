@@ -65,6 +65,7 @@ describe('communications.send handler', () => {
       db: handle.db,
       communications,
       calendar: { providers: createCalendarProviders({ fake: true }), secretBox: null },
+      automation: { allowPrivateNetwork: false, enqueue: () => Promise.resolve() },
       appUrl: 'http://localhost:3000',
       registry: new SubscriberRegistry(),
       email: new FileEmailTransport('/dev/null'),

@@ -74,6 +74,8 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 | `calendar.appointment.read`   | calendar       | ✓     | ✓     | ✓       | ✓      | ✓          |
 | `calendar.appointment.manage` | calendar       | ✓     | ✓     | ✓       | ✓      |            |
 | `calendar.manage`             | calendar       | ✓     | ✓     | ✓       |        |            |
+| `automation.workflow.read`    | automation     | ✓     | ✓     | ✓       |        |            |
+| `automation.workflow.manage`  | automation     | ✓     | ✓     | ✓       |        |            |
 | `forms.read`                  | forms          | ✓     | ✓     | ✓       | ✓      | ✓          |
 | `forms.manage`                | forms          | ✓     | ✓     | ✓       |        |            |
 | `forms.submission.read`       | forms          | ✓     | ✓     | ✓       | ✓      |            |
@@ -132,8 +134,17 @@ Forms specifics:
   contacts. Releasing a submission from spam needs it together with `forms.manage`.
 - Submitters are anonymous: they can only answer the defined fields.
 
+Automation specifics:
+
+- `automation.workflow.read` shows workflows, runs and run history (trigger data may contain
+  personal data); `automation.workflow.manage` builds, publishes, pauses, archives, issues
+  webhook URLs and retries or cancels runs.
+- Runs act as the workflow (actor type `workflow`), not as the member who published it; every
+  record they reference was validated to belong to the organization when the version was saved
+  and published.
+
 ## Planned additions (by phase)
 
-`automation.workflow.*` (13), `commerce.*` (14),
+`commerce.*` (14),
 `reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

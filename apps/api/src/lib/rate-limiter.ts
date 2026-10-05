@@ -35,6 +35,9 @@ export const DEFAULT_RATE_LIMITS = {
   formReadIp: { limit: 300, windowSeconds: 600 },
   formSubmitIp: { limit: 20, windowSeconds: 3600 },
   formSubmitForm: { limit: 1_000, windowSeconds: 3600 },
+  /** Inbound workflow webhooks, per workflow token and per sender IP. */
+  automationWebhookToken: { limit: 1_000, windowSeconds: 3600 },
+  automationWebhookIp: { limit: 2_000, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

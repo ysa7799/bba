@@ -2,9 +2,89 @@
 
 ## Current Phase
 
-Phase 13 — Automation V1
+Phase 14 — Commerce
 
 Status: NOT_STARTED
+
+---
+
+## Phase 13 — Automation V1
+
+Status: PASSED
+
+### Completed
+
+- Schema (7 tables, FORCE RLS, composite same-tenant FKs): workflows (draft/active/paused/
+  archived, hashed inbound webhook token), versions with trigger, nodes and edges (one way into
+  every node), runs (unique per workflow and trigger occurrence, chain depth, resume time,
+  deadline), run steps (unique per run and step) and run logs.
+- `@businessos/automation`: trigger catalogue (contact created/updated/tagged, form submitted,
+  deal created/stage changed, appointment booked, task completed, message received, inbound
+  webhook) with filters; tree-shaped definitions validated (no cycles, merges or unreachable
+  steps, per-action settings, placeholders); actions (create/update contact, add/remove tag,
+  assign owner, create/move deal, create task, send email/SMS/WhatsApp template, call a
+  webhook), waits and conditions; templates; workflow lifecycle (draft, publish,
+  `automation.workflows.max`, pause/resume, archive, webhook tokens); run engine (start from
+  events and webhooks, monthly execution quota, step-per-transaction executor, durable waits,
+  retry with backoff, timeouts, manual retry and cancel); loop protection; SSRF-hardened HTTP
+  client.
+- Catalogue: permissions `automation.workflow.read/manage`; events `workflow.started/
+completed/failed`; audit actions `automation.*`; jobs `automation.run` (new `automation`
+  queue) and `automation.resume`; CRM actor type `workflow`.
+- API: `/app/orgs/:orgId/automation/*` (audited), inbound `/webhooks/automation/:token`
+  (rate limited, masked in logs); env `AUTOMATION_ALLOW_PRIVATE_NETWORK`.
+- Worker: automation subscriber, run and resume handlers, one-minute resume schedule.
+- Web: Workflows list, builder (trigger and filters, steps with yes/no branches, every action's
+  settings, placeholders, publish/discard/pause/resume/archive, webhook URL shown once), run
+  history with steps, logs, retry and cancel.
+
+### Tests
+
+- automation (23): templates and conditions; definition validation (cycles, merges,
+  unreachable steps, branches, settings, placeholders, wait limits); trigger filters; SSRF
+  guard (address ranges, URL rules, private DNS answers at connect time, own hosts); a run
+  with a two-day **durable wait** resumed by the scheduler and a condition branch; runs keep
+  their version; **duplicate events** (sequential and 5 concurrent deliveries → 1 run);
+  **idempotent steps** (6 concurrent executions → each action once, 1 webhook call);
+  **retries** with backoff and a constant idempotency key; failure after the last attempt and
+  on permanent errors; manual retry without repeating earlier steps; missing subject and
+  **timeouts**; pause/resume and archive; `automation.workflows.max` under concurrency and the
+  monthly run quota; **loop protection** (chain depth, self-trigger, hourly cap); inbound
+  webhook runs (idempotency key, token rotation); messages queued through the channel;
+  **tenant isolation** across every service, references and triggers.
+- API (8): permissions; validation and unsafe webhook targets; inbound webhook runs end to end
+  with steps and logs; unknown tokens, bad bodies, paused workflows, rotation; retry and
+  cancel (audited); cross-tenant 404s; production refuses private networks; tokens never
+  logged. Web: tree conversion (2).
+- E2E: subscribe to a plan with automation, build and publish a workflow, a new contact gets
+  the tag and task from the worker, run history, a webhook-triggered workflow creates a
+  contact once per delivery.
+- Full suite (uncached): 497 unit/integration + 11 E2E passing.
+
+### Fixed during the phase
+
+- A retried webhook step was claimed while its run stayed "waiting", so its result was
+  discarded (found by tests).
+- Job ids with `:` would have been refused by the queue (see SECURITY findings); the test
+  queue now enforces the production rule.
+- Webhook actions could call BusinessOS itself (see SECURITY findings).
+- A shared-package test used a fixed timestamp of today; the UUIDv7 generator is monotonic, so
+  it started failing once the real clock passed it. It now uses a time relative to now, plus a
+  test that ids never go back in time.
+
+### Risks
+
+- The webhook action is not signed yet (signed outbound webhooks arrive in Phase 17).
+- Invoice triggers and "create invoice", "send notification" and "AI" steps arrive with
+  commerce (14), notifications (16) and AI (20).
+- Steps cannot merge after a condition (by design for V1); complex flows repeat steps per
+  branch.
+- Runs are executed per tenant without per-organization fairness; a very busy organization
+  can delay others on the `automation` queue (measure in Phase 26).
+
+### Next
+
+- Phase 14: commerce (products, quotes, invoices, payments, refunds).
 
 ---
 

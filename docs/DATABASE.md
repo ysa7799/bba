@@ -114,6 +114,10 @@ Populated as phases land. See the schema files for the source of truth.
 | `forms` | tenant; slug globally unique (public URL); active/archived | 12 | archived, never deleted; cascade with organization |
 | `form_versions` | tenant; one draft and one published per form (partial unique indexes) | 12 | published/retired immutable; drafts deletable; cascade with form |
 | `form_fields` | tenant; answer key unique per version; allow-listed CRM target | 12 | cascade with version |
+| `automation_workflows` | tenant; status draft/active/paused/archived; SHA-256 of the inbound webhook token (unique) | 13 | archived, never deleted; cascade with organization |
+| `automation_workflow_versions`, `automation_nodes`, `automation_edges` | tenant; one draft and one published per workflow; one way into every node (unique `to`) | 13 | published/retired immutable; cascade with version |
+| `automation_runs` | tenant; unique per (workflow, trigger occurrence); chain depth; resume time; deadline | 13 | kept; contact/deal NO ACTION; version NO ACTION |
+| `automation_run_steps`, `automation_run_logs` | tenant; unique step per (run, node) | 13 | cascade with run |
 | `form_submissions` | tenant; validated answers, accepted/spam, unique render-token key per form | 12 | kept; contact/deal links NO ACTION (ADR-027); version NO ACTION |
 
 \* Members see their organizations only in user scope (no organization selected); inside a

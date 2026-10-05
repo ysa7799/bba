@@ -15,6 +15,7 @@
     "@businessos/activities": "workspace:*",
     "@businessos/audit": "workspace:*",
     "@businessos/auth": "workspace:*",
+    "@businessos/automation": "workspace:*",
     "@businessos/billing": "workspace:*",
     "@businessos/calendar": "workspace:*",
     "@businessos/communications": "workspace:*",

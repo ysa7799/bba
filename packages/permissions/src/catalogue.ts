@@ -268,6 +268,20 @@ export const PERMISSION_DEFINITIONS = [
     roles: ['manager'],
   },
   {
+    key: 'automation.workflow.read',
+    module: 'automation',
+    label: 'View workflows',
+    description: 'See workflows, their runs and run history.',
+    roles: ['manager'],
+  },
+  {
+    key: 'automation.workflow.manage',
+    module: 'automation',
+    label: 'Manage workflows',
+    description: 'Build, publish, pause and archive workflows; retry and cancel runs.',
+    roles: ['manager'],
+  },
+  {
     key: 'forms.read',
     module: 'forms',
     label: 'View forms',

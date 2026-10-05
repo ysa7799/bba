@@ -332,3 +332,34 @@ the Next.js request proxy from the API on each request, re-validated against the
 origin pattern and replaced by `'none'` on any error. Origins are validated when saved (they
 end up in a header): `https://host[:port]`, `https://*.host`, or a localhost origin. An empty
 list means the form cannot be embedded; the standalone link always works.
+
+## ADR-043 — Workflows are trees of steps executed one transaction per step
+
+A version holds a trigger and nodes connected by edges where every node has exactly one way in
+(conditions branch into `true`/`false`; there are no merges or cycles). A run therefore visits
+each step at most once, so a step row unique per (run, step) is the idempotency key: an
+internal action commits together with its step marked as succeeded, and a repeated or
+concurrent job finds it done. The webhook action is claimed with a lease, performed outside the
+transaction and recorded afterwards (at least once, with an `Idempotency-Key` header). Runs
+stay on the version they started with. Waits and retries are durable: the run stores when it
+is due and a scheduler re-queues due and stalled runs every minute; delayed queue jobs are an
+optimisation only. A failing step is retried after 1, 5 and 30 minutes when the error is
+transient (network, 5xx, 429) and fails the run otherwise; staff can retry a failed run from
+the failed step.
+
+## ADR-044 — Loop protection by causation, not by counting events
+
+Every change a run makes carries the correlation id `automation:<runId>`, so the automation
+subscriber knows which run caused an event. A workflow is never started by its own run;
+chains of different workflows starting each other stop at depth 3 (the run is recorded as
+skipped with the reason); and a workflow runs at most 20 times per contact per hour. Steps
+cannot form loops (ADR-043), runs time out after 90 days, and plan quotas cap the total. The
+webhook action refuses BusinessOS's own hosts, which would bypass the causation chain.
+
+## ADR-045 — Outbound workflow HTTP is SSRF-hardened at connect time
+
+The webhook action only calls `https://` URLs without credentials, never follows redirects
+and resolves the host through a lookup that rejects the connection unless every address is
+public — checked when connecting, so a DNS answer cannot change between validation and use.
+Private networks are allowed only with `AUTOMATION_ALLOW_PRIVATE_NETWORK` (development and
+tests; refused in production). Responses are discarded; only the status matters.

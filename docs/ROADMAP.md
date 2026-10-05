@@ -19,7 +19,7 @@ Phases execute in order. A phase is complete only when its quality gate passes (
 | 10  | Communications (inbox, email/WhatsApp/SMS architecture) | Normalized providers + isolation                   | PASSED      |
 | 11  | Calendar                                                | Double-booking concurrency tests                   | PASSED      |
 | 12  | Forms                                                   | Spam / rate-limit / input validation               | PASSED      |
-| 13  | Automation V1                                           | Durable waits, retry, idempotency, loop protection | NOT_STARTED |
+| 13  | Automation V1                                           | Durable waits, retry, idempotency, loop protection | PASSED      |
 | 14  | Commerce                                                | Money precision and payment integrity              | NOT_STARTED |
 | 15  | Dashboards + reporting                                  | Permission-aware reports                           | NOT_STARTED |
 | 16  | Files + notifications                                   | Production-grade shared services                   | NOT_STARTED |

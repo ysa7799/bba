@@ -1,3 +1,4 @@
+import type { AutomationServices } from '@businessos/automation';
 import { createCalendarProviders } from '@businessos/calendar';
 import { createChannelProviders } from '@businessos/communications';
 import { createDatabase } from '@businessos/database';
@@ -23,7 +24,18 @@ function main(): void {
   const redis = createWorkerRedis(env.REDIS_URL, 'businessos-worker');
   const queueRedis = createWorkerRedis(env.REDIS_URL, 'businessos-worker-producer');
   const queue = new BullJobQueue(queueRedis, env.QUEUE_PREFIX);
-  const registry = createSubscriberRegistry(db.db);
+  const automation: AutomationServices = {
+    allowPrivateNetwork: env.AUTOMATION_ALLOW_PRIVATE_NETWORK,
+    ownHosts: [new URL(env.API_PUBLIC_URL).hostname, new URL(env.APP_URL).hostname],
+    enqueue: (name, payload, options) =>
+      queue.enqueue(name, payload as never, {
+        organizationId: options.organizationId,
+        ...(options.jobId ? { jobId: options.jobId } : {}),
+        ...(options.delayMs ? { delayMs: options.delayMs } : {}),
+        ...(options.correlationId ? { correlationId: options.correlationId } : {}),
+      }),
+  };
+  const registry = createSubscriberRegistry(db.db, automation);
   const secretBox = env.CREDENTIALS_ENCRYPTION_KEYS
     ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
     : null;
@@ -43,6 +55,7 @@ function main(): void {
         providers: createCalendarProviders({ fake: env.CALENDAR_FAKE_PROVIDERS }),
         secretBox,
       },
+      automation,
       appUrl: env.APP_URL,
       registry,
       email: createEmailTransport(env, logger),
@@ -69,6 +82,10 @@ function main(): void {
     .catch((error: unknown) => {
       logger.error({ err: error }, 'could not schedule appointment reminders');
     });
+  // Durable workflow continuation: waits and retries that are due, and stalled runs.
+  queue.schedule('automation-resume', 'automation.resume', {}, 60_000).catch((error: unknown) => {
+    logger.error({ err: error }, 'could not schedule workflow resumption');
+  });
   const health =
     env.WORKER_HEALTH_PORT > 0 ? startHealthServer(env.WORKER_HEALTH_PORT, db, redis) : null;
   logger.info(

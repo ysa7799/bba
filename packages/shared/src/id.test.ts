@@ -10,8 +10,15 @@ describe('newId (UUIDv7)', () => {
   });
 
   it('encodes the timestamp', () => {
-    const now = Date.UTC(2026, 9, 5, 12, 0, 0);
-    expect(uuidv7Timestamp(newId(now + 10_000))).toBe(now + 10_000);
+    // Ahead of every id generated so far: the generator is monotonic, so a fixed instant in
+    // the past would be (correctly) bumped once the real clock passes it.
+    const at = Date.now() + 60_000;
+    expect(uuidv7Timestamp(newId(at))).toBe(at);
+  });
+
+  it('never goes back in time', () => {
+    const latest = uuidv7Timestamp(newId());
+    expect(uuidv7Timestamp(newId(Date.UTC(2020, 0, 1)))).toBeGreaterThanOrEqual(latest);
   });
 
   it('is strictly increasing within a process', () => {

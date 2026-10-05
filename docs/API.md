@@ -282,6 +282,44 @@ Public forms (no session; rate limited per IP and per form; `Cache-Control: no-s
 | GET    | `/public/forms/:slug/embed-policy` | `{frameAncestors}` (read by the web app's proxy for the embed route)                                                                             |
 | POST   | `/public/forms/:slug/submissions`  | `{renderToken, answers, website (honeypot), captchaToken?}` → 201 `{successMessage, redirectUrl}` — the same for quarantined spam; 400 per field |
 
+### Automation (Phase 13)
+
+All under `/app/orgs/:orgId/automation`. A workflow has a draft and a published version; a
+version is a trigger plus a tree of steps (`nodes` and `edges`, every step reachable from
+`entry` exactly one way).
+
+| Method      | Path                                  | Permission                   | Notes                                                                                                                                      |
+| ----------- | ------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET         | `/workflows`                          | `automation.workflow.read`   | `?status&limit` (≤ 200; archived only when asked) with run counts                                                                          |
+| GET         | `/builder-options`                    | `automation.workflow.manage` | triggers, actions, tags, pipelines/stages, members, channels, approved WhatsApp templates, forms, appointment types, contact custom fields |
+| POST        | `/workflows`                          | `automation.workflow.manage` | `{name, description?, triggerType?}` → draft v1 (audited)                                                                                  |
+| GET / PATCH | `/workflows/:id`                      | read / manage                | detail with `draft` and `published` definitions; PATCH `{name?, description?}` (audited)                                                   |
+| PUT         | `/workflows/:id/draft`                | `automation.workflow.manage` | `{trigger: {type, config}, nodes: [{key, type, action?, label?, config}], edges: [{from, to, branch}], entry}` (≤ 50 steps) (audited)      |
+| DELETE      | `/workflows/:id/draft`                | `automation.workflow.manage` | back to the published version                                                                                                              |
+| POST        | `/workflows/:id/publish`              | `automation.workflow.manage` | re-validated; activates the workflow; `automation.workflows.max` (402) (audited)                                                           |
+| POST        | `/workflows/:id/pause`, `/resume`     | `automation.workflow.manage` | paused: nothing starts or continues (audited)                                                                                              |
+| POST        | `/workflows/:id/archive`              | `automation.workflow.manage` | cancels runs in progress, revokes the webhook URL → `{workflow, cancelledRuns}` (audited)                                                  |
+| POST        | `/workflows/:id/webhook-token`        | `automation.workflow.manage` | → `{url}` shown once; replaces the previous URL (audited)                                                                                  |
+| GET         | `/workflows/:id/runs`                 | `automation.workflow.read`   | `?status&cursor&limit`, newest first; contact names only with `crm.contact.read`                                                           |
+| GET         | `/runs/:id`                           | `automation.workflow.read`   | run with steps (status, attempts, output, error), logs and trigger data                                                                    |
+| POST        | `/runs/:id/retry`, `/runs/:id/cancel` | `automation.workflow.manage` | retry a failed run from the failed step / cancel one in progress (audited)                                                                 |
+
+Triggers: `contact.created`, `contact.updated` (`fields`), `contact.tag_added` (`tagId`),
+`form.submitted` (`formId`), `deal.created` (`pipelineId`), `deal.stage_changed`
+(`pipelineId`, `toStageId`), `appointment.booked` (`appointmentTypeId`), `task.completed`,
+`message.received` (`channel`), `webhook.received`. Steps: `wait` (`amount`, `unit` ≤ 30 days),
+`condition` (`match`, `rules[{field, operator, value}]`, branches `true`/`false`) and actions
+`contact.create`, `contact.update`, `contact.add_tag`, `contact.remove_tag`,
+`contact.assign_owner`, `deal.create`, `deal.move`, `task.create`, `message.email`,
+`message.sms`, `message.whatsapp`, `http.request`. Text settings accept `{{contact.firstName}}`
+style placeholders (`organization`, `contact`, `deal`, `trigger` paths only).
+
+Inbound (no session; rate limited per IP and per workflow; URL token masked in logs):
+
+| Method | Path                          | Notes                                                                                                       |
+| ------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| POST   | `/webhooks/automation/:token` | JSON object ≤ 64 KB → 202 `{runId, duplicate}`; `Idempotency-Key` header dedupes retries; 404 unless active |
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

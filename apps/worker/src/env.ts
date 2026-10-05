@@ -54,6 +54,8 @@ export const workerEnvSchema = z
     COMMUNICATIONS_FAKE_PROVIDERS: booleanFromEnv.default(false),
     /** Development/test in-memory external calendar provider. */
     CALENDAR_FAKE_PROVIDERS: booleanFromEnv.default(false),
+    /** Development/test: workflow webhook actions may target http:// and private addresses. */
+    AUTOMATION_ALLOW_PRIVATE_NETWORK: booleanFromEnv.default(false),
     /** Public URL of the web app (links in emails sent by jobs, e.g. appointment reminders). */
     APP_URL: z.url().default('http://localhost:3000'),
     OUTBOX_POLL_MS: z.coerce.number().int().min(50).max(60_000).default(500),
@@ -78,6 +80,13 @@ export const workerEnvSchema = z
         code: 'custom',
         path: ['COMMUNICATIONS_FAKE_PROVIDERS'],
         message: 'fake channel providers are not allowed in production',
+      });
+    }
+    if (env.NODE_ENV === 'production' && env.AUTOMATION_ALLOW_PRIVATE_NETWORK) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AUTOMATION_ALLOW_PRIVATE_NETWORK'],
+        message: 'private network access for workflows is not allowed in production',
       });
     }
     if (env.NODE_ENV === 'production' && env.CALENDAR_FAKE_PROVIDERS) {
