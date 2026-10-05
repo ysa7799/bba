@@ -13,7 +13,8 @@ if (!appDir || entries.length === 0) {
 
 const builtins = new Set([...builtinModules, ...builtinModules.map((m) => `node:${m}`)]);
 const requireFromApp = createRequire(path.resolve(appDir, 'package.json'));
-const pattern = /(?:from\s*|import\s*\(\s*|import\s+|require\s*\(\s*)["']([^"'./][^"']*)["']/g;
+// Specifiers contain no whitespace, which keeps prose in string literals ("… from 'x' …") out.
+const pattern = /(?:from\s*|import\s*\(\s*|import\s+|require\s*\(\s*)["']([^"'./\s][^"'\s]*)["']/g;
 const missing = new Set();
 
 for (const entry of entries) {

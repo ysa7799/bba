@@ -1,3 +1,4 @@
+import { createCalendarProviders } from '@businessos/calendar';
 import {
   ChannelProviderRegistry,
   createConnection,
@@ -63,6 +64,8 @@ describe('communications.send handler', () => {
     const handlers = buildHandlers({
       db: handle.db,
       communications,
+      calendar: { providers: createCalendarProviders({ fake: true }), secretBox: null },
+      appUrl: 'http://localhost:3000',
       registry: new SubscriberRegistry(),
       email: new FileEmailTransport('/dev/null'),
       logger: pino({ level: 'silent' }),

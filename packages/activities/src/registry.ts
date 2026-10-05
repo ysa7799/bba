@@ -6,7 +6,14 @@ import type { Permission } from '@businessos/permissions';
  * an optional channel and the metadata keys the API may expose — any other metadata stays
  * server-side. New modules add their types here.
  */
-export const ACTIVITY_CATEGORIES = ['note', 'task', 'deal', 'communication', 'record'] as const;
+export const ACTIVITY_CATEGORIES = [
+  'note',
+  'task',
+  'deal',
+  'communication',
+  'appointment',
+  'record',
+] as const;
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
 
 export const ACTIVITY_CHANNELS = ['phone', 'meeting', 'email', 'whatsapp', 'sms'] as const;
@@ -144,6 +151,36 @@ export const ACTIVITY_TYPES = {
     permission: 'communications.read',
     channel: 'sms',
     metadataKeys: ['conversationId', 'preview'],
+  },
+  'appointment.booked': {
+    category: 'appointment',
+    permission: 'calendar.appointment.read',
+    channel: 'meeting',
+    metadataKeys: ['appointmentId', 'title', 'startsAt', 'by'],
+  },
+  'appointment.rescheduled': {
+    category: 'appointment',
+    permission: 'calendar.appointment.read',
+    channel: 'meeting',
+    metadataKeys: ['appointmentId', 'title', 'startsAt', 'by'],
+  },
+  'appointment.cancelled': {
+    category: 'appointment',
+    permission: 'calendar.appointment.read',
+    channel: 'meeting',
+    metadataKeys: ['appointmentId', 'title', 'startsAt', 'by'],
+  },
+  'appointment.completed': {
+    category: 'appointment',
+    permission: 'calendar.appointment.read',
+    channel: 'meeting',
+    metadataKeys: ['appointmentId', 'title', 'startsAt', 'by'],
+  },
+  'appointment.no_show': {
+    category: 'appointment',
+    permission: 'calendar.appointment.read',
+    channel: 'meeting',
+    metadataKeys: ['appointmentId', 'title', 'startsAt', 'by'],
   },
 } as const satisfies Record<string, ActivityTypeDefinition>;
 

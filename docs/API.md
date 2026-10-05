@@ -209,6 +209,47 @@ Development only (`COMMUNICATIONS_FAKE_PROVIDERS=true`, never in production; `co
 and `/status` `{messageId, status}` sign a fake-provider payload and run it through the real
 webhook pipeline.
 
+### Calendar & booking (Phase 11)
+
+All under `/app/orgs/:orgId/calendar`. Times are ISO 8601 instants; availability rules are
+minutes after local midnight in the calendar's IANA time zone.
+
+| Method               | Path                                       | Permission                                                           | Notes                                                                                                                                                                   |
+| -------------------- | ------------------------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET                  | `/calendars`                               | `calendar.appointment.read`                                          | personal (`user`) and shared (`resource`) calendars                                                                                                                     |
+| POST                 | `/calendars/me`                            | `calendar.appointment.manage`                                        | the caller's personal calendar, created on first use with the local working week (Sun–Thu in BH/SA/KW/QA/OM, Mon–Fri elsewhere) 09:00–17:00                             |
+| POST                 | `/calendars`                               | `calendar.manage`                                                    | `{name, timezone?}` shared calendar (audited)                                                                                                                           |
+| GET / PATCH          | `/calendars/:id`                           | read / own calendar or `calendar.manage` (`isActive`: manage)        | `{name?, timezone?, isActive?}` (audited)                                                                                                                               |
+| GET / PUT            | `/calendars/:id/availability`              | read / own calendar or `calendar.manage`                             | PUT `{rules: [{weekday 0–6, startMinute, endMinute}]}` replaces weekly hours (no overlaps)                                                                              |
+| POST / DELETE        | `/calendars/:id/exceptions[/:exceptionId]` | own calendar or `calendar.manage`                                    | `{date, kind: available\|unavailable, startMinute?, endMinute?, reason?}`; `available` = custom hours for that day                                                      |
+| GET                  | `/calendar-providers`                      | `calendar.appointment.manage`                                        | providers with credential fields; `encryptionConfigured`                                                                                                                |
+| GET / POST           | `/calendars/:id/connections`               | own calendar or `calendar.manage`                                    | `{provider, externalCalendarId, credentials?, checkConflicts?, writeEvents?}`; secrets are write-only (audited)                                                         |
+| DELETE               | `/calendar-connections/:id`                | own calendar or `calendar.manage`                                    | disconnect; credentials wiped (audited)                                                                                                                                 |
+| GET / POST           | `/appointment-types`                       | read / `calendar.manage`                                             | `{name, slug?, durationMinutes, buffer*, slotIntervalMinutes, minimumNoticeMinutes, maximumAdvanceDays, schedulingMode, locationKind, hostCalendarIds}` (audited)       |
+| GET / PATCH          | `/appointment-types/:id`                   | read / `calendar.manage`                                             | deactivate with `isActive: false` (types are never deleted)                                                                                                             |
+| GET                  | `/appointment-types/:id/slots`             | `calendar.appointment.read`                                          | `?from&to` (≤ 31 days) → `[{startsAt, calendarIds}]` free starts with the free hosts                                                                                    |
+| GET / POST           | `/booking-pages`                           | read / `calendar.manage`                                             | `{title, slug?, description?, appointmentTypeIds, isActive}`; slugs are global (a taken one gets a random suffix) (audited)                                             |
+| GET / PATCH / DELETE | `/booking-pages/:id`                       | read / `calendar.manage`                                             | DELETE only for pages without bookings (409 otherwise: deactivate instead) (audited)                                                                                    |
+| GET                  | `/appointments`                            | `calendar.appointment.read`                                          | `?from&to&calendarId&contactId&status (scheduled default, all)&limit&cursor`, by start time                                                                             |
+| GET                  | `/appointments/:id`                        | `calendar.appointment.read`                                          | contact name only with `crm.contact.read`                                                                                                                               |
+| POST                 | `/appointments`                            | `calendar.appointment.manage` (+ `crm.contact.read` for `contactId`) | type booking `{appointmentTypeId, startsAt, calendarId?}` or ad hoc `{calendarId, title, durationMinutes, startsAt}`; `invitee`, `ignoreAvailability` → 201 / 409 taken |
+| POST                 | `/appointments/:id/cancel`                 | `calendar.appointment.manage`                                        | `{reason?}`; frees the time                                                                                                                                             |
+| POST                 | `/appointments/:id/reschedule`             | `calendar.appointment.manage`                                        | `{startsAt, ignoreAvailability?}` in place; 409 when taken (appointment unchanged)                                                                                      |
+| POST                 | `/appointments/:id/status`                 | `calendar.appointment.manage`                                        | `{status: completed\|no_show}` after the start                                                                                                                          |
+
+Changes email the invitee (when there is one) through `email.send` and queue `calendar.sync`.
+
+Public booking (no session; rate limited per IP and per page; `Cache-Control: no-store`):
+
+| Method | Path                                                  | Notes                                                                                                                                                                   |
+| ------ | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/public/booking/pages/:slug`                         | active page: title, organization name and time zone, offered types                                                                                                      |
+| GET    | `/public/booking/pages/:slug/types/:typeId/slots`     | `?from&to` → ISO start times only (hosts are not revealed)                                                                                                              |
+| POST   | `/public/booking/pages/:slug/book`                    | `{appointmentTypeId, startsAt, invitee: {name, email, phone?, notes?, timezone}, website (honeypot, must be empty)}` → 201 `{appointment, manageToken}`; 409 when taken |
+| GET    | `/public/booking/manage/:token`                       | the invitee's view (no staff data)                                                                                                                                      |
+| GET    | `/public/booking/manage/:token/slots`                 | times to move to (same type and rules)                                                                                                                                  |
+| POST   | `/public/booking/manage/:token/cancel`, `/reschedule` | `{reason?}` / `{startsAt}`                                                                                                                                              |
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

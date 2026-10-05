@@ -49,11 +49,16 @@ export function redactSensitive(value: unknown, depth = 0): unknown {
   return value;
 }
 
-/** Webhook paths whose last segment is a routing secret (`/webhooks/<area>/<provider>/<token>`). */
-const SECRET_PATH_SEGMENT = /^(\/webhooks\/communications\/[^/?#]+\/)[^/?#]+/;
+/**
+ * Paths whose next segment is a secret: per-connection webhook tokens
+ * (`/webhooks/communications/<provider>/<token>`) and invitee manage links
+ * (`/public/booking/manage/<token>`).
+ */
+const SECRET_PATH_SEGMENT =
+  /^(\/webhooks\/communications\/[^/?#]+\/|\/public\/booking\/manage\/)[^/?#]+/;
 
 /**
- * Request URL as it may appear in logs: secret path segments (per-connection webhook tokens)
+ * Request URL as it may appear in logs: secret path segments (webhook and manage-link tokens)
  * and the values of sensitive query parameters (e.g. `hub.verify_token`, `token`) are masked.
  */
 export function redactUrlForLog(url: string): string {

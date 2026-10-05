@@ -41,6 +41,9 @@ importers:
       '@businessos/billing':
         specifier: workspace:*
         version: link:../../packages/billing
+      '@businessos/calendar':
+        specifier: workspace:*
+        version: link:../../packages/calendar
       '@businessos/communications':
         specifier: workspace:*
         version: link:../../packages/communications
@@ -175,6 +178,9 @@ importers:
       '@businessos/activities':
         specifier: workspace:*
         version: link:../../packages/activities
+      '@businessos/calendar':
+        specifier: workspace:*
+        version: link:../../packages/calendar
       '@businessos/communications':
         specifier: workspace:*
         version: link:../../packages/communications
@@ -363,6 +369,43 @@ importers:
       tsx:
         specifier: ^4.23.15
         version: 4.23.15
+
+  packages/calendar:
+    dependencies:
+      '@businessos/activities':
+        specifier: workspace:*
+        version: link:../activities
+      '@businessos/crm':
+        specifier: workspace:*
+        version: link:../crm
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../events
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../organizations
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
 
   packages/communications:
     dependencies:

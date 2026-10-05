@@ -211,6 +211,45 @@ export const EVENT_DEFINITIONS = {
     version: 1,
     schema: z.object({ activityId: z.uuid(), type: z.string().max(60) }),
   },
+  'appointment.booked': {
+    version: 1,
+    schema: z.object({
+      appointmentId: z.uuid(),
+      appointmentTypeId: z.uuid().nullable(),
+      calendarIds: z.array(z.uuid()).min(1),
+      contactId: z.uuid().nullable(),
+      startsAt: z.iso.datetime(),
+      source: z.enum(['booking_page', 'staff']),
+    }),
+  },
+  'appointment.rescheduled': {
+    version: 1,
+    schema: z.object({
+      appointmentId: z.uuid(),
+      contactId: z.uuid().nullable(),
+      startsAt: z.iso.datetime(),
+      previousStartsAt: z.iso.datetime(),
+      by: z.enum(['invitee', 'staff']),
+    }),
+  },
+  'appointment.cancelled': {
+    version: 1,
+    schema: z.object({
+      appointmentId: z.uuid(),
+      contactId: z.uuid().nullable(),
+      startsAt: z.iso.datetime(),
+      by: z.enum(['invitee', 'staff']),
+    }),
+  },
+  'appointment.status_changed': {
+    version: 1,
+    schema: z.object({
+      appointmentId: z.uuid(),
+      contactId: z.uuid().nullable(),
+      from: z.enum(['scheduled', 'cancelled', 'completed', 'no_show']),
+      to: z.enum(['scheduled', 'cancelled', 'completed', 'no_show']),
+    }),
+  },
 } as const satisfies Record<string, { version: number; schema: z.ZodType }>;
 
 export type EventType = keyof typeof EVENT_DEFINITIONS;

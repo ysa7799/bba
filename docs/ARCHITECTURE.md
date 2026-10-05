@@ -162,6 +162,14 @@ Outbound messages are stored as `queued` in the request transaction and delivere
 `communications.send` job (claim → send → record), so a provider outage never loses a
 message or blocks the inbox.
 
+Scheduling (`@businessos/calendar`) computes availability on demand: weekly hours and date
+overrides are expanded in each calendar's IANA zone (DST-safe `Intl` arithmetic), minus busy
+blocks of existing bookings and external busy times, then filtered by notice/advance rules and
+combined per scheduling mode (one host, round robin, team). Booking re-validates the slot and
+inserts busy blocks guarded by a PostgreSQL exclusion constraint, which settles concurrent
+bookings; round robin falls through to the next free host. Public booking pages and invitee
+manage links are separate unauthenticated routes that resolve the tenant from a slug or token.
+
 ## 8. Frontend
 
 - Next.js App Router, React 19, Tailwind CSS 4, accessible primitives (Radix-based,

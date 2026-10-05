@@ -1,3 +1,8 @@
+import {
+  processDueReminders,
+  syncAppointmentEvents,
+  type CalendarServices,
+} from '@businessos/calendar';
 import { deliverMessage, type CommunicationsServices } from '@businessos/communications';
 import { processExport, processImport, runCrmMaintenance } from '@businessos/crm';
 import type { Database } from '@businessos/database';
@@ -11,6 +16,9 @@ import type { EmailTransport } from './email/transports';
 export interface HandlerDeps {
   db: Database;
   communications: CommunicationsServices;
+  calendar: CalendarServices;
+  /** Public web app URL for links in job-sent emails. */
+  appUrl: string;
   registry: SubscriberRegistry;
   email: EmailTransport;
   logger: Logger;
@@ -55,6 +63,35 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
       return { outcome };
     },
 
+    'calendar.reminders': async () => {
+      const result = await processDueReminders(deps.db, {
+        now: Date.now(),
+        appUrl: deps.appUrl,
+        send: async (email) => {
+          const rendered = renderEmail('appointment_reminder', email.data);
+          await deps.email.send({
+            ...rendered,
+            to: email.to,
+            template: 'appointment_reminder',
+            link: email.data.manageUrl,
+          });
+        },
+      });
+      if (result.sent + result.failed > 0) deps.logger.info(result, 'appointment reminders');
+      return result;
+    },
+
+    'calendar.sync': async (payload) => {
+      const outcome = await syncAppointmentEvents(
+        deps.db,
+        deps.calendar,
+        payload.organizationId,
+        payload.appointmentId,
+      );
+      deps.logger.info({ appointmentId: payload.appointmentId, outcome }, 'calendar sync');
+      return outcome;
+    },
+
     'crm.import': async (payload) => {
       const result = await processImport(deps.db, payload.organizationId, payload.importId);
       deps.logger.info({ importId: payload.importId, result }, 'crm import processed');
@@ -80,7 +117,11 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
         to: payload.to,
         template: payload.template,
         link:
-          payload.data.link ?? payload.data.resetLink ?? payload.data.forgotPasswordLink ?? null,
+          payload.data.link ??
+          payload.data.resetLink ??
+          payload.data.forgotPasswordLink ??
+          payload.data.manageUrl ??
+          null,
       });
       deps.logger.info(
         {

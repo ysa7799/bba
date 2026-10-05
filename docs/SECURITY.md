@@ -186,6 +186,24 @@ threat model and the control catalogue; it is updated whenever a control is adde
   message.
 - The development simulator and fake providers are refused in production.
 
+### Calendar & booking (Phase 11)
+
+- Double booking is prevented by the database: every booking holds its time (with buffers)
+  as busy blocks under an exclusion constraint; concurrent bookings are settled by the
+  constraint, not by application checks (concurrency tests: 10 simultaneous bookings → 1).
+- Public pages and manage links resolve their tenant by global slug / token hash (system
+  scope, justified); everything else runs in that tenant. Public responses expose start times
+  only (no host ids), are `no-store`, and are rate limited per IP (reads, bookings, manage
+  actions) and per page (bookings). A honeypot field rejects naive bots; invitee input is
+  validated (email, phone, IANA time zone) and stored and rendered as plain text.
+- Manage links: 256-bit random tokens, SHA-256 stored, expire 30 days after the appointment,
+  masked in request logs, `noindex` and `no-referrer` on the manage page. Each email carries
+  its own token; invitees cannot bypass availability rules (staff-only `ignoreAvailability`).
+- Staff bookings check that hosts and contacts belong to the organization (404 / 400);
+  members edit only their own calendar unless they hold `calendar.manage`.
+- External calendar credentials are sealed like channel credentials; a provider that cannot
+  be read makes its host unavailable rather than looking free.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -197,6 +215,7 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 | Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                         |
 | ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 2026-10-05 | 11    | MEDIUM   | Invitee manage-link tokens travel in URL paths and would have been written to request logs (same class as the Phase 10 webhook-token finding). Found in phase review before release.                     | Fixed: `redactUrlForLog` masks them + regression tests                         |
 | 2026-10-05 | 10    | HIGH     | Request logs included full URLs, so per-connection webhook tokens (path) and WhatsApp `hub.verify_token` (query) would have been written to logs. Found in phase review before release.                  | Fixed: redacting `req` serializer (`redactUrlForLog`) + regression tests       |
 | 2026-10-05 | 8     | MEDIUM   | Turborepo cache keys ignored internal package sources: lint/typecheck/test/build results could be replayed after a package change, so a regression could pass local gates.                               | Fixed: package sources in `globalDependencies` (ADR-031); full uncached re-run |
 | 2026-10-05 | 8     | LOW      | Test isolation: one test file flushed the shared Redis test database, intermittently erasing other files' rate-limit counters (could mask or fake limiter behaviour).                                    | Fixed: no flushes; unique key prefixes per test context                        |

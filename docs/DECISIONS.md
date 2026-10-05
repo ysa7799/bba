@@ -257,3 +257,37 @@ provider failures retry with backoff and only the final attempt marks the messag
 Agents never wait on a provider, a provider outage never loses a message, and a retried
 request or job cannot send twice (claim + idempotent quota key). Status receipts from
 webhooks only move a message forward.
+
+## ADR-036 — The database prevents double booking (exclusion constraint on busy blocks)
+
+A booking writes one `calendar_busy_blocks` row per host calendar covering the meeting plus its
+buffers, under `EXCLUDE USING gist (calendar_id WITH =, tstzrange(starts_at, ends_at) WITH &&)`.
+Availability is still checked first (working hours, notice, existing bookings, external busy
+times), but only the constraint is race-free: of two concurrent bookings for overlapping time
+exactly one commits, the other gets SQLSTATE `23P01` and becomes a 409 (round robin tries the
+next free host inside a savepoint). Storing buffered ranges means both bookings' buffers are
+respected with one rule. Team bookings hold every host's calendar in one transaction, so they
+and individual bookings on a shared host can never overlap. Rejected: advisory locks or
+`SELECT … FOR UPDATE` on calendars (correct only if every write path remembers to lock) and
+serializable transactions (retry storms under load, no guarantee for raw writes).
+
+## ADR-037 — Availability is computed on demand; no stored slots
+
+Slots are derived per request from weekly rules, date overrides, busy blocks and external busy
+times (≤ 31 days per request), in each calendar's IANA zone with DST-safe conversion. Start times
+step from the start of each working block (09:00, 09:30…), never from the request window, so
+"now" or a mid-block window cannot shift the grid. No slot table to keep in sync with rule
+edits, bookings, cancellations and external calendars; caching can be added later per type
+and day if measurements require it.
+
+## ADR-038 — Rescheduling is in place; invitees manage bookings with per-email tokens
+
+A reschedule moves the same appointment (its busy blocks are replaced inside a savepoint, so a
+taken time leaves it untouched) instead of cancelling and re-creating it: history, contact
+links and external events stay attached and `appointment.rescheduled` carries both times.
+Invitees have no account: each confirmation, reschedule and reminder email carries its own
+256-bit manage token (only a SHA-256 hash is stored, tokens expire 30 days after the
+appointment, URLs are masked in logs). Reminders go out 24 hours before the start unless the
+booking was made or moved less than 12 hours before it; that decision is stored at booking
+time (`reminder_sent_at`), and each reminder is claimed before sending so overlapping runs
+cannot send twice.

@@ -62,6 +62,19 @@ To rotate, prepend a new key (`k2:…,k1:…`), deploy, then re-save channel cre
 removing the old key. Losing every key makes stored channel credentials unrecoverable (tenants
 re-enter them); keys belong in the secrets manager, never in the repository.
 
+## Scheduling configuration (Phase 11)
+
+- Migration 0022 runs `CREATE EXTENSION IF NOT EXISTS btree_gist` (trusted: the database owner
+  can create it on PostgreSQL 13+; managed providers ship it). The double-booking constraint
+  depends on it.
+- Worker: `APP_URL` (public web URL, `https://` in production) for links in reminder emails; the
+  worker schedules `calendar.reminders` every 5 minutes.
+- `CALENDAR_FAKE_PROVIDERS` (API + worker) enables the in-memory calendar provider for
+  development and tests only; refused in production.
+- Public booking pages are served by the web app at `/book/<slug>`; their API routes live under
+  `/public/booking/*` behind the same proxy (rate limited per client IP, so keep
+  `TRUST_PROXY` / `TRUST_PROXY_HEADERS` correct).
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

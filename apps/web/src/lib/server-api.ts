@@ -46,3 +46,23 @@ export async function serverGetJson<T>(path: string): Promise<T | null> {
   if (!response.ok) throw new Error(`Request failed (${response.status})`);
   return (await response.json()) as T;
 }
+
+/**
+ * GET for public (unauthenticated) pages: forwards the visitor's IP chain for per-IP rate
+ * limits but no cookies. Returns null for 404 (caller renders not-found).
+ */
+export async function serverPublicGetJson<T>(path: string): Promise<T | null> {
+  const incoming = await headers();
+  const requestId = incoming.get('x-request-id');
+  const xff = forwardedFor(incoming);
+  const response = await serverApiFetch(path, {
+    headers: {
+      ...(requestId ? { 'x-request-id': requestId } : {}),
+      ...(xff ? { 'x-forwarded-for': xff } : {}),
+    },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Request failed (${response.status})`);
+  return (await response.json()) as T;
+}

@@ -71,7 +71,10 @@ Implemented: `organization.created`, `organization.updated`, `member.invited`, `
 `deal.lost` (reason), `deal.deleted`, `task.created`, `task.completed` (Phase 8);
 `note.created`, `activity.logged` (Phase 9); `conversation.created`, `conversation.assigned`,
 `conversation.status_changed`, `message.received`, `message.sent`, `message.failed`
-(Phase 10 — ids, channel and direction only; never message text or addresses). CRM events
+(Phase 10 — ids, channel and direction only; never message text or addresses);
+`appointment.booked` (type, host calendars, contact, start, source), `appointment.rescheduled`
+(new and previous start, by invitee/staff), `appointment.cancelled`, `appointment.status_changed`
+(completed / no-show) (Phase 11 — no invitee contact details). CRM events
 carry ids and small facts only — never contact details. Bulk actions emit one event per
 affected record; imports emit the same events as manual creation with the importer as actor
 and `import:<id>` as correlation id. The rest arrive with their modules:

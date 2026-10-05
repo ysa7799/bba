@@ -184,14 +184,15 @@ export async function describeVersion(
   plan: Plan,
   version: PlanVersion,
 ): Promise<CatalogPlan> {
-  const [entitlementRows, priceRows] = await Promise.all([
-    tx.select().from(planEntitlements).where(eq(planEntitlements.planVersionId, version.id)),
-    tx
-      .select()
-      .from(prices)
-      .where(and(eq(prices.planVersionId, version.id), eq(prices.status, 'active')))
-      .orderBy(asc(prices.currency), asc(prices.interval)),
-  ]);
+  const entitlementRows = await tx
+    .select()
+    .from(planEntitlements)
+    .where(eq(planEntitlements.planVersionId, version.id));
+  const priceRows = await tx
+    .select()
+    .from(prices)
+    .where(and(eq(prices.planVersionId, version.id), eq(prices.status, 'active')))
+    .orderBy(asc(prices.currency), asc(prices.interval));
   return {
     id: plan.id,
     key: plan.key,

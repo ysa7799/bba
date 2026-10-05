@@ -245,6 +245,28 @@ export const PERMISSION_DEFINITIONS = [
     description: 'Connect email, WhatsApp and SMS channels and manage message templates.',
     roles: [],
   },
+  {
+    key: 'calendar.appointment.read',
+    module: 'calendar',
+    label: 'View appointments',
+    description: "See the organization's calendars and appointments.",
+    roles: ['manager', 'member', 'restricted'],
+  },
+  {
+    key: 'calendar.appointment.manage',
+    module: 'calendar',
+    label: 'Manage appointments',
+    description: 'Book, reschedule and cancel appointments and set your own availability.',
+    roles: ['manager', 'member'],
+  },
+  {
+    key: 'calendar.manage',
+    module: 'calendar',
+    label: 'Manage scheduling',
+    description:
+      "Configure appointment types, booking pages, shared calendars, everyone's availability and calendar connections.",
+    roles: ['manager'],
+  },
 ] as const satisfies readonly PermissionDefinition[];
 
 export type Permission = (typeof PERMISSION_DEFINITIONS)[number]['key'];

@@ -65,46 +65,63 @@ emits composite foreign keys before the unique indexes they reference).
 
 Populated as phases land. See the schema files for the source of truth.
 
-| Table                                                   | Scope                                                                       | Phase | Delete behaviour                                                        |
-| ------------------------------------------------------- | --------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------- |
-| `users`                                                 | global (RLS: self, co-members, system)                                      | 2     | hard delete cascades memberships (privacy flow later)                   |
-| `organizations`                                         | tenant root (RLS: own tenant, members\*)                                    | 2     | soft delete (`deleted_at`); hard delete cascades all tenant rows        |
-| `memberships`                                           | tenant                                                                      | 2     | cascade with organization or user                                       |
-| `organization_settings`                                 | tenant                                                                      | 2     | cascade with organization; `updated_by_user_id` set null on user delete |
-| `sessions`                                              | global (RLS: own user, system)                                              | 3     | cascade with user; `active_organization_id` set null                    |
-| `auth_tokens`                                           | global (RLS: system only)                                                   | 3     | cascade with user                                                       |
-| `invitations`                                           | tenant                                                                      | 3     | cascade with organization; inviter/acceptor set null; role RESTRICT     |
-| `roles`                                                 | tenant                                                                      | 4     | cascade with organization                                               |
-| `membership_roles`                                      | tenant (composite same-tenant FKs)                                          | 4     | cascade with membership; role RESTRICT                                  |
-| `audit_logs`                                            | tenant or account-level (org null); append-only (no UPDATE/DELETE policies) | 5     | cascade with organization; actor set null                               |
-| `outbox_events`                                         | tenant insert; system read/update                                           | 5     | cascade with organization                                               |
-| `processed_events`                                      | system only                                                                 | 5     | retention job later                                                     |
-| `job_failures`                                          | system only                                                                 | 5     | organization set null                                                   |
-| `plans`, `plan_versions`, `plan_entitlements`, `prices` | platform catalogue (read: all; write: system)                               | 6     | RESTRICT from versions/prices/subscriptions                             |
-| `billing_customers`                                     | tenant                                                                      | 6     | cascade with organization                                               |
-| `subscriptions`, `subscription_items`                   | tenant read-only (write: system)                                            | 6     | cascade with organization; plan version RESTRICT                        |
-| `entitlement_overrides`, `billing_events`               | tenant read-only (write: system)                                            | 6     | cascade with organization                                               |
-| `usage_counters`, `usage_records`                       | tenant                                                                      | 6     | cascade with organization                                               |
-| `payments`                                              | tenant read-only (write: system)                                            | 7     | organization RESTRICT (financial record)                                |
-| `checkout_sessions`                                     | tenant read-only (write: system)                                            | 7     | cascade with organization; payment RESTRICT                             |
-| `payment_webhook_events`                                | system only                                                                 | 7     | organization set null                                                   |
-| `crm_contacts`, `crm_companies`, `crm_deals`            | tenant; soft delete; generated `search_vector`                              | 8     | cascade with organization; links NO ACTION (ADR-027)                    |
-| `crm_contact_companies`, `crm_*_tags`                   | tenant (composite same-tenant FKs)                                          | 8     | cascade with either side                                                |
-| `crm_pipelines`, `crm_pipeline_stages`                  | tenant; stages unique per `(id, pipeline_id)` for deal FK                   | 8     | archive pipelines; stages deleted only when empty                       |
-| `crm_tasks`, `crm_notes`                                | tenant; soft delete; notes have exactly one parent                          | 8     | cascade with organization (notes cascade with parent)                   |
-| `crm_tags`, `crm_custom_fields`                         | tenant                                                                      | 8     | cascade with organization                                               |
-| `crm_imports`, `crm_import_rows`                        | tenant                                                                      | 8     | staging rows purged 30 days after completion                            |
-| `crm_exports`                                           | tenant; content readable only by the creator via the API                    | 8     | file content cleared at expiry (24 h)                                   |
-| `activities`                                            | tenant; per-row `required_permission`; unique `source_event_id`             | 9     | cascade with organization; record links NO ACTION (ADR-027)             |
-| `channel_connections`                                   | tenant; sealed credentials; webhook token stored as SHA-256 hash            | 10    | disconnect (status) keeps history; cascade with organization            |
-| `conversations`                                         | tenant; unique per connection + counterpart address                         | 10    | cascade with organization; contact link NO ACTION; assignee set null    |
-| `conversation_participants`, `conversation_tags`        | tenant (composite same-tenant FKs)                                          | 10    | cascade with conversation (tags also with tag)                          |
-| `messages`, `message_attachments`                       | tenant; unique provider message id per connection                           | 10    | cascade with conversation; author set null                              |
-| `channel_templates`                                     | tenant; WhatsApp templates per connection                                   | 10    | cascade with connection                                                 |
-| `communication_webhook_events`                          | system only (dedupe + audit of provider callbacks)                          | 10    | organization set null                                                   |
+| Table                                                             | Scope                                                                       | Phase | Delete behaviour                                                        |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------- |
+| `users`                                                           | global (RLS: self, co-members, system)                                      | 2     | hard delete cascades memberships (privacy flow later)                   |
+| `organizations`                                                   | tenant root (RLS: own tenant, members\*)                                    | 2     | soft delete (`deleted_at`); hard delete cascades all tenant rows        |
+| `memberships`                                                     | tenant                                                                      | 2     | cascade with organization or user                                       |
+| `organization_settings`                                           | tenant                                                                      | 2     | cascade with organization; `updated_by_user_id` set null on user delete |
+| `sessions`                                                        | global (RLS: own user, system)                                              | 3     | cascade with user; `active_organization_id` set null                    |
+| `auth_tokens`                                                     | global (RLS: system only)                                                   | 3     | cascade with user                                                       |
+| `invitations`                                                     | tenant                                                                      | 3     | cascade with organization; inviter/acceptor set null; role RESTRICT     |
+| `roles`                                                           | tenant                                                                      | 4     | cascade with organization                                               |
+| `membership_roles`                                                | tenant (composite same-tenant FKs)                                          | 4     | cascade with membership; role RESTRICT                                  |
+| `audit_logs`                                                      | tenant or account-level (org null); append-only (no UPDATE/DELETE policies) | 5     | cascade with organization; actor set null                               |
+| `outbox_events`                                                   | tenant insert; system read/update                                           | 5     | cascade with organization                                               |
+| `processed_events`                                                | system only                                                                 | 5     | retention job later                                                     |
+| `job_failures`                                                    | system only                                                                 | 5     | organization set null                                                   |
+| `plans`, `plan_versions`, `plan_entitlements`, `prices`           | platform catalogue (read: all; write: system)                               | 6     | RESTRICT from versions/prices/subscriptions                             |
+| `billing_customers`                                               | tenant                                                                      | 6     | cascade with organization                                               |
+| `subscriptions`, `subscription_items`                             | tenant read-only (write: system)                                            | 6     | cascade with organization; plan version RESTRICT                        |
+| `entitlement_overrides`, `billing_events`                         | tenant read-only (write: system)                                            | 6     | cascade with organization                                               |
+| `usage_counters`, `usage_records`                                 | tenant                                                                      | 6     | cascade with organization                                               |
+| `payments`                                                        | tenant read-only (write: system)                                            | 7     | organization RESTRICT (financial record)                                |
+| `checkout_sessions`                                               | tenant read-only (write: system)                                            | 7     | cascade with organization; payment RESTRICT                             |
+| `payment_webhook_events`                                          | system only                                                                 | 7     | organization set null                                                   |
+| `crm_contacts`, `crm_companies`, `crm_deals`                      | tenant; soft delete; generated `search_vector`                              | 8     | cascade with organization; links NO ACTION (ADR-027)                    |
+| `crm_contact_companies`, `crm_*_tags`                             | tenant (composite same-tenant FKs)                                          | 8     | cascade with either side                                                |
+| `crm_pipelines`, `crm_pipeline_stages`                            | tenant; stages unique per `(id, pipeline_id)` for deal FK                   | 8     | archive pipelines; stages deleted only when empty                       |
+| `crm_tasks`, `crm_notes`                                          | tenant; soft delete; notes have exactly one parent                          | 8     | cascade with organization (notes cascade with parent)                   |
+| `crm_tags`, `crm_custom_fields`                                   | tenant                                                                      | 8     | cascade with organization                                               |
+| `crm_imports`, `crm_import_rows`                                  | tenant                                                                      | 8     | staging rows purged 30 days after completion                            |
+| `crm_exports`                                                     | tenant; content readable only by the creator via the API                    | 8     | file content cleared at expiry (24 h)                                   |
+| `activities`                                                      | tenant; per-row `required_permission`; unique `source_event_id`             | 9     | cascade with organization; record links NO ACTION (ADR-027)             |
+| `channel_connections`                                             | tenant; sealed credentials; webhook token stored as SHA-256 hash            | 10    | disconnect (status) keeps history; cascade with organization            |
+| `conversations`                                                   | tenant; unique per connection + counterpart address                         | 10    | cascade with organization; contact link NO ACTION; assignee set null    |
+| `conversation_participants`, `conversation_tags`                  | tenant (composite same-tenant FKs)                                          | 10    | cascade with conversation (tags also with tag)                          |
+| `messages`, `message_attachments`                                 | tenant; unique provider message id per connection                           | 10    | cascade with conversation; author set null                              |
+| `channel_templates`                                               | tenant; WhatsApp templates per connection                                   | 10    | cascade with connection                                                 |
+| `communication_webhook_events`                                    | system only (dedupe + audit of provider callbacks)                          | 10    | organization set null                                                   |
+| `calendars`                                                       | tenant; one personal calendar per member (unique org + user)                | 11    | deactivate; cascade with organization; user set null                    |
+| `calendar_availability_rules`, `calendar_availability_exceptions` | tenant; minutes in the calendar's zone                                      | 11    | cascade with calendar                                                   |
+| `appointment_types`, `appointment_type_hosts`                     | tenant; slug unique per organization                                        | 11    | types deactivated, never deleted (NO ACTION from appointments)          |
+| `booking_pages`, `booking_page_types`                             | tenant; slug globally unique (public URL)                                   | 11    | delete only while unused (NO ACTION from appointments)                  |
+| `appointments`, `appointment_participants`                        | tenant; status, invitee snapshot, reminder state                            | 11    | cancelled, never deleted; contact NO ACTION (ADR-027)                   |
+| `calendar_busy_blocks`                                            | tenant; **exclusion constraint** — no overlapping blocks per calendar       | 11    | removed on cancel; cascade with appointment/calendar                    |
+| `appointment_manage_tokens`                                       | tenant; SHA-256 of invitee link tokens, expiring                            | 11    | cascade with appointment                                                |
+| `calendar_connections`, `appointment_external_events`             | tenant; sealed credentials; mirrored external events                        | 11    | disconnect (status); cascade with calendar                              |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.
+
+### Constraints beyond Drizzle
+
+- `calendar_busy_blocks_no_overlap` (migration 0022): `EXCLUDE USING gist (calendar_id WITH =,
+tstzrange(starts_at, ends_at, '[)') WITH &&)`. Needs the `btree_gist` extension (trusted since
+  PostgreSQL 13: the database owner can create it). Booking code relies on it to settle races
+  (SQLSTATE `23P01`), so it must exist in every environment.
+- A transaction is one connection: never run queries concurrently on it (`Promise.all` over
+  `tx` queries); `pg` serializes them anyway and will reject it in its next major version.
 
 ### Scopes
 

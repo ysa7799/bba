@@ -26,6 +26,11 @@ export const DEFAULT_RATE_LIMITS = {
   crmImportOrg: { limit: 20, windowSeconds: 3600 },
   crmExportOrg: { limit: 30, windowSeconds: 3600 },
   crmBulkOrg: { limit: 300, windowSeconds: 3600 },
+  /** Public booking pages (unauthenticated): availability lookups, bookings, manage links. */
+  bookingReadIp: { limit: 300, windowSeconds: 600 },
+  bookingCreateIp: { limit: 10, windowSeconds: 3600 },
+  bookingCreatePage: { limit: 300, windowSeconds: 3600 },
+  bookingManageIp: { limit: 30, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

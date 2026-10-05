@@ -148,6 +148,20 @@
       "when": 1791189158898,
       "tag": "0020_force_rls_communications",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791192499428,
+      "tag": "0021_calendar",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791192500727,
+      "tag": "0022_calendar_constraints",
+      "breakpoints": true
     }
   ]
 }

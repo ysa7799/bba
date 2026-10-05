@@ -1,5 +1,6 @@
 import { UnrecoverableError } from '@businessos/jobs';
 import { describe, expect, it, vi } from 'vitest';
+import { renderEmail } from '../src/email/templates';
 import { PostmarkEmailTransport } from '../src/email/transports';
 import { loadWorkerEnv } from '../src/env';
 
@@ -53,6 +54,7 @@ describe('worker production configuration', () => {
     DATABASE_URL: 'postgres://u:p@db:5432/x',
     REDIS_URL: 'redis://redis:6379',
     API_PUBLIC_URL: 'https://api.example.com',
+    APP_URL: 'https://app.example.com',
   };
 
   it('requires a real email provider and credential encryption keys', () => {
@@ -78,6 +80,19 @@ describe('worker production configuration', () => {
         CREDENTIALS_ENCRYPTION_KEYS: `k1:${key}`,
       }).EMAIL_TRANSPORT,
     ).toBe('postmark');
+    const secure = {
+      ...base,
+      EMAIL_TRANSPORT: 'postmark',
+      POSTMARK_SERVER_TOKEN: 'server-token-123',
+      EMAIL_FROM: 'no-reply@example.com',
+      CREDENTIALS_ENCRYPTION_KEYS: `k1:${key}`,
+    };
+    expect(() => loadWorkerEnv({ ...secure, APP_URL: 'http://app.example.com' })).toThrow(
+      /APP_URL/,
+    );
+    expect(() => loadWorkerEnv({ ...secure, CALENDAR_FAKE_PROVIDERS: 'true' })).toThrow(
+      /CALENDAR_FAKE_PROVIDERS/,
+    );
     expect(() =>
       loadWorkerEnv({
         ...base,
@@ -88,5 +103,32 @@ describe('worker production configuration', () => {
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
       }),
     ).toThrow(/COMMUNICATIONS_FAKE_PROVIDERS/);
+  });
+});
+
+describe('appointment email templates', () => {
+  const data = {
+    organization: 'Riffa Clinic',
+    name: 'Noor',
+    title: 'Consultation',
+    when: 'Sun, 10 Jan 2027, 10:00 (Asia/Bahrain)',
+    location: 'Building 12, Riffa',
+    manageUrl: 'https://app.example.com/book/manage/token',
+  };
+
+  it('renders confirmation, reminder, reschedule and cancellation as plain text', () => {
+    const confirmed = renderEmail('appointment_confirmed', data);
+    expect(confirmed.subject).toBe('Confirmed: Consultation with Riffa Clinic');
+    expect(confirmed.text).toContain('When: Sun, 10 Jan 2027, 10:00 (Asia/Bahrain)');
+    expect(confirmed.text).toContain(data.manageUrl);
+    expect(renderEmail('appointment_reminder', data).subject).toBe(
+      'Reminder: Consultation with Riffa Clinic',
+    );
+    expect(renderEmail('appointment_rescheduled', data).text).toContain('new time');
+    const cancelled = renderEmail('appointment_cancelled', { ...data, manageUrl: null });
+    expect(cancelled.text).not.toContain('http');
+    expect(() => renderEmail('appointment_confirmed', { ...data, when: null })).toThrow(
+      UnrecoverableError,
+    );
   });
 });

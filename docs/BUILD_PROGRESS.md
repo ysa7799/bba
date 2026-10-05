@@ -2,9 +2,83 @@
 
 ## Current Phase
 
-Phase 11 — Calendar
+Phase 12 — Forms
 
 Status: NOT_STARTED
+
+---
+
+## Phase 11 — Calendar & booking
+
+Status: PASSED
+
+### Completed
+
+- Schema (13 tables, FORCE RLS, composite same-tenant FKs): calendars (personal/shared),
+  weekly hours and date overrides, appointment types with hosts, booking pages, appointments
+  with participants, busy blocks under an **exclusion constraint** (`btree_gist`), invitee
+  manage tokens, external calendar connections and mirrored events.
+- `@businessos/calendar`: DST-safe time-zone arithmetic; availability engine (working hours,
+  overrides, buffers, slot interval, minimum notice, maximum advance); scheduling modes (one
+  host, round robin by load, team); concurrency-safe booking for public pages and staff
+  (savepoint retries across round-robin hosts); in-place reschedule; cancel; completed/no-show;
+  invitee manage links; reminders (24 h, claimed, decided at booking time); external calendar
+  sync (create/recreate/remove, idempotent); Google Calendar and Microsoft 365 adapters
+  (CONFIGURATION_REQUIRED) and a fake; timeline projectors.
+- API: staff routes under `/app/orgs/:orgId/calendar` (permission- and ownership-checked,
+  audited configuration), public `/public/booking/*` (rate limited, honeypot, `no-store`,
+  times only), confirmation/reschedule/cancellation emails and sync jobs after commit.
+- Worker: `calendar.reminders` every 5 minutes, `calendar.sync`, appointment email templates.
+- Web: Calendar week agenda with booking, reschedule, cancel, completed/no-show; Scheduling
+  setup (my availability, overrides, calendars, appointment types, booking pages, connected
+  calendars); public booking flow in the visitor's time zone and invitee manage page;
+  upcoming appointments and "Book" on contact pages.
+
+### Tests
+
+- calendar (33): zone conversion incl. DST and half-hour offsets; interval algebra; working
+  hours with overrides; slot rules (buffers both sides, notice, advance, end of day); modes and
+  round-robin ranking; **concurrency**: 10 simultaneous bookings of one slot → exactly 1;
+  overlapping/buffered simultaneous bookings never overlap; round robin assigns different hosts
+  and refuses the rest; team vs individual booking on a shared host; raw overlapping insert
+  rejected by the constraint; lifecycle (staff override, reschedule conflict leaves the
+  appointment unchanged, cancel frees time, status rules, events, keyset paging); manage tokens
+  (scope, tamper, expiry); tenant isolation; reminders (once, retry after failure, skip late
+  bookings and cancellations, re-due after reschedule); sync (idempotent, outage retry,
+  recreate, remove); timeline; Google/Microsoft adapter contracts and error classification.
+- API (6): role permissions incl. own-calendar editing; full public flow (honeypot, 409 on a
+  taken slot, emails and sync jobs, self-service reschedule/cancel); invitees cannot change
+  started appointments or reschedule deactivated types; cross-tenant 404s across every route;
+  manage tokens never logged. Worker: templates and production configuration.
+- E2E: set up scheduling, book publicly as a visitor, confirmation email link, booking in the
+  staff calendar with a new contact, reschedule and cancel from the manage link.
+- Full suite (uncached): 424 unit/integration + 9 E2E passing.
+
+### Fixed during the phase
+
+- Start times could follow the request window instead of the working-hours grid (off-grid
+  bookable times, grid shifting with "now") — found by tests; regression tests.
+- Manage-link tokens would have been logged (see SECURITY findings).
+- Concurrent queries on one transaction connection (pg deprecation) in calendar and billing.
+- The bundle dependency verifier treated prose in string literals as imports.
+- Invitee manage links could cancel or move an appointment that had already started, and move
+  one of a deactivated type (found in phase review); regression test.
+- The Phase 10 inbox E2E used an ambiguous text locator that could also match a hint; made
+  exact (it failed once in the full run).
+
+### Risks
+
+- Live Google/Microsoft connections need OAuth token handling (Phase 18); Zoom meetings too.
+- Availability is computed per request (≤ 31 days); heavy public traffic may need caching per
+  type and day (measure first, Phase 26).
+- Reminders and confirmations are English plain-text emails until the notification system
+  (Phase 16); no SMS/WhatsApp reminders yet.
+- Recurring appointments and group events (several invitees per slot) are not supported.
+
+### Next
+
+- Phase 12: forms (builder, versions, public form with spam and rate limiting, submissions,
+  CRM and custom-field mapping).
 
 ---
 

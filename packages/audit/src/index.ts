@@ -58,6 +58,15 @@ export const AUDIT_ACTIONS = [
   'communications.channel.disconnected',
   'communications.channel.webhook_rotated',
   'communications.template.registered',
+  'calendar.calendar.created',
+  'calendar.calendar.updated',
+  'calendar.appointment_type.created',
+  'calendar.appointment_type.updated',
+  'calendar.booking_page.created',
+  'calendar.booking_page.updated',
+  'calendar.booking_page.deleted',
+  'calendar.connection.connected',
+  'calendar.connection.disconnected',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

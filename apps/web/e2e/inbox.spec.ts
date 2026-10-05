@@ -59,7 +59,7 @@ test('shared inbox: connect a channel, receive, reply, note, assign and close', 
   await region.getByPlaceholder('Write a note for your team…').fill('Prefers evening delivery');
   await region.getByRole('button', { name: 'Add note' }).click();
   await expect(region.getByText('Prefers evening delivery')).toBeVisible();
-  await expect(region.getByText('Internal note')).toBeVisible();
+  await expect(region.getByText('Internal note', { exact: true })).toBeVisible();
   await page.waitForLoadState('networkidle');
 
   // Assign to me and close.

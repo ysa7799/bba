@@ -1,3 +1,4 @@
+import { createCalendarProviders } from '@businessos/calendar';
 import { createChannelProviders } from '@businessos/communications';
 import { createDatabase } from '@businessos/database';
 import { SecretBox } from '@businessos/shared';
@@ -23,6 +24,9 @@ function main(): void {
   const queueRedis = createWorkerRedis(env.REDIS_URL, 'businessos-worker-producer');
   const queue = new BullJobQueue(queueRedis, env.QUEUE_PREFIX);
   const registry = createSubscriberRegistry(db.db);
+  const secretBox = env.CREDENTIALS_ENCRYPTION_KEYS
+    ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
+    : null;
   const runtime = startRuntime({
     db: db.db,
     redis,
@@ -32,11 +36,14 @@ function main(): void {
       db: db.db,
       communications: {
         providers: createChannelProviders({ fake: env.COMMUNICATIONS_FAKE_PROVIDERS }),
-        secretBox: env.CREDENTIALS_ENCRYPTION_KEYS
-          ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
-          : null,
+        secretBox,
         publicApiUrl: env.API_PUBLIC_URL,
       },
+      calendar: {
+        providers: createCalendarProviders({ fake: env.CALENDAR_FAKE_PROVIDERS }),
+        secretBox,
+      },
+      appUrl: env.APP_URL,
       registry,
       email: createEmailTransport(env, logger),
       logger,
@@ -56,6 +63,12 @@ function main(): void {
   queue.schedule('crm-maintenance', 'crm.maintenance', {}, 3_600_000).catch((error: unknown) => {
     logger.error({ err: error }, 'could not schedule crm maintenance');
   });
+  // Appointment reminders every five minutes (each appointment is claimed before sending).
+  queue
+    .schedule('calendar-reminders', 'calendar.reminders', {}, 5 * 60_000)
+    .catch((error: unknown) => {
+      logger.error({ err: error }, 'could not schedule appointment reminders');
+    });
   const health =
     env.WORKER_HEALTH_PORT > 0 ? startHealthServer(env.WORKER_HEALTH_PORT, db, redis) : null;
   logger.info(

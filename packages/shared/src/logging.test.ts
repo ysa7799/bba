@@ -37,6 +37,11 @@ describe('redactUrlForLog', () => {
     expect(redactUrlForLog('/app/orgs/1/crm/contacts?q=ali&limit=10')).toBe(
       '/app/orgs/1/crm/contacts?q=ali&limit=10',
     );
+    expect(
+      redactUrlForLog(
+        '/public/booking/manage/AbCdEf0123456789_-xyzAbCdEf0123456789abcdefgh/slots?from=x',
+      ),
+    ).toBe('/public/booking/manage/[REDACTED]/slots?from=x');
     expect(redactUrlForLog('/webhooks/communications/fake_email')).toBe(
       '/webhooks/communications/fake_email',
     );

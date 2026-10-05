@@ -40,7 +40,35 @@ const TEMPLATES: Record<string, (data: Data) => RenderedEmail> = {
     subject: `You are invited to ${required(data, 'organizationName')}`,
     text: `${data.inviterName ?? 'Someone'} invited you to join ${required(data, 'organizationName')}.\n\nAccept the invitation:\n${required(data, 'link')}\n\nThe invitation expires in 7 days.`,
   }),
+  appointment_confirmed: (data) => ({
+    subject: `Confirmed: ${required(data, 'title')} with ${required(data, 'organization')}`,
+    text: `${greeting(data)}Your appointment is booked.\n\n${appointmentDetails(data)}${manageLine(data, 'Need to change it? Reschedule or cancel here')}`,
+  }),
+  appointment_rescheduled: (data) => ({
+    subject: `Updated: ${required(data, 'title')} with ${required(data, 'organization')}`,
+    text: `${greeting(data)}Your appointment has a new time.\n\n${appointmentDetails(data)}${manageLine(data, 'Manage your booking')}`,
+  }),
+  appointment_cancelled: (data) => ({
+    subject: `Cancelled: ${required(data, 'title')} with ${required(data, 'organization')}`,
+    text: `${greeting(data)}Your appointment was cancelled.\n\n${appointmentDetails(data)}`,
+  }),
+  appointment_reminder: (data) => ({
+    subject: `Reminder: ${required(data, 'title')} with ${required(data, 'organization')}`,
+    text: `${greeting(data)}This is a reminder of your upcoming appointment.\n\n${appointmentDetails(data)}${manageLine(data, 'Need to change it? Reschedule or cancel here')}`,
+  }),
 };
+
+function greeting(data: Data): string {
+  return data.name ? `Hi ${data.name},\n\n` : 'Hello,\n\n';
+}
+
+function appointmentDetails(data: Data): string {
+  return `${required(data, 'title')} — ${required(data, 'organization')}\nWhen: ${required(data, 'when')}\nWhere: ${required(data, 'location')}\n`;
+}
+
+function manageLine(data: Data, label: string): string {
+  return data.manageUrl ? `\n${label}:\n${data.manageUrl}\n` : '';
+}
 
 export function renderEmail(template: string, data: Data): RenderedEmail {
   const render = TEMPLATES[template];

@@ -86,6 +86,7 @@ export default defineConfig({
         EMAIL_FILE_PATH: MAIL_FILE,
         OUTBOX_POLL_MS: '200',
         API_PUBLIC_URL: `http://localhost:${API_PORT}`,
+        APP_URL: `http://localhost:${WEB_PORT}`,
         CREDENTIALS_ENCRYPTION_KEYS,
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
       },

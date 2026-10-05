@@ -73,6 +73,8 @@ export const apiEnvSchema = z
         }
       }, 'expected keyId:base64 pairs with 32-byte keys'),
     /** Development/test fake channel providers. */
+    /** Development/test in-memory external calendar provider. */
+    CALENDAR_FAKE_PROVIDERS: booleanFromEnv.default(false),
     COMMUNICATIONS_FAKE_PROVIDERS: booleanFromEnv.default(false),
     PASSWORD_HASH_MEMORY_KIB: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
     PASSWORD_HASH_TIME_COST: z.coerce.number().int().min(1).max(10).default(2),
@@ -98,6 +100,13 @@ export const apiEnvSchema = z
         code: 'custom',
         path: ['COMMUNICATIONS_FAKE_PROVIDERS'],
         message: 'fake channel providers are not allowed in production',
+      });
+    }
+    if (env.CALENDAR_FAKE_PROVIDERS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CALENDAR_FAKE_PROVIDERS'],
+        message: 'the fake calendar provider is not allowed in production',
       });
     }
     if (!env.CREDENTIALS_ENCRYPTION_KEYS) {

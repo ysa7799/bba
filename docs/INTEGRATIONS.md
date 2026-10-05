@@ -18,7 +18,7 @@
 | `PaymentProvider`  | 7     | Tap Payments, Fake (implemented)                                        | CONFIGURATION_REQUIRED |
 | `ChannelProvider`  | 10    | Postmark (email), WhatsApp Cloud API, Twilio (SMS), Fakes (implemented) | CONFIGURATION_REQUIRED |
 | `StorageProvider`  | 16    | S3-compatible, local FS (dev)                                           | CONFIGURATION_REQUIRED |
-| `CalendarProvider` | 11/18 | Google, Microsoft                                                       | CONFIGURATION_REQUIRED |
+| `CalendarProvider` | 11/18 | Google Calendar, Microsoft 365, Fake (implemented)                      | CONFIGURATION_REQUIRED |
 | `AIProvider`       | 20    | Anthropic-compatible, Fake                                              | CONFIGURATION_REQUIRED |
 
 ## Tap Payments (Phase 7)
@@ -85,6 +85,27 @@ Live status: **CONFIGURATION_REQUIRED** for all three. Request/response field na
 provider's public documentation and are covered by contract tests with recorded payloads; they
 must be validated against a sandbox account before go-live. Attachments are recorded as
 metadata only (download/storage arrives with the files service, Phase 16).
+
+## External calendars (Phase 11)
+
+`CalendarProvider` (`packages/calendar/src/providers/types.ts`): `busyTimes(connection, range)`,
+`createEvent(connection, event)` → `{externalEventId, joinUrl}`, `cancelEvent`. A host connects
+an external calendar to one of our calendars (`calendar_connections`, credentials sealed with
+the platform `SecretBox`). Busy times are read on demand when availability is computed (5 s
+timeout; an unreadable calendar makes that host unavailable). Bookings are mirrored by the
+`calendar.sync` job (created, recreated after a reschedule, removed on cancel; idempotent per
+appointment and connection).
+
+| Provider                             | Credentials          | Busy times                                                             | Events                                                                       |
+| ------------------------------------ | -------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Google Calendar (`google_calendar`)  | OAuth access token ✱ | `POST /calendar/v3/freeBusy`                                           | `events.insert` with `conferenceData` (Google Meet link for video bookings)  |
+| Microsoft 365 (`microsoft_calendar`) | OAuth access token ✱ | Graph `POST /me/calendar/getSchedule` (mailbox address as calendar id) | Graph `POST /me/events` with `transactionId` (Teams link for video bookings) |
+| Fake (`fake_calendar`, dev/tests)    | —                    | set by tests                                                           | in memory                                                                    |
+
+Live status: **CONFIGURATION_REQUIRED**. Access tokens expire within an hour; obtaining and
+refreshing them needs the OAuth integrations framework (Phase 18), so a pasted token works only
+until it expires. Zoom meetings also wait for Phase 18 (organization-level OAuth); video links
+come from the calendar providers (Meet, Teams) or the type's location text.
 
 ## Connection state machine (Phase 18)
 

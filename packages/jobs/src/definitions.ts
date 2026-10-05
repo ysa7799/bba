@@ -66,6 +66,18 @@ export const JOBS = {
     schema: z.object({}),
     attempts: 3,
   }),
+  /** Appointment reminders that are due (scheduled; idempotent per appointment). */
+  'calendar.reminders': defineJob({
+    queue: 'system',
+    schema: z.object({}),
+    attempts: 3,
+  }),
+  /** Mirrors an appointment to the host's connected external calendars (create or cancel). */
+  'calendar.sync': defineJob({
+    queue: 'data',
+    schema: z.object({ organizationId: z.uuid(), appointmentId: z.uuid() }),
+    attempts: 5,
+  }),
 } as const;
 
 export type JobName = keyof typeof JOBS;

@@ -2,6 +2,30 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 11 — Calendar & booking (2026-10-05)
+
+- Schema: `calendars`, `calendar_availability_rules`, `calendar_availability_exceptions`,
+  `appointment_types`, `appointment_type_hosts`, `booking_pages`, `booking_page_types`,
+  `appointments`, `appointment_manage_tokens`, `appointment_participants`,
+  `calendar_busy_blocks` (exclusion constraint, `btree_gist`), `calendar_connections`,
+  `appointment_external_events` (migrations 0021–0022).
+- `@businessos/calendar`: DST-safe zone arithmetic, availability engine, scheduling modes
+  (one host, round robin, team), calendars/availability, appointment types, booking pages,
+  concurrency-safe booking, cancel/reschedule/status, invitee manage links, reminders,
+  external calendar sync, timeline projectors; Google Calendar and Microsoft 365 adapters and
+  a fake.
+- Permissions `calendar.appointment.read/manage`, `calendar.manage`; events
+  `appointment.booked/rescheduled/cancelled/status_changed`; audit actions `calendar.*`; jobs
+  `calendar.reminders` (scheduled) and `calendar.sync`; timeline category `appointment`.
+- API: `/app/orgs/:orgId/calendar/*`, public `/public/booking/*` (rate limits
+  `booking*`); manage tokens masked in logs; `no-store` on public responses.
+- Worker: reminder and sync handlers, appointment email templates, `APP_URL`.
+- Web: Calendar (week agenda, book/reschedule/cancel/complete), Scheduling setup (availability,
+  overrides, calendars, types, booking pages, connections), public `/book/<slug>` and
+  `/book/manage/<token>`, appointments on contact pages; E2E.
+- Tooling: bundle verifier no longer mistakes prose in string literals for imports;
+  transactional queries no longer run concurrently on one connection (calendar, billing).
+
 ## Phase 10 — Communications (2026-10-05)
 
 - Schema: `channel_connections`, `conversations`, `conversation_participants`,

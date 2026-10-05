@@ -10,6 +10,7 @@ import { DetailList, Section, whatsappHref } from '@/components/crm/detail';
 import { NotesPanel } from '@/components/crm/notes-panel';
 import { TagList } from '@/components/crm/tag-badge';
 import { TimelinePanel } from '@/components/crm/timeline-panel';
+import { ContactAppointments } from '@/components/calendar/contact-appointments';
 import { StartConversationButton } from '@/components/inbox/start-conversation-button';
 import { NewTaskButton, TaskList } from '@/components/crm/task-list';
 import { PageHeader } from '@/components/ui/card';
@@ -186,6 +187,14 @@ export default async function ContactPage({
           ) : null}
         </div>
         <div className="space-y-6 lg:col-span-2">
+          {can('calendar.appointment.read') ? (
+            <ContactAppointments
+              orgId={orgId}
+              contact={{ id: c.id, name: c.displayName }}
+              timezone={timezone}
+              canManage={can('calendar.appointment.manage')}
+            />
+          ) : null}
           <NotesPanel
             parentPath={`contacts/${c.id}`}
             notes={notes?.data ?? []}

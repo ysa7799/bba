@@ -52,6 +52,10 @@ export const workerEnvSchema = z
         }
       }, 'expected keyId:base64 pairs with 32-byte keys'),
     COMMUNICATIONS_FAKE_PROVIDERS: booleanFromEnv.default(false),
+    /** Development/test in-memory external calendar provider. */
+    CALENDAR_FAKE_PROVIDERS: booleanFromEnv.default(false),
+    /** Public URL of the web app (links in emails sent by jobs, e.g. appointment reminders). */
+    APP_URL: z.url().default('http://localhost:3000'),
     OUTBOX_POLL_MS: z.coerce.number().int().min(50).max(60_000).default(500),
   })
   .superRefine((env, ctx) => {
@@ -75,6 +79,16 @@ export const workerEnvSchema = z
         path: ['COMMUNICATIONS_FAKE_PROVIDERS'],
         message: 'fake channel providers are not allowed in production',
       });
+    }
+    if (env.NODE_ENV === 'production' && env.CALENDAR_FAKE_PROVIDERS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CALENDAR_FAKE_PROVIDERS'],
+        message: 'the fake calendar provider is not allowed in production',
+      });
+    }
+    if (env.NODE_ENV === 'production' && !env.APP_URL.startsWith('https://')) {
+      ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'must use https in production' });
     }
     if (env.NODE_ENV === 'production' && !env.CREDENTIALS_ENCRYPTION_KEYS) {
       ctx.addIssue({

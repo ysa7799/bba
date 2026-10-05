@@ -13,6 +13,7 @@ import {
   type DomainEvent,
 } from '@businessos/events';
 import { BullJobQueue, QUEUE_NAMES, UnrecoverableError } from '@businessos/jobs';
+import { createCalendarProviders } from '@businessos/calendar';
 import { createChannelProviders } from '@businessos/communications';
 import { newId, SecretBox } from '@businessos/shared';
 import {
@@ -148,6 +149,8 @@ beforeAll(async () => {
         secretBox: new SecretBox([{ id: 'test', key: randomBytes(32) }]),
         publicApiUrl: 'http://localhost:4000',
       },
+      calendar: { providers: createCalendarProviders({ fake: true }), secretBox: null },
+      appUrl: 'http://localhost:3000',
       registry,
       email: new FileEmailTransport(emailFile),
       logger,

@@ -29,6 +29,18 @@ run before a checkpoint use `pnpm exec turbo run lint typecheck test build --for
 Organization A cannot: read, list, search, update, delete, or reference Organization B's
 records, nor discover them with guessed IDs (must get 404, never 403 or data).
 
+## Concurrency tests
+
+Invariants that must hold under races (one booking per slot, one personal calendar per member,
+one reminder per appointment) are tested by firing the competing operations at once with
+`Promise.allSettled` against a pool large enough to run them in parallel
+(`createTestDatabase(16)`), then asserting both the outcomes (exactly one fulfilled, the rest
+`ConflictError`) and the stored rows. Where the database enforces the invariant, a test also
+bypasses the service and writes directly to prove the constraint itself rejects it.
+
+Time-dependent services take an explicit `now`; tests pass fixed instants instead of mocking
+the clock.
+
 ## Definition of done (per phase)
 
 Functionality exists · typecheck passes · lint passes · relevant tests pass · build succeeds ·

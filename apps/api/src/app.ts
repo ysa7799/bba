@@ -4,6 +4,11 @@ import {
   type CommunicationsServices,
 } from '@businessos/communications';
 import type { AuthConfig, AuthMailer } from '@businessos/auth';
+import {
+  createCalendarProviders,
+  type CalendarProviderRegistry,
+  type CalendarServices,
+} from '@businessos/calendar';
 import type { JobQueue } from '@businessos/jobs';
 import type { PaymentProviderRegistry, PaymentServices } from '@businessos/payments';
 import { type DatabaseHandle } from '@businessos/database';
@@ -17,6 +22,8 @@ import { DEFAULT_RATE_LIMITS, RateLimiter, type RateLimitPolicies } from './lib/
 import { auditRoutes } from './modules/audit/routes';
 import { authRoutes } from './modules/auth/routes';
 import { billingCatalogRoutes, organizationBillingRoutes } from './modules/billing/routes';
+import { calendarRoutes } from './modules/calendar/routes';
+import { publicBookingRoutes } from './modules/calendar/public-routes';
 import { crmRoutes } from './modules/crm/routes';
 import {
   communicationsRoutes,
@@ -53,6 +60,8 @@ export interface AppDependencies {
   channelProviders?: ChannelProviderRegistry;
   /** Credential encryption (defaults to CREDENTIALS_ENCRYPTION_KEYS; tests inject a key). */
   secretBox?: SecretBox | null;
+  /** External calendar providers (defaults to the live adapters, plus the fake when enabled). */
+  calendarProviders?: CalendarProviderRegistry;
   /** Overrides for named rate-limit policies (tests use relaxed limits). */
   rateLimits?: Partial<RateLimitPolicies>;
   /** Log destination (defaults to stdout; tests capture log lines). */
@@ -67,6 +76,7 @@ declare module 'fastify' {
     rateLimiter: RateLimiter;
     payments: PaymentServices;
     communications: CommunicationsServices;
+    calendar: CalendarServices;
   }
 }
 
@@ -134,12 +144,19 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
           : null,
     publicApiUrl: env.API_PUBLIC_URL,
   } satisfies CommunicationsServices);
+  app.decorate('calendar', {
+    providers:
+      deps.calendarProviders ?? createCalendarProviders({ fake: env.CALENDAR_FAKE_PROVIDERS }),
+    secretBox: app.communications.secretBox,
+  } satisfies CalendarServices);
   app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
     void reply.header('x-request-id', request.id);
     // Personal/tenant data must never be stored by browsers or shared caches.
-    if (request.url.startsWith('/app/')) void reply.header('cache-control', 'no-store');
+    if (request.url.startsWith('/app/') || request.url.startsWith('/public/')) {
+      void reply.header('cache-control', 'no-store');
+    }
     done();
   });
 
@@ -165,6 +182,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(crmRoutes, { prefix: '/app/orgs/:orgId/crm' });
   await app.register(communicationsRoutes, { prefix: '/app/orgs/:orgId/communications' });
   await app.register(communicationWebhookRoutes, { prefix: '/webhooks/communications' });
+  await app.register(calendarRoutes, { prefix: '/app/orgs/:orgId/calendar' });
+  await app.register(publicBookingRoutes, { prefix: '/public/booking' });
   if (env.NODE_ENV !== 'production' && env.COMMUNICATIONS_FAKE_PROVIDERS) {
     await app.register(devCommunicationRoutes, { prefix: '/app/dev/communications/:orgId' });
   }

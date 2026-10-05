@@ -50,6 +50,11 @@ export default async function OrganizationLayout({
             <NavLink href={`${base}/inbox`} label={m.app.nav.inbox} exact />
             <NavLink href={`${base}/inbox/channels`} label={m.app.nav.channels} />
             <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
+              {m.app.nav.schedulingSection}
+            </p>
+            <NavLink href={`${base}/calendar`} label={m.app.nav.calendar} exact />
+            <NavLink href={`${base}/calendar/settings`} label={m.app.nav.scheduling} />
+            <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
               {m.app.nav.adminSection}
             </p>
             <NavLink href={`${base}/members`} label={m.app.nav.members} />

@@ -9,3 +9,4 @@ export * from './payments';
 export * from './crm';
 export * from './activities';
 export * from './communications';
+export * from './calendar';
