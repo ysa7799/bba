@@ -1,3 +1,4 @@
+import { activityListQuerySchema, listActivities } from '@businessos/activities';
 import { recordAudit, type AuditAction } from '@businessos/audit';
 import {
   addStage,
@@ -29,6 +30,7 @@ import {
   deleteDeal,
   deleteNote,
   deleteStage,
+  deleteActivity,
   deleteTag,
   deleteTask,
   downloadExport,
@@ -52,9 +54,11 @@ import {
   listPipelines,
   listTags,
   listTasks,
+  logActivity,
   moveDeal,
   noteListQuerySchema,
   previewImport,
+  recordTimeline,
   reorderStages,
   requestExport,
   searchCrm,
@@ -716,6 +720,72 @@ export function crmRoutes(app: FastifyInstance): void {
     const tenant = requirePermission(request, 'crm.task.manage');
     const { id } = parseInput(idParams, request.params);
     await run(request, tenant, (tx, ctx) => deleteTask(tx, ctx, id));
+    return reply.status(204).send();
+  });
+
+  // ── Activity timeline ────────────────────────────────────────────────────────────────────
+  for (const [segment, kind] of [
+    ['contacts', 'contact'],
+    ['companies', 'company'],
+    ['deals', 'deal'],
+  ] as const) {
+    app.get(`/${segment}/:id/timeline`, async (request) => {
+      const tenant = requirePermission(request, READ_PERMISSIONS[kind]);
+      const { id } = parseInput(idParams, request.params);
+      const query = parseInput(activityListQuerySchema, request.query);
+      return run(request, tenant, (tx, ctx) =>
+        recordTimeline(tx, ctx, kind, id, query, tenant.permissions),
+      );
+    });
+  }
+
+  app.get('/activities', async (request) => {
+    const tenant = requireAny(request, ANY_CRM_READ);
+    const query = parseInput(activityListQuerySchema, request.query);
+    return run(request, tenant, (tx) =>
+      listActivities(
+        tx,
+        tenant.organizationId,
+        { kind: 'organization' },
+        query,
+        tenant.permissions,
+      ),
+    );
+  });
+
+  app.post('/activities', async (request, reply) => {
+    const tenant = requirePermission(request, 'crm.activity.log');
+    requireLinkReads(tenant, request.body, {
+      contactId: 'contact',
+      companyId: 'company',
+      dealId: 'deal',
+    });
+    const activity = await run(request, tenant, (tx, ctx) =>
+      logActivity(tx, ctx, request.body as Parameters<typeof logActivity>[2]),
+    );
+    return reply.status(201).send({ activity });
+  });
+
+  app.delete('/activities/:id', async (request, reply) => {
+    const tenant = requireAny(request, ['crm.activity.log', 'crm.activity.manage']);
+    const { id } = parseInput(idParams, request.params);
+    await run(request, tenant, async (tx, ctx) => {
+      const deleted = await deleteActivity(tx, ctx, id, {
+        permissions: tenant.permissions,
+        canModerate: tenant.permissions.has('crm.activity.manage'),
+      });
+      await audit(
+        tx,
+        request,
+        tenant,
+        'crm.activity.deleted',
+        { type: 'activity', id },
+        {
+          type: deleted.type,
+          summary: deleted.summary,
+        },
+      );
+    });
     return reply.status(204).send();
   });
 

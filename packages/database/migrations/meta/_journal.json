@@ -120,6 +120,20 @@
       "when": 1791183482939,
       "tag": "0016_force_rls_crm",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791187563308,
+      "tag": "0017_activities",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791187564592,
+      "tag": "0018_force_rls_activities",
+      "breakpoints": true
     }
   ]
 }

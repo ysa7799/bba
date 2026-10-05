@@ -1,0 +1,4 @@
+{
+  "extends": "@businessos/config/tsconfig/node.json",
+  "include": ["src", "test", "*.ts"]
+}

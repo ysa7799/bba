@@ -8,12 +8,14 @@ import { DeleteRecordButton } from '@/components/crm/delete-record-button';
 import { DetailList, Section } from '@/components/crm/detail';
 import { NotesPanel } from '@/components/crm/notes-panel';
 import { TagList } from '@/components/crm/tag-badge';
+import { TimelinePanel } from '@/components/crm/timeline-panel';
 import { NewTaskButton, TaskList } from '@/components/crm/task-list';
 import { PageHeader } from '@/components/ui/card';
 import { format, getMessages } from '@/i18n';
 import type { Page } from '@/lib/api-types';
 import { crmFormOptions } from '@/lib/crm-server';
 import type {
+  ActivitySummary,
   CompanySummary,
   ContactSummary,
   DealSummary,
@@ -37,7 +39,7 @@ export default async function CompanyPage({
   const can = (permission: string) => access.permissions.includes(permission);
   if (!can('crm.company.read')) return <CrmForbidden title={m.crm.companies.title} />;
   const base = `/app/orgs/${orgId}/crm`;
-  const [company, notes, contacts, deals, tasks, options] = await Promise.all([
+  const [company, notes, contacts, deals, tasks, options, timeline] = await Promise.all([
     serverGetJson<{ company: CompanySummary }>(`${base}/companies/${companyId}`),
     serverGetJson<Page<NoteSummary>>(`${base}/companies/${companyId}/notes?limit=50`),
     can('crm.contact.read')
@@ -52,6 +54,9 @@ export default async function CompanyPage({
       ? serverGetJson<Page<TaskSummary>>(`${base}/tasks?companyId=${companyId}&limit=50`)
       : Promise.resolve(null),
     crmFormOptions(orgId, 'company'),
+    serverGetJson<{ data: ActivitySummary[]; nextCursor: string | null }>(
+      `${base}/companies/${companyId}/timeline?limit=25`,
+    ),
   ]);
   if (!company) notFound();
   const c = company.company;
@@ -128,6 +133,12 @@ export default async function CompanyPage({
               />
             </Section>
           ) : null}
+          <TimelinePanel
+            record={{ kind: 'companies', id: c.id }}
+            initial={timeline ?? { data: [], nextCursor: null }}
+            timezone={timezone}
+            currentUserId={me.user.id}
+          />
           {contacts ? (
             <Section title={m.crm.companies.contacts}>
               {contacts.data.length === 0 ? (

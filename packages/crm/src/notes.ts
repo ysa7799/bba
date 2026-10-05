@@ -1,4 +1,5 @@
 import { crmNotes, users, type CrmNote, type TenantTx } from '@businessos/database';
+import { emitEvent } from '@businessos/events';
 import {
   ForbiddenError,
   NotFoundError,
@@ -8,7 +9,7 @@ import {
 } from '@businessos/shared';
 import { and, eq, isNull, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
-import type { CrmContext } from './context';
+import { eventMeta, type CrmContext } from './context';
 import { afterCursor, keysetPage, orderFor, sortValue, type SortSpec } from './listing';
 import { assertCompanyExists, assertContactExists, assertDealExists } from './records';
 
@@ -136,6 +137,12 @@ export async function createNote(
     })
     .returning();
   if (!note) throw new Error('note insert returned no row');
+  await emitEvent(tx, {
+    ...eventMeta(ctx),
+    type: 'note.created',
+    subject: { type: 'note', id: note.id },
+    payload: { noteId: note.id, parentType: parent.type, parentId: parent.id },
+  });
   return getNote(tx, ctx, note.id);
 }
 

@@ -1,3 +1,4 @@
+export * from './activity-log';
 export * from './companies';
 export * from './contacts';
 export * from './context';
@@ -15,3 +16,4 @@ export * from './records';
 export * from './search';
 export * from './tags';
 export * from './tasks';
+export * from './timeline';

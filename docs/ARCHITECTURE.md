@@ -51,7 +51,9 @@ packages/
   audit/ events/ jobs/  audit log, transactional outbox, job registry + queues
   billing/ payments/    plans, entitlements, usage; payment providers and checkout
   crm/         contacts, companies, pipelines, deals, tasks, notes, tags, custom fields,
-               search, CSV import/export
+               search, CSV import/export, timeline projectors
+  activities/  customer timeline: type registry, recording, permission-gated reads,
+               event projection subscriber
   testing/     dev-only fixtures (two-tenant world), Vitest global setup
   …            further packages are added only when code needs them (see ROADMAP)
 ```

@@ -9,12 +9,19 @@ import { DeleteRecordButton } from '@/components/crm/delete-record-button';
 import { DetailList, Section, whatsappHref } from '@/components/crm/detail';
 import { NotesPanel } from '@/components/crm/notes-panel';
 import { TagList } from '@/components/crm/tag-badge';
+import { TimelinePanel } from '@/components/crm/timeline-panel';
 import { NewTaskButton, TaskList } from '@/components/crm/task-list';
 import { PageHeader } from '@/components/ui/card';
 import { format, getMessages } from '@/i18n';
 import type { Page } from '@/lib/api-types';
 import { crmFormOptions } from '@/lib/crm-server';
-import type { ContactDetail, DealSummary, NoteSummary, TaskSummary } from '@/lib/crm-types';
+import type {
+  ActivitySummary,
+  ContactDetail,
+  DealSummary,
+  NoteSummary,
+  TaskSummary,
+} from '@/lib/crm-types';
 import { formatDate, formatMoney } from '@/lib/format';
 import { getOrgAccess } from '@/lib/org-data';
 import { getMe, serverGetJson } from '@/lib/server-api';
@@ -32,7 +39,7 @@ export default async function ContactPage({
   const can = (permission: string) => access.permissions.includes(permission);
   if (!can('crm.contact.read')) return <CrmForbidden title={m.crm.contacts.title} />;
   const base = `/app/orgs/${orgId}/crm`;
-  const [contact, notes, tasks, deals, options] = await Promise.all([
+  const [contact, notes, tasks, deals, options, timeline] = await Promise.all([
     serverGetJson<{ contact: ContactDetail }>(`${base}/contacts/${contactId}`),
     serverGetJson<Page<NoteSummary>>(`${base}/contacts/${contactId}/notes?limit=50`),
     can('crm.task.read')
@@ -42,6 +49,9 @@ export default async function ContactPage({
       ? serverGetJson<Page<DealSummary>>(`${base}/deals?contactId=${contactId}&limit=50`)
       : Promise.resolve(null),
     crmFormOptions(orgId, 'contact'),
+    serverGetJson<{ data: ActivitySummary[]; nextCursor: string | null }>(
+      `${base}/contacts/${contactId}/timeline?limit=25`,
+    ),
   ]);
   if (!contact) notFound();
   const c = contact.contact;
@@ -135,6 +145,12 @@ export default async function ContactPage({
               />
             </Section>
           ) : null}
+          <TimelinePanel
+            record={{ kind: 'contacts', id: c.id }}
+            initial={timeline ?? { data: [], nextCursor: null }}
+            timezone={timezone}
+            currentUserId={me.user.id}
+          />
           {can('crm.company.read') ? (
             <Section title={m.crm.contacts.companies}>
               <CompanyLinks contact={c} />

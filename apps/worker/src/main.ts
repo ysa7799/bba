@@ -20,7 +20,7 @@ function main(): void {
   const redis = createWorkerRedis(env.REDIS_URL, 'businessos-worker');
   const queueRedis = createWorkerRedis(env.REDIS_URL, 'businessos-worker-producer');
   const queue = new BullJobQueue(queueRedis, env.QUEUE_PREFIX);
-  const registry = createSubscriberRegistry();
+  const registry = createSubscriberRegistry(db.db);
   const runtime = startRuntime({
     db: db.db,
     redis,

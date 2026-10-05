@@ -283,3 +283,29 @@ export const CURRENCIES = [
   'JPY',
   'KRW',
 ] as const;
+
+export type ActivityCategory = 'note' | 'task' | 'deal' | 'communication' | 'record';
+
+export interface ActivitySummary {
+  id: string;
+  type: string;
+  category: ActivityCategory;
+  channel: string | null;
+  occurredAt: string;
+  actor: { type: string; userId: string | null; name: string | null };
+  subject: { type: string; id: string };
+  contactId: string | null;
+  companyId: string | null;
+  dealId: string | null;
+  summary: string;
+  metadata: Record<string, unknown>;
+  manual: boolean;
+}
+
+export const LOGGABLE_ACTIVITY_TYPES = [
+  'call.logged',
+  'meeting.logged',
+  'email.logged',
+  'whatsapp.logged',
+  'sms.logged',
+] as const;

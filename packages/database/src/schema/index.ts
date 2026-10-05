@@ -7,3 +7,4 @@ export * from './platform';
 export * from './billing';
 export * from './payments';
 export * from './crm';
+export * from './activities';

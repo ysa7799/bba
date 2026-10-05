@@ -176,6 +176,20 @@ export const PERMISSION_DEFINITIONS = [
     roles: ['manager'],
   },
   {
+    key: 'crm.activity.log',
+    module: 'crm',
+    label: 'Log activities',
+    description: 'Log calls, meetings and messages on records and delete their own entries.',
+    roles: ['manager', 'member'],
+  },
+  {
+    key: 'crm.activity.manage',
+    module: 'crm',
+    label: 'Moderate activities',
+    description: 'Delete activities logged by anyone.',
+    roles: ['manager'],
+  },
+  {
     key: 'crm.tag.manage',
     module: 'crm',
     label: 'Manage tags',

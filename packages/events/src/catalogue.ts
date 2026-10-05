@@ -157,6 +157,18 @@ export const EVENT_DEFINITIONS = {
     version: 1,
     schema: z.object({ taskId: z.uuid(), completedByUserId: z.uuid().nullable() }),
   },
+  'note.created': {
+    version: 1,
+    schema: z.object({
+      noteId: z.uuid(),
+      parentType: z.enum(['contact', 'company', 'deal']),
+      parentId: z.uuid(),
+    }),
+  },
+  'activity.logged': {
+    version: 1,
+    schema: z.object({ activityId: z.uuid(), type: z.string().max(60) }),
+  },
 } as const satisfies Record<string, { version: number; schema: z.ZodType }>;
 
 export type EventType = keyof typeof EVENT_DEFINITIONS;

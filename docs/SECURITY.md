@@ -157,6 +157,10 @@ threat model and the control catalogue; it is updated whenever a control is adde
   `'`), are audited on request and download, expire after 24 hours, are downloadable only by
   their creator and are rate limited (imports 20/h, exports 30/h, bulk 300/h per
   organization).
+- Timeline (Phase 9): activity rows are filtered by their stored required permission and
+  expose only allow-listed metadata keys; server-controlled fields (actor, permission, source
+  event) cannot be supplied by clients; timelines of other tenants' records return 404;
+  projection runs in tenant scope. Only manually logged entries can be deleted (audited).
 - Notes are stored and rendered as plain text; website links render only normalized
   `http(s)` URLs with `rel="noopener noreferrer nofollow"`.
 

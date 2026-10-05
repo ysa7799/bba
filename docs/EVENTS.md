@@ -52,6 +52,9 @@ Delivery is at-least-once. Subscribers that write data use `processOnce(db, subs
 eventId, fn)`, which commits a `processed_events` marker with the subscriber's writes. Ordering
 is best-effort; consumers must tolerate out-of-order events.
 
+Subscribers: `timeline` (Phase 9) projects CRM events into `activities` inside the event's
+tenant transaction; the unique `source_event_id` makes at-least-once delivery exactly-once.
+
 Who emits: domain services emit inside their transactions (organizations, invitations). Audit
 records are written by the API layer (or auth services) in the same transaction, because they
 need request context (actor, IP, request id).
@@ -65,7 +68,8 @@ Implemented: `organization.created`, `organization.updated`, `member.invited`, `
 (`changedFields`), `contact.deleted`, `contact.tag_added`, `contact.tag_removed`,
 `company.created`, `company.updated`, `company.deleted`, `deal.created`, `deal.updated`,
 `deal.stage_changed` (from/to stage), `deal.won` (value in minor units + currency),
-`deal.lost` (reason), `deal.deleted`, `task.created`, `task.completed` (Phase 8). CRM events
+`deal.lost` (reason), `deal.deleted`, `task.created`, `task.completed` (Phase 8);
+`note.created`, `activity.logged` (Phase 9). CRM events
 carry ids and small facts only — never contact details. Bulk actions emit one event per
 affected record; imports emit the same events as manual creation with the importer as actor
 and `import:<id>` as correlation id. The rest arrive with their modules:

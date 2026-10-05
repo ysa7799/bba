@@ -15,7 +15,7 @@ Phases execute in order. A phase is complete only when its quality gate passes (
 | 6   | Billing + entitlements                                  | Limits cannot be bypassed from the frontend        | PASSED      |
 | 7   | Payments (provider abstraction, Tap adapter, webhooks)  | Payment state cannot be forged                     | PASSED      |
 | 8   | CRM                                                     | CRM E2E + tenant isolation                         | PASSED      |
-| 9   | Activity timeline                                       | Cross-module-ready architecture                    | NOT_STARTED |
+| 9   | Activity timeline                                       | Cross-module-ready architecture                    | PASSED      |
 | 10  | Communications (inbox, email/WhatsApp/SMS architecture) | Normalized providers + isolation                   | NOT_STARTED |
 | 11  | Calendar                                                | Double-booking concurrency tests                   | NOT_STARTED |
 | 12  | Forms                                                   | Spam / rate-limit / input validation               | NOT_STARTED |

@@ -2,6 +2,16 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 9 — Activity timeline (2026-10-05)
+
+- Schema: `activities` (migrations 0017–0018).
+- `@businessos/activities`: registry, record/list/delete, projection subscriber.
+- CRM: timeline projectors, `note.created` / `activity.logged` events, manual activity
+  logging, record timelines; permissions `crm.activity.log`, `crm.activity.manage`; audit
+  action `crm.activity.deleted`.
+- API: `/crm/{contacts,companies,deals}/:id/timeline`, `/crm/activities` (GET/POST/DELETE).
+- Worker: `timeline` subscriber registered. Web: Activity panel with log dialog; E2E.
+
 ## Phase 8 — CRM (2026-10-05)
 
 - Schema: `crm_contacts`, `crm_companies`, `crm_contact_companies`, `crm_pipelines`,

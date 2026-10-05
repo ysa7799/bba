@@ -8,12 +8,19 @@ import { DeleteRecordButton } from '@/components/crm/delete-record-button';
 import { DetailList, Section } from '@/components/crm/detail';
 import { NotesPanel } from '@/components/crm/notes-panel';
 import { TagList } from '@/components/crm/tag-badge';
+import { TimelinePanel } from '@/components/crm/timeline-panel';
 import { NewTaskButton, TaskList } from '@/components/crm/task-list';
 import { PageHeader } from '@/components/ui/card';
 import { format, getMessages } from '@/i18n';
 import type { Page } from '@/lib/api-types';
 import { crmFormOptions } from '@/lib/crm-server';
-import type { DealSummary, NoteSummary, PipelineDetail, TaskSummary } from '@/lib/crm-types';
+import type {
+  ActivitySummary,
+  DealSummary,
+  NoteSummary,
+  PipelineDetail,
+  TaskSummary,
+} from '@/lib/crm-types';
 import { formatDate, formatMoney } from '@/lib/format';
 import { getOrgAccess } from '@/lib/org-data';
 import { getMe, serverGetJson } from '@/lib/server-api';
@@ -31,7 +38,7 @@ export default async function DealPage({
   const can = (permission: string) => access.permissions.includes(permission);
   if (!can('crm.deal.read')) return <CrmForbidden title={m.crm.deals.title} />;
   const base = `/app/orgs/${orgId}/crm`;
-  const [deal, notes, tasks, pipelines, options] = await Promise.all([
+  const [deal, notes, tasks, pipelines, options, timeline] = await Promise.all([
     serverGetJson<{ deal: DealSummary }>(`${base}/deals/${dealId}`),
     serverGetJson<Page<NoteSummary>>(`${base}/deals/${dealId}/notes?limit=50`),
     can('crm.task.read')
@@ -39,6 +46,9 @@ export default async function DealPage({
       : Promise.resolve(null),
     serverGetJson<{ data: PipelineDetail[] }>(`${base}/pipelines`),
     crmFormOptions(orgId, 'deal'),
+    serverGetJson<{ data: ActivitySummary[]; nextCursor: string | null }>(
+      `${base}/deals/${dealId}/timeline?limit=25`,
+    ),
   ]);
   if (!deal) notFound();
   const d = deal.deal;
@@ -141,6 +151,12 @@ export default async function DealPage({
               />
             </Section>
           ) : null}
+          <TimelinePanel
+            record={{ kind: 'deals', id: d.id }}
+            initial={timeline ?? { data: [], nextCursor: null }}
+            timezone={organization?.timezone ?? 'Asia/Bahrain'}
+            currentUserId={me.user.id}
+          />
         </div>
         <div className="space-y-6 lg:col-span-2">
           <NotesPanel

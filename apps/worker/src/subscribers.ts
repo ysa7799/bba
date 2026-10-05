@@ -1,9 +1,12 @@
+import { createTimelineSubscriber } from '@businessos/activities';
+import { crmTimelineProjectors } from '@businessos/crm';
+import type { Database } from '@businessos/database';
 import { SubscriberRegistry } from '@businessos/events';
 
 /**
- * Event subscribers. Notifications, outbound webhooks, automation and the activity timeline
- * register here in their own phases.
+ * Event subscribers. The activity timeline projects CRM events (Phase 9); notifications,
+ * outbound webhooks and automation register here in their own phases.
  */
-export function createSubscriberRegistry(): SubscriberRegistry {
-  return new SubscriberRegistry();
+export function createSubscriberRegistry(db: Database): SubscriberRegistry {
+  return new SubscriberRegistry().register(createTimelineSubscriber(db, crmTimelineProjectors));
 }

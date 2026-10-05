@@ -52,6 +52,7 @@ export const AUDIT_ACTIONS = [
   'crm.import.completed',
   'crm.export.requested',
   'crm.export.downloaded',
+  'crm.activity.deleted',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

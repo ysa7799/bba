@@ -27,11 +27,11 @@ test('runs the CRM: contact, note, task, deal board, CSV import and export', asy
   // Notes and tasks on the contact.
   await page.getByLabel('Add note').fill('Met at Gulf Industry Expo; wants a quote.');
   await page.getByRole('button', { name: 'Add note' }).click();
-  await expect(page.getByText('Met at Gulf Industry Expo; wants a quote.')).toBeVisible();
+  await expect(page.getByText('Met at Gulf Industry Expo; wants a quote.').first()).toBeVisible();
   await page.getByRole('button', { name: 'New task' }).click();
   await page.getByRole('dialog').getByLabel('Title').fill('Send steel quote');
   await page.getByRole('dialog').getByRole('button', { name: 'Create' }).click();
-  await expect(page.getByText('Send steel quote')).toBeVisible();
+  await expect(page.getByText('Send steel quote', { exact: true })).toBeVisible();
 
   // A deal linked to the contact appears on the board and moves to Won.
   await page.getByRole('link', { name: 'Deals' }).click();

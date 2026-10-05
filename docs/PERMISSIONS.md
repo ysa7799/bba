@@ -61,6 +61,8 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 | `crm.task.manage`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
 | `crm.note.create`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
 | `crm.note.manage`         | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.activity.log`        | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.activity.manage`     | crm          | ✓     | ✓     | ✓       |        |            |
 | `crm.tag.manage`          | crm          | ✓     | ✓     | ✓       |        |            |
 | `crm.custom_field.manage` | crm          | ✓     | ✓     |         |        |            |
 | `crm.data.import`         | crm          | ✓     | ✓     | ✓       |        |            |
@@ -77,6 +79,11 @@ CRM specifics:
 - Linking a record to another (deal → contact, task → deal, contact → company) requires read
   access to the linked record type. Names of linked records the caller cannot read are
   withheld in responses.
+- Timeline rows carry the permission needed to see them (deal activities need
+  `crm.deal.read`, task activities `crm.task.read`, notes and logged activities the read
+  permission of the record they belong to), so a contact's timeline shows each member only
+  what they could open elsewhere. Logged activities can be deleted by their author
+  (`crm.activity.log`) or a moderator (`crm.activity.manage`); projected history cannot.
 - Import requires `crm.data.import` plus create and update on the imported record type.
   Export requires `crm.data.export` plus read on the exported type, re-checked at download;
   exports are downloadable only by the member who requested them.

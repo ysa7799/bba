@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@businessos/activities": "workspace:*",
     "@businessos/config": "workspace:*",
     "@businessos/crm": "workspace:*",
     "@businessos/database": "workspace:*",

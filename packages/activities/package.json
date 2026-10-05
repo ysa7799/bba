@@ -1,5 +1,5 @@
 {
-  "name": "@businessos/crm",
+  "name": "@businessos/activities",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,20 +12,15 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@businessos/activities": "workspace:*",
-    "@businessos/audit": "workspace:*",
-    "@businessos/billing": "workspace:*",
     "@businessos/database": "workspace:*",
     "@businessos/events": "workspace:*",
     "@businessos/permissions": "workspace:*",
     "@businessos/shared": "workspace:*",
     "drizzle-orm": "^0.45.3",
-    "libphonenumber-js": "^1.13.14",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@businessos/config": "workspace:*",
-    "@businessos/organizations": "workspace:*",
     "@businessos/testing": "workspace:*",
     "eslint": "^9.39.5"
   }

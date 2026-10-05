@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@businessos/activities": "workspace:*",
     "@businessos/audit": "workspace:*",
     "@businessos/auth": "workspace:*",
     "@businessos/billing": "workspace:*",

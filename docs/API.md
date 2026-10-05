@@ -161,6 +161,18 @@ the sort); single records return `{ contact }`, `{ company }`, `{ deal }`, … D
 | GET / POST                  | `/exports`                                                          | `crm.data.export` + read of the type                           | own exports; POST `{entityType, filters}` → 202                                                                                          |
 | GET                         | `/exports/:id`, `/exports/:id/download`                             | same; creator only                                             | CSV attachment, `no-store`, audited                                                                                                      |
 
+### Activity timeline (Phase 9)
+
+| Method | Path                                                           | Permission                         | Notes                                                                                                                                                   |
+| ------ | -------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/app/orgs/:orgId/crm/{contacts,companies,deals}/:id/timeline` | read on the record                 | `?category=note\|task\|deal\|communication\|record&from&to&limit&cursor`, newest first                                                                  |
+| GET    | `/app/orgs/:orgId/crm/activities`                              | any CRM read                       | organization feed                                                                                                                                       |
+| POST   | `/app/orgs/:orgId/crm/activities`                              | `crm.activity.log` + read on links | `{type: call/meeting/email/whatsapp/sms.logged, summary, details?, direction?, durationMinutes?, outcome?, occurredAt?, contactId?/companyId?/dealId?}` |
+| DELETE | `/app/orgs/:orgId/crm/activities/:id`                          | author or `crm.activity.manage`    | logged activities only (audited)                                                                                                                        |
+
+Every row is filtered by the permission it requires; `metadata` contains only the keys its type
+declares.
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

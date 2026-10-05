@@ -2,9 +2,60 @@
 
 ## Current Phase
 
-Phase 9 — Activity timeline
+Phase 10 — Communications
 
 Status: NOT_STARTED
+
+---
+
+## Phase 9 — Activity timeline
+
+Status: PASSED
+
+### Completed
+
+- `activities` table (FORCE RLS, composite same-tenant links to contact/company/deal,
+  per-row `required_permission`, unique `source_event_id`).
+- `@businessos/activities`: type registry (category, default permission, channel, exposed
+  metadata keys, manual flag), `recordActivity` (redacted, size-capped, idempotent per source
+  event), permission-gated keyset `listActivities`, `deleteLoggedActivity`, and the `timeline`
+  event subscriber that projects events inside the event's tenant.
+- CRM projectors for contact/company/deal/task/note events with name and value snapshots;
+  `note.created` and `activity.logged` events; manual logging of calls, meetings, emails,
+  WhatsApp and SMS with links completed from the record graph.
+- API: record timelines, organization feed, log and delete activities
+  (`crm.activity.log`, `crm.activity.manage`, audited deletes).
+- Web: Activity panel on contact, company and deal pages with category tabs, paging and a
+  "Log activity" dialog. The worker registers the timeline subscriber.
+
+### Tests
+
+- activities (7): registry integrity, exactly-once projection per event, link requirement and
+  summary collapsing, per-row permission gating and metadata allow-list (sensitive keys never
+  returned), keyset paging with equal timestamps, RLS isolation and cross-tenant link
+  rejection, deletion rules (projected rows immutable, author/moderator, permission and tenant
+  checks).
+- crm timeline (3): full contact timeline from real outbox events (redelivery adds nothing,
+  snapshots, ordering, deal/company views), deal notes hidden without deal access, logged
+  calls with completed links, future dates and cross-tenant attempts rejected.
+- API (3): projected timeline with role gating and category filter, logging/deleting with
+  forged server fields ignored, authorship/moderation and audit, cross-tenant 404s and feed
+  isolation.
+- E2E: worker-projected history appears on the contact page; a logged call shows and filters.
+- Full suite (uncached): 347 unit/integration + 7 E2E passing.
+
+### Risks
+
+- Summaries are English snapshots; localized rendering from type + metadata comes with the
+  Arabic catalogue.
+- Events emitted before this phase have no activities (no production data yet; a replay tool
+  can project old outbox events if ever needed — projection is idempotent).
+- Timeline updates arrive asynchronously (outbox poll ≈ 0.5 s).
+
+### Next
+
+- Phase 10: unified communications domain (conversations, messages, channel accounts),
+  provider abstraction for email/WhatsApp/SMS with mock adapters and webhook security.
 
 ---
 

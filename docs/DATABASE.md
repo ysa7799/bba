@@ -95,6 +95,7 @@ Populated as phases land. See the schema files for the source of truth.
 | `crm_tags`, `crm_custom_fields`                         | tenant                                                                      | 8     | cascade with organization                                               |
 | `crm_imports`, `crm_import_rows`                        | tenant                                                                      | 8     | staging rows purged 30 days after completion                            |
 | `crm_exports`                                           | tenant; content readable only by the creator via the API                    | 8     | file content cleared at expiry (24 h)                                   |
+| `activities`                                            | tenant; per-row `required_permission`; unique `source_event_id`             | 9     | cascade with organization; record links NO ACTION (ADR-027)             |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.

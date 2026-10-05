@@ -213,3 +213,14 @@ Internal packages are source-only (no build step) and the package graph has a de
 cycle (`testing` ↔ `organizations`), so `^` task dependencies cannot propagate changes. Package
 sources, migrations, manifests and shared config are listed in `globalDependencies`: any change
 to them invalidates every cached task. Coarser than per-package hashing, but never stale.
+
+## ADR-032 — The timeline is a projection of domain events with per-row visibility
+
+Modules do not write to the timeline directly; the `timeline` subscriber projects their domain
+events (plus manually logged calls/meetings/messages) into `activities`, so communications,
+calendar, commerce and helpdesk join the timeline by emitting events and registering
+projectors. Projection runs in the event's tenant transaction (not system scope) and is
+idempotent by source event. Each row stores the permission required to see it and the API
+returns only the metadata keys its type declares, so a shared timeline never shows more than
+the viewer could open elsewhere. Summaries are snapshots written at projection time, keeping
+history readable after renames and deletions.
