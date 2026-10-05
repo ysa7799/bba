@@ -1,6 +1,7 @@
 # Domain Events
 
-_Infrastructure lands in Phase 5._
+Implemented in Phase 5: `packages/events` (catalogue, `emitEvent`, `OutboxDispatcher`,
+`SubscriberRegistry`, `processOnce`), `packages/jobs` (queues), `apps/worker` (runtime).
 
 ## Four separate concerns
 
@@ -33,12 +34,32 @@ produced by its own subscriber with its own retry semantics.
 
 ## Delivery
 
-Written to `outbox_events` in the business transaction → dispatcher claims with
-`FOR UPDATE SKIP LOCKED` → one job per subscriber → subscribers are idempotent on
-`(event.id, subscriber)`. At-least-once delivery; ordering is per-subject best-effort, so
-consumers must tolerate out-of-order events (compare versions/timestamps).
+1. `emitEvent(tx, …)` validates the payload against the catalogue and inserts into
+   `outbox_events` inside the business transaction (rolled-back changes emit nothing).
+2. The worker's `OutboxDispatcher` claims due rows with `FOR UPDATE SKIP LOCKED`, marks them
+   `processing` with a lease (`locked_until`) and increments `attempts`.
+3. For each registered subscriber it enqueues `event.deliver` with the deterministic job id
+   `evt-<eventId>-<subscriber>` (re-dispatch never duplicates a delivery), then marks the row
+   `dispatched`.
+4. If enqueueing fails the row returns to `pending` with exponential backoff and `last_error`;
+   after `maxAttempts` it becomes `failed` (operator-visible). Rows whose lease expired (a
+   crashed dispatcher) are reclaimed automatically.
+5. `event.deliver` reloads and re-validates the event and calls the subscriber. Failures retry
+   with exponential backoff; unrecoverable errors and exhausted retries are recorded in
+   `job_failures`.
+
+Delivery is at-least-once. Subscribers that write data use `processOnce(db, subscriber,
+eventId, fn)`, which commits a `processed_events` marker with the subscriber's writes. Ordering
+is best-effort; consumers must tolerate out-of-order events.
+
+Who emits: domain services emit inside their transactions (organizations, invitations). Audit
+records are written by the API layer (or auth services) in the same transaction, because they
+need request context (actor, IP, request id).
 
 ## Catalogue
+
+Implemented (Phase 5): `organization.created`, `organization.updated`, `member.invited`,
+`member.joined`, `member.roles_changed`, `member.removed`. The rest arrive with their modules:
 
 organization.created · organization.updated · member.invited · member.joined ·
 member.removed · contact.created · contact.updated · contact.deleted · company.created ·

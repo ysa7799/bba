@@ -56,22 +56,13 @@ describe('API environment validation', () => {
         PASSWORD_HASH_MEMORY_KIB: '4096',
       }),
     ).toThrow(/OWASP/);
-  });
-
-  it('requires a real email provider in production (CONFIGURATION_REQUIRED)', () => {
-    let message = '';
-    try {
+    expect(() =>
       loadApiEnv({
         ...base,
         NODE_ENV: 'production',
         APP_URL: 'https://app.example.com',
         CORS_ORIGINS: 'https://app.example.com',
-      });
-    } catch (error) {
-      message = String(error);
-    }
-    expect(message).toContain('MAIL_TRANSPORT');
-    expect(message).toContain('CONFIGURATION_REQUIRED');
-    expect(message).not.toContain('APP_URL');
+      }),
+    ).not.toThrow();
   });
 });

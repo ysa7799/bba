@@ -64,6 +64,20 @@
       "when": 1791179289243,
       "tag": "0008_invitation_role_required",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791180079968,
+      "tag": "0009_audit_outbox_jobs",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791180080970,
+      "tag": "0010_force_rls_platform",
+      "breakpoints": true
     }
   ]
 }

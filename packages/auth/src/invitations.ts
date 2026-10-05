@@ -27,7 +27,14 @@ import type { AuthConfig } from './config';
 import { generateToken, hashToken, isWellFormedToken } from './crypto';
 import type { AuthEmail } from './mailer';
 import { hashPassword, passwordSchema } from './password';
-import { toSessionUser, type SessionUser } from './sessions';
+import { recordAudit } from '@businessos/audit';
+import { emitEvent } from '@businessos/events';
+import {
+  toSessionUser,
+  userAuditContext,
+  type SessionClientInfo,
+  type SessionUser,
+} from './sessions';
 
 export interface CreatedInvitation {
   invitation: Invitation;
@@ -90,6 +97,14 @@ export async function createInvitation(
     })
     .returning();
   if (!invitation) throw new Error('invitation insert returned no row');
+  await emitEvent(tx, {
+    type: 'member.invited',
+    organizationId: organization.id,
+    subject: { type: 'invitation', id: invitation.id },
+    actor: { type: 'user', id: input.invitedBy.userId },
+    payload: { invitationId: invitation.id, roleId: input.roleId },
+    correlationId: input.invitedBy.correlationId,
+  });
 
   const [inviter] = await tx
     .select({ name: users.name })
@@ -175,8 +190,10 @@ export async function previewInvitation(db: Database, token: string): Promise<In
 async function joinOrganization(
   tx: SystemTx,
   invitation: Invitation,
-  userId: string,
+  user: { id: string; email: string },
+  client: SessionClientInfo | undefined,
 ): Promise<void> {
+  const userId = user.id;
   const [existing] = await tx
     .select()
     .from(memberships)
@@ -203,6 +220,20 @@ async function joinOrganization(
     }
   }
   await assignRoleOnJoin(tx, invitation.organizationId, membershipId, invitation.roleId);
+  await emitEvent(tx, {
+    type: 'member.joined',
+    organizationId: invitation.organizationId,
+    subject: { type: 'membership', id: membershipId },
+    actor: { type: 'user', id: userId },
+    payload: { membershipId, userId, via: 'invitation' },
+    correlationId: client?.requestId ?? null,
+  });
+  await recordAudit(tx, userAuditContext(user, client), {
+    organizationId: invitation.organizationId,
+    action: 'member.joined',
+    target: { type: 'membership', id: membershipId },
+    metadata: { invitationId: invitation.id, roleId: invitation.roleId },
+  });
   await tx
     .update(invitations)
     .set({ status: 'accepted', acceptedByUserId: userId, acceptedAt: new Date() })
@@ -217,6 +248,7 @@ export async function acceptInvitation(
   db: Database,
   user: SessionUser,
   token: string,
+  client?: SessionClientInfo,
 ): Promise<{ organizationId: string }> {
   // System scope: the accepting user is not yet a member, so no tenant scope can authorize it.
   return withSystem(db, async (tx) => {
@@ -230,7 +262,7 @@ export async function acceptInvitation(
       .update(users)
       .set({ emailVerifiedAt: sql`coalesce(${users.emailVerifiedAt}, now())` })
       .where(eq(users.id, user.id));
-    await joinOrganization(tx, invitation, user.id);
+    await joinOrganization(tx, invitation, user, client);
     return { organizationId: invitation.organizationId };
   });
 }
@@ -243,6 +275,7 @@ export async function acceptInvitationAsNewUser(
   services: AuthServices,
   token: string,
   rawInput: { name: string; password: string },
+  client?: SessionClientInfo,
 ): Promise<{ user: SessionUser; organizationId: string }> {
   const name = personNameSchema.parse(rawInput.name);
   const password = passwordSchema.parse(rawInput.password);
@@ -262,7 +295,7 @@ export async function acceptInvitationAsNewUser(
       .values({ email: invitation.email, name, passwordHash, emailVerifiedAt: new Date() })
       .returning();
     if (!created) throw new Error('user insert returned no row');
-    await joinOrganization(tx, invitation, created.id);
+    await joinOrganization(tx, invitation, created, client);
     return { user: toSessionUser(created), organizationId: invitation.organizationId };
   });
 }

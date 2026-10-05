@@ -42,6 +42,13 @@ export const PERMISSION_DEFINITIONS = [
     description: 'Create, edit and delete custom roles.',
     roles: [],
   },
+  {
+    key: 'audit.read',
+    module: 'settings',
+    label: 'View audit log',
+    description: 'See who changed what in the organization.',
+    roles: [],
+  },
 ] as const satisfies readonly PermissionDefinition[];
 
 export type Permission = (typeof PERMISSION_DEFINITIONS)[number]['key'];

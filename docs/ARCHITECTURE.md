@@ -120,7 +120,7 @@ Errors are `AppError` subclasses mapped to a stable JSON envelope
 - Soft delete (`deleted_at`) for user-facing business records where recovery matters; hard
   delete flows for privacy requests. Decided per table in `DATABASE.md`.
 
-## 6. Asynchronous work _(planned, Phase 5)_
+## 6. Asynchronous work (Phase 5)
 
 - **Transactional outbox**: domain services insert events into `outbox_events` in the same
   transaction as the state change. The worker's dispatcher claims rows
@@ -129,7 +129,12 @@ Errors are `AppError` subclasses mapped to a stable JSON envelope
 - **Jobs** behind a `JobQueue` interface (BullMQ adapter; in-memory adapter for tests).
   Retries with exponential backoff, idempotency keys, dead-letter visibility, structured logs.
 - Durable workflow waits are stored in Postgres (`workflow_scheduled_steps`) and resumed by a
-  scheduler, so Redis loss cannot drop a scheduled step.
+  scheduler, so Redis loss cannot drop a scheduled step _(Phase 13)_.
+- Queues: `system`, `events`, `email`. Job payloads are validated against a registry
+  (`packages/jobs/src/definitions.ts`) on enqueue and again before processing; unknown jobs and
+  invalid payloads fail permanently. Exhausted jobs are persisted to `job_failures`.
+- Emails (auth emails today) are `email.send` jobs rendered and delivered by the worker.
+- The worker exposes `GET /health` on `WORKER_HEALTH_PORT` for orchestration.
 
 ## 7. Provider abstractions _(planned)_
 

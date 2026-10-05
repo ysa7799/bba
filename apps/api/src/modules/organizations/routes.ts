@@ -1,3 +1,4 @@
+import { recordAudit } from '@businessos/audit';
 import { createInvitation, setActiveOrganization } from '@businessos/auth';
 import { invitations, roles, users, withTenant } from '@businessos/database';
 import {
@@ -27,6 +28,7 @@ import { NotFoundError, paginationQuerySchema } from '@businessos/shared';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { auditContext } from '../../lib/http';
 import { parseInput } from '../../lib/validation';
 import { requireAuth } from '../../plugins/session';
 import {
@@ -57,7 +59,18 @@ export function organizationRoutes(app: FastifyInstance): void {
     const auth = requireAuth(request);
     await app.rateLimiter.consume('createOrganizationUser', auth.user.id);
     const input = parseInput(createOrganizationInputSchema, request.body);
-    const { organization } = await createOrganization(app.deps.db.db, auth.user.id, input);
+    const { organization } = await createOrganization(app.deps.db.db, auth.user.id, input, {
+      correlationId: request.id,
+      hooks: [
+        (tx, created) =>
+          recordAudit(tx, auditContext(request), {
+            organizationId: created.organization.id,
+            action: 'organization.created',
+            target: { type: 'organization', id: created.organization.id },
+            metadata: { name: created.organization.name },
+          }),
+      ],
+    });
     await setActiveOrganization(app.deps.db.db, auth, organization.id);
     return reply.status(201).send({ organization: toOrganizationSummary(organization) });
   });
@@ -83,7 +96,30 @@ export function organizationRoutes(app: FastifyInstance): void {
         const tenant = requirePermission(request, 'organization.update');
         const patch = parseInput(updateOrganizationInputSchema, request.body);
         return withTenant(db(), tenantScope(tenant), async (tx) => {
-          const { after } = await updateOrganization(tx, tenant.organizationId, patch);
+          const { before, after, changedFields } = await updateOrganization(
+            tx,
+            tenant.organizationId,
+            patch,
+            { userId: tenant.userId, correlationId: request.id },
+          );
+          if (changedFields.length > 0) {
+            await recordAudit(tx, auditContext(request), {
+              organizationId: tenant.organizationId,
+              action: 'organization.updated',
+              target: { type: 'organization', id: tenant.organizationId },
+              metadata: {
+                changes: Object.fromEntries(
+                  changedFields.map((field) => [
+                    field,
+                    {
+                      from: before[field as keyof typeof before],
+                      to: after[field as keyof typeof after],
+                    },
+                  ]),
+                ),
+              },
+            });
+          }
           return { organization: toOrganizationSummary(after) };
         });
       });
@@ -91,14 +127,21 @@ export function organizationRoutes(app: FastifyInstance): void {
       scoped.patch('/settings', async (request) => {
         const tenant = requirePermission(request, 'organization.update');
         const patch = parseInput(settingsPatchSchema, request.body);
-        return withTenant(db(), tenantScope(tenant), async (tx) => ({
-          settings: await updateOrganizationSettings(
+        return withTenant(db(), tenantScope(tenant), async (tx) => {
+          const settings = await updateOrganizationSettings(
             tx,
             tenant.organizationId,
             patch,
             tenant.userId,
-          ),
-        }));
+          );
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'organization.settings_updated',
+            target: { type: 'organization', id: tenant.organizationId },
+            metadata: { keys: Object.keys(patch) },
+          });
+          return { settings };
+        });
       });
 
       // The caller's own access, used by the UI to show or hide controls.
@@ -123,9 +166,14 @@ export function organizationRoutes(app: FastifyInstance): void {
 
       scoped.post('/leave', async (request, reply) => {
         const tenant = requireTenant(request);
-        await withTenant(db(), tenantScope(tenant), (tx) =>
-          leaveOrganization(tx, tenant.organizationId, tenant.membershipId),
-        );
+        await withTenant(db(), tenantScope(tenant), async (tx) => {
+          await leaveOrganization(tx, tenant.organizationId, actorOf(tenant, request));
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'member.left',
+            target: { type: 'membership', id: tenant.membershipId },
+          });
+        });
         return reply.status(204).send();
       });
 
@@ -143,13 +191,22 @@ export function organizationRoutes(app: FastifyInstance): void {
         const { id } = parseInput(idParamSchema, request.params);
         const { roleIds } = parseInput(memberRolesSchema, request.body);
         return withTenant(db(), tenantScope(tenant), async (tx) => {
-          const { after } = await setMemberRoles(
+          const { before, after } = await setMemberRoles(
             tx,
             tenant.organizationId,
-            actorOf(tenant),
+            actorOf(tenant, request),
             id,
             roleIds,
           );
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'member.roles_changed',
+            target: { type: 'membership', id },
+            metadata: {
+              before: before.map((role) => role.name),
+              after: after.map((role) => role.name),
+            },
+          });
           return { roles: after };
         });
       });
@@ -158,18 +215,34 @@ export function organizationRoutes(app: FastifyInstance): void {
         const tenant = requirePermission(request, 'settings.users.manage');
         const { id } = parseInput(idParamSchema, request.params);
         const { status } = parseInput(memberStatusSchema, request.body);
-        await withTenant(db(), tenantScope(tenant), (tx) =>
-          setMemberStatus(tx, tenant.organizationId, actorOf(tenant), id, status),
-        );
+        await withTenant(db(), tenantScope(tenant), async (tx) => {
+          await setMemberStatus(tx, tenant.organizationId, actorOf(tenant, request), id, status);
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: status === 'suspended' ? 'member.suspended' : 'member.reactivated',
+            target: { type: 'membership', id },
+          });
+        });
         return reply.status(204).send();
       });
 
       scoped.delete('/members/:id', async (request, reply) => {
         const tenant = requirePermission(request, 'settings.users.manage');
         const { id } = parseInput(idParamSchema, request.params);
-        await withTenant(db(), tenantScope(tenant), (tx) =>
-          removeMember(tx, tenant.organizationId, actorOf(tenant), id),
-        );
+        await withTenant(db(), tenantScope(tenant), async (tx) => {
+          const { userId } = await removeMember(
+            tx,
+            tenant.organizationId,
+            actorOf(tenant, request),
+            id,
+          );
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'member.removed',
+            target: { type: 'membership', id },
+            metadata: { userId },
+          });
+        });
         return reply.status(204).send();
       });
 
@@ -184,9 +257,21 @@ export function organizationRoutes(app: FastifyInstance): void {
       scoped.post('/roles', async (request, reply) => {
         const tenant = requirePermission(request, 'settings.roles.manage');
         const input = parseInput(createRoleInputSchema, request.body);
-        const role = await withTenant(db(), tenantScope(tenant), (tx) =>
-          createRole(tx, tenant.organizationId, actorOf(tenant), input),
-        );
+        const role = await withTenant(db(), tenantScope(tenant), async (tx) => {
+          const created = await createRole(
+            tx,
+            tenant.organizationId,
+            actorOf(tenant, request),
+            input,
+          );
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'role.created',
+            target: { type: 'role', id: created.id },
+            metadata: { name: created.name, permissions: created.permissions },
+          });
+          return created;
+        });
         return reply.status(201).send({ role });
       });
 
@@ -195,7 +280,22 @@ export function organizationRoutes(app: FastifyInstance): void {
         const { id } = parseInput(idParamSchema, request.params);
         const input = parseInput(updateRoleInputSchema, request.body);
         return withTenant(db(), tenantScope(tenant), async (tx) => {
-          const { after } = await updateRole(tx, tenant.organizationId, actorOf(tenant), id, input);
+          const { before, after } = await updateRole(
+            tx,
+            tenant.organizationId,
+            actorOf(tenant, request),
+            id,
+            input,
+          );
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'role.updated',
+            target: { type: 'role', id },
+            metadata: {
+              before: { name: before.name, permissions: before.permissions },
+              after: { name: after.name, permissions: after.permissions },
+            },
+          });
           return { role: after };
         });
       });
@@ -203,9 +303,15 @@ export function organizationRoutes(app: FastifyInstance): void {
       scoped.delete('/roles/:id', async (request, reply) => {
         const tenant = requirePermission(request, 'settings.roles.manage');
         const { id } = parseInput(idParamSchema, request.params);
-        await withTenant(db(), tenantScope(tenant), (tx) =>
-          deleteRole(tx, tenant.organizationId, actorOf(tenant), id),
-        );
+        await withTenant(db(), tenantScope(tenant), async (tx) => {
+          const deleted = await deleteRole(tx, tenant.organizationId, actorOf(tenant, request), id);
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'role.deleted',
+            target: { type: 'role', id },
+            metadata: { name: deleted.name, permissions: deleted.permissions },
+          });
+        });
         return reply.status(204).send();
       });
 
@@ -242,14 +348,21 @@ export function organizationRoutes(app: FastifyInstance): void {
         const tenant = requirePermission(request, 'settings.users.manage');
         await app.rateLimiter.consume('invitationCreateOrg', tenant.organizationId);
         const input = parseInput(inviteSchema, request.body);
-        const created = await withTenant(db(), tenantScope(tenant), (tx) =>
-          createInvitation(tx, app.deps.authConfig, {
+        const created = await withTenant(db(), tenantScope(tenant), async (tx) => {
+          const invitation = await createInvitation(tx, app.deps.authConfig, {
             organizationId: tenant.organizationId,
             email: input.email,
             roleId: input.roleId,
-            invitedBy: actorOf(tenant),
-          }),
-        );
+            invitedBy: actorOf(tenant, request),
+          });
+          await recordAudit(tx, auditContext(request), {
+            organizationId: tenant.organizationId,
+            action: 'member.invited',
+            target: { type: 'invitation', id: invitation.invitation.id },
+            metadata: { email: invitation.invitation.email, roleId: input.roleId },
+          });
+          return invitation;
+        });
         await app.deps.mailer.send(created.email);
         return reply.status(201).send({
           invitation: {
@@ -264,8 +377,8 @@ export function organizationRoutes(app: FastifyInstance): void {
       scoped.delete('/invitations/:id', async (request, reply) => {
         const tenant = requirePermission(request, 'settings.users.manage');
         const { id } = parseInput(idParamSchema, request.params);
-        const revoked = await withTenant(db(), tenantScope(tenant), (tx) =>
-          tx
+        const revoked = await withTenant(db(), tenantScope(tenant), async (tx) => {
+          const rows = await tx
             .update(invitations)
             .set({ status: 'revoked', revokedAt: new Date() })
             .where(
@@ -275,8 +388,17 @@ export function organizationRoutes(app: FastifyInstance): void {
                 eq(invitations.status, 'pending'),
               ),
             )
-            .returning({ id: invitations.id }),
-        );
+            .returning({ id: invitations.id, email: invitations.email });
+          if (rows.length > 0) {
+            await recordAudit(tx, auditContext(request), {
+              organizationId: tenant.organizationId,
+              action: 'member.invitation_revoked',
+              target: { type: 'invitation', id },
+              metadata: { email: rows[0]?.email },
+            });
+          }
+          return rows;
+        });
         if (revoked.length === 0) throw new NotFoundError('Invitation');
         return reply.status(204).send();
       });

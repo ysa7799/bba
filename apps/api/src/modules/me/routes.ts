@@ -2,6 +2,7 @@ import { changePassword, setActiveOrganization } from '@businessos/auth';
 import { listOrganizationsForUser } from '@businessos/organizations';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { clientInfo } from '../../lib/http';
 import { parseInput } from '../../lib/validation';
 import { requireAuth } from '../../plugins/session';
 
@@ -43,6 +44,7 @@ export function meRoutes(app: FastifyInstance): void {
       auth.user.id,
       auth.sessionId,
       input,
+      clientInfo(request),
     );
     return reply.status(204).send();
   });

@@ -74,7 +74,24 @@ export const en = {
     submit: 'Create organization',
   },
   app: {
-    nav: { overview: 'Overview', members: 'Members', roles: 'Roles', settings: 'Settings' },
+    nav: {
+      overview: 'Overview',
+      members: 'Members',
+      roles: 'Roles',
+      settings: 'Settings',
+      audit: 'Audit log',
+    },
+    audit: {
+      title: 'Audit log',
+      when: 'When',
+      actor: 'Actor',
+      action: 'Action',
+      target: 'Target',
+      allActions: 'All actions',
+      filter: 'Filter',
+      empty: 'No audit entries match.',
+      forbidden: 'You do not have access to the audit log.',
+    },
     switchOrganization: 'Switch organization',
     createOrganization: 'New organization',
     overview: {

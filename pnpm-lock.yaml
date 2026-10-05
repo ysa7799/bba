@@ -29,6 +29,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@businessos/audit':
+        specifier: workspace:*
+        version: link:../../packages/audit
       '@businessos/auth':
         specifier: workspace:*
         version: link:../../packages/auth
@@ -38,6 +41,12 @@ importers:
       '@businessos/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+      '@businessos/jobs':
+        specifier: workspace:*
+        version: link:../../packages/jobs
       '@businessos/organizations':
         specifier: workspace:*
         version: link:../../packages/organizations
@@ -62,6 +71,9 @@ importers:
       '@node-rs/argon2':
         specifier: ^2.2.1
         version: 2.2.1
+      bullmq:
+        specifier: ^5.81.5
+        version: 5.81.5
       drizzle-orm:
         specifier: ^0.45.3
         version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
@@ -142,6 +154,12 @@ importers:
       '@businessos/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+      '@businessos/jobs':
+        specifier: workspace:*
+        version: link:../../packages/jobs
       '@businessos/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -164,6 +182,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)
@@ -177,11 +198,39 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
 
-  packages/auth:
+  packages/audit:
     dependencies:
       '@businessos/database':
         specifier: workspace:*
         version: link:../database
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/auth:
+    dependencies:
+      '@businessos/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../events
       '@businessos/organizations':
         specifier: workspace:*
         version: link:../organizations
@@ -258,11 +307,70 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
 
-  packages/organizations:
+  packages/events:
     dependencies:
       '@businessos/database':
         specifier: workspace:*
         version: link:../database
+      '@businessos/jobs':
+        specifier: workspace:*
+        version: link:../jobs
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/jobs:
+    dependencies:
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      bullmq:
+        specifier: ^5.81.5
+        version: 5.81.5
+      ioredis:
+        specifier: ^5.11.1
+        version: 5.11.1
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/organizations:
+    dependencies:
+      '@businessos/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../events
       '@businessos/permissions':
         specifier: workspace:*
         version: link:../permissions

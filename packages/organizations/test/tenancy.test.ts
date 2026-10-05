@@ -139,7 +139,7 @@ describe('tenant isolation (Organization A vs Organization B)', () => {
 
     await expect(
       withTenant(handle.db, scopeA(), (tx) =>
-        updateOrganization(tx, world.orgB.organization.id, { name: 'pwned' }),
+        updateOrganization(tx, world.orgB.organization.id, { name: 'pwned' }, null),
       ),
     ).rejects.toMatchObject({ code: 'not_found' });
 

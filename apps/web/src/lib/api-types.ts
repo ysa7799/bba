@@ -86,6 +86,20 @@ export interface PendingInvitation {
   createdAt: string;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  action: string;
+  actorType: string;
+  actorUserId: string | null;
+  actorLabel: string | null;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown>;
+  ipAddress: string | null;
+  requestId: string | null;
+  createdAt: string;
+}
+
 export interface OrganizationSettings {
   'general.week_start_day': number;
   'general.fiscal_year_start_month': number;

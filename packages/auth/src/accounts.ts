@@ -30,9 +30,11 @@ import {
   createSession,
   revokeUserSessions,
   toSessionUser,
+  userAuditContext,
   type SessionClientInfo,
   type SessionUser,
 } from './sessions';
+import { recordAudit } from '@businessos/audit';
 
 export const emailSchema = z
   .string()
@@ -237,7 +239,11 @@ export async function resendVerification(services: AuthServices, rawEmail: strin
 }
 
 /** Marks the email as verified. Does not sign the user in (they must still know the password). */
-export async function verifyEmail(services: AuthServices, token: string): Promise<SessionUser> {
+export async function verifyEmail(
+  services: AuthServices,
+  token: string,
+  client?: SessionClientInfo,
+): Promise<SessionUser> {
   // System scope: the token is the only credential presented.
   return withSystem(services.db, async (tx) => {
     const user = await consumeToken(tx, token, 'email_verification');
@@ -247,6 +253,11 @@ export async function verifyEmail(services: AuthServices, token: string): Promis
       .where(eq(users.id, user.id))
       .returning();
     if (!updated) throw new InvalidTokenError();
+    await recordAudit(tx, userAuditContext(updated, client), {
+      organizationId: null,
+      action: 'auth.email_verified',
+      target: { type: 'user', id: updated.id },
+    });
     return toSessionUser(updated);
   });
 }
@@ -280,7 +291,17 @@ export async function login(
     throw new UnauthenticatedError('Invalid email or password');
   }
   const valid = await verifyPassword(user.passwordHash, input.password);
-  if (!valid) throw new UnauthenticatedError('Invalid email or password');
+  if (!valid) {
+    // System scope: account-level security record for a known account.
+    await withSystem(services.db, (tx) =>
+      recordAudit(tx, userAuditContext(user, client), {
+        organizationId: null,
+        action: 'auth.login_failed',
+        target: { type: 'user', id: user.id },
+      }),
+    );
+    throw new UnauthenticatedError('Invalid email or password');
+  }
   if (user.status !== 'active') throw new UnauthenticatedError('This account is disabled');
   if (!user.emailVerifiedAt) throw new EmailNotVerifiedError();
 
@@ -291,6 +312,11 @@ export async function login(
   // System scope: session creation for the just-authenticated user.
   return withSystem(services.db, async (tx) => {
     const session = await createSession(tx, services.config, user.id, 'password', client);
+    await recordAudit(tx, userAuditContext(user, client), {
+      organizationId: null,
+      action: 'auth.login',
+      target: { type: 'session', id: session.sessionId },
+    });
     const [updated] = await tx
       .update(users)
       .set({ lastLoginAt: new Date(), ...(rehash ? { passwordHash: rehash } : {}) })
@@ -304,6 +330,7 @@ export async function login(
 export async function requestPasswordReset(
   services: AuthServices,
   rawEmail: string,
+  client?: SessionClientInfo,
 ): Promise<void> {
   const parsed = emailSchema.safeParse(rawEmail);
   if (!parsed.success) {
@@ -317,6 +344,11 @@ export async function requestPasswordReset(
     const [user] = await tx.select().from(users).where(eq(users.email, parsed.data)).for('update');
     if (user?.status !== 'active') return;
     const token = await issueToken(tx, services.config, user, 'password_reset');
+    await recordAudit(tx, userAuditContext(user, client), {
+      organizationId: null,
+      action: 'auth.password_reset_requested',
+      target: { type: 'user', id: user.id },
+    });
     emails.push({
       kind: 'password_reset',
       to: user.email,
@@ -336,6 +368,7 @@ export async function resetPassword(
   services: AuthServices,
   token: string,
   newPassword: string,
+  client?: SessionClientInfo,
 ): Promise<SessionUser> {
   const password = passwordSchema.safeParse(newPassword);
   if (!password.success) {
@@ -360,7 +393,13 @@ export async function resetPassword(
       .update(authTokens)
       .set({ consumedAt: new Date() })
       .where(and(eq(authTokens.userId, updated.id), isNull(authTokens.consumedAt)));
-    await revokeUserSessions(tx, updated.id);
+    const revoked = await revokeUserSessions(tx, updated.id);
+    await recordAudit(tx, userAuditContext(updated, client), {
+      organizationId: null,
+      action: 'auth.password_reset_completed',
+      target: { type: 'user', id: updated.id },
+      metadata: { sessionsRevoked: revoked },
+    });
     emails.push({
       kind: 'password_changed',
       to: updated.email,
@@ -379,6 +418,7 @@ export async function changePassword(
   sessionUserId: string,
   currentSessionId: string,
   input: { currentPassword: string; newPassword: string },
+  client?: SessionClientInfo,
 ): Promise<void> {
   const password = passwordSchema.safeParse(input.newPassword);
   if (!password.success) {
@@ -400,7 +440,13 @@ export async function changePassword(
   const passwordHash = await hashPassword(password.data, services.config.password);
   await withSystem(services.db, async (tx) => {
     await tx.update(users).set({ passwordHash }).where(eq(users.id, user.id));
-    await revokeUserSessions(tx, user.id, currentSessionId);
+    const revoked = await revokeUserSessions(tx, user.id, currentSessionId);
+    await recordAudit(tx, userAuditContext(user, client), {
+      organizationId: null,
+      action: 'auth.password_changed',
+      target: { type: 'user', id: user.id },
+      metadata: { otherSessionsRevoked: revoked },
+    });
   });
   await deliver(services.mailer, [
     { kind: 'password_changed', to: user.email, locale: user.locale, name: user.name },

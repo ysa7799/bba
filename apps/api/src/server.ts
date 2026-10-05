@@ -1,5 +1,7 @@
 import { defaultAuthConfig } from '@businessos/auth';
 import { createDatabase } from '@businessos/database';
+import { BullJobQueue } from '@businessos/jobs';
+import { Redis } from 'ioredis';
 import { buildApp } from './app';
 import { loadApiEnv } from './env';
 import { createRedis } from './lib/redis';
@@ -21,7 +23,13 @@ async function main(): Promise<void> {
     },
   };
 
-  const app = await buildApp({ env, db, redis, authConfig });
+  // Queue producers use their own connection (blocking-safe settings for BullMQ).
+  const queueRedis = new Redis(env.REDIS_URL, {
+    connectionName: 'businessos-api-queue',
+    maxRetriesPerRequest: null,
+  });
+  const jobs = new BullJobQueue(queueRedis, env.QUEUE_PREFIX);
+  const app = await buildApp({ env, db, redis, authConfig, jobs });
 
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
@@ -34,7 +42,8 @@ async function main(): Promise<void> {
     }, 15_000);
     try {
       await app.close();
-      await Promise.allSettled([db.close(), redis.quit()]);
+      await jobs.close();
+      await Promise.allSettled([db.close(), redis.quit(), queueRedis.quit()]);
     } finally {
       clearTimeout(timer);
     }

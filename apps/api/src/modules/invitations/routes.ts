@@ -30,7 +30,7 @@ export function invitationRoutes(app: FastifyInstance): void {
     const auth = requireAuth(request);
     await app.rateLimiter.consume('invitationIp', request.ip);
     const { token } = parseInput(tokenBodySchema, request.body);
-    return acceptInvitation(app.deps.db.db, auth.user, token);
+    return acceptInvitation(app.deps.db.db, auth.user, token, clientInfo(request));
   });
 
   app.post('/register', async (request, reply) => {
@@ -40,6 +40,7 @@ export function invitationRoutes(app: FastifyInstance): void {
       { db: app.deps.db.db, config: app.deps.authConfig, mailer: app.deps.mailer },
       token,
       { name, password },
+      clientInfo(request),
     );
     // System scope: issuing the first session for the account that was just created.
     const session = await withSystem(app.deps.db.db, (tx) =>

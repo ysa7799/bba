@@ -12,9 +12,12 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@businessos/audit": "workspace:*",
     "@businessos/auth": "workspace:*",
     "@businessos/config": "workspace:*",
     "@businessos/database": "workspace:*",
+    "@businessos/events": "workspace:*",
+    "@businessos/jobs": "workspace:*",
     "@businessos/organizations": "workspace:*",
     "@businessos/permissions": "workspace:*",
     "@businessos/shared": "workspace:*",
@@ -23,6 +26,7 @@
     "@fastify/helmet": "^13.1.1",
     "@fastify/rate-limit": "^11.2.0",
     "@node-rs/argon2": "^2.2.1",
+    "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
     "fastify-plugin": "^6.0.0",

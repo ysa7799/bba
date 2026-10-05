@@ -1,14 +1,48 @@
+import { createDatabase } from '@businessos/database';
+import { BullJobQueue } from '@businessos/jobs';
+import { createEmailTransport } from './email/transports';
 import { loadWorkerEnv } from './env';
+import { buildHandlers } from './handlers';
+import { startHealthServer } from './health';
 import { createLogger } from './logger';
 import { createWorkerRedis } from './redis';
-import { startWorkers } from './worker';
+import { startRuntime } from './runtime';
+import { createSubscriberRegistry } from './subscribers';
 
 function main(): void {
   const env = loadWorkerEnv();
   const logger = createLogger(env);
+  const db = createDatabase({
+    url: env.DATABASE_URL,
+    maxConnections: env.DB_POOL_MAX,
+    applicationName: 'businessos-worker',
+  });
   const redis = createWorkerRedis(env.REDIS_URL, 'businessos-worker');
-  const runtime = startWorkers({ env, redis, logger });
-  logger.info({ concurrency: env.WORKER_CONCURRENCY }, 'worker started');
+  const queueRedis = createWorkerRedis(env.REDIS_URL, 'businessos-worker-producer');
+  const queue = new BullJobQueue(queueRedis, env.QUEUE_PREFIX);
+  const registry = createSubscriberRegistry();
+  const runtime = startRuntime({
+    db: db.db,
+    redis,
+    queue,
+    registry,
+    handlers: buildHandlers({
+      db: db.db,
+      registry,
+      email: createEmailTransport(env, logger),
+      logger,
+    }),
+    logger,
+    prefix: env.QUEUE_PREFIX,
+    concurrency: env.WORKER_CONCURRENCY,
+    outboxPollMs: env.OUTBOX_POLL_MS,
+  });
+  const health =
+    env.WORKER_HEALTH_PORT > 0 ? startHealthServer(env.WORKER_HEALTH_PORT, db, redis) : null;
+  logger.info(
+    { concurrency: env.WORKER_CONCURRENCY, emailTransport: env.EMAIL_TRANSPORT },
+    'worker started',
+  );
 
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
@@ -20,9 +54,11 @@ function main(): void {
       process.exit(1);
     }, 30_000);
     try {
-      // Lets in-flight jobs finish; unfinished jobs are retried by another worker.
+      // In-flight jobs finish; unfinished jobs are retried by another worker.
       await runtime.close();
-      await redis.quit();
+      await queue.close();
+      health?.close();
+      await Promise.allSettled([db.close(), redis.quit(), queueRedis.quit()]);
     } finally {
       clearTimeout(timer);
     }

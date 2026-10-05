@@ -11,10 +11,12 @@ import {
   verifyEmail,
   type AuthServices,
 } from '@businessos/auth';
+import { recordAudit } from '@businessos/audit';
+import { withSystem } from '@businessos/database';
 import { UnauthenticatedError } from '@businessos/shared';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { clientInfo } from '../../lib/http';
+import { auditContext, clientInfo } from '../../lib/http';
 import { parseInput } from '../../lib/validation';
 import { clearSessionCookie, setSessionCookie } from '../../plugins/session';
 
@@ -45,7 +47,7 @@ export function authRoutes(app: FastifyInstance): void {
   app.post('/verify-email', async (request) => {
     await app.rateLimiter.consume('verifyEmailIp', request.ip);
     const { token } = parseInput(tokenBodySchema, request.body);
-    const user = await verifyEmail(services(), token);
+    const user = await verifyEmail(services(), token, clientInfo(request));
     return { user };
   });
 
@@ -81,7 +83,19 @@ export function authRoutes(app: FastifyInstance): void {
   });
 
   app.post('/logout', async (request, reply) => {
-    if (request.auth) await revokeSession(app.deps.db.db, request.auth.sessionId);
+    if (request.auth) {
+      const { sessionId, user } = request.auth;
+      await revokeSession(app.deps.db.db, sessionId);
+      // System scope: account-level security record.
+      await withSystem(app.deps.db.db, (tx) =>
+        recordAudit(tx, auditContext(request), {
+          organizationId: null,
+          action: 'auth.logout',
+          target: { type: 'session', id: sessionId },
+          metadata: { userId: user.id },
+        }),
+      );
+    }
     clearSessionCookie(reply, app.deps.env);
     return reply.status(204).send();
   });
@@ -92,7 +106,7 @@ export function authRoutes(app: FastifyInstance): void {
     const parsed = emailSchema.safeParse(email);
     if (parsed.success) {
       await app.rateLimiter.consume('passwordResetAccount', parsed.data);
-      await requestPasswordReset(services(), parsed.data);
+      await requestPasswordReset(services(), parsed.data, clientInfo(request));
     }
     return reply.status(202).send(ACCEPTED);
   });
@@ -100,7 +114,7 @@ export function authRoutes(app: FastifyInstance): void {
   app.post('/reset-password', async (request) => {
     await app.rateLimiter.consume('passwordResetIp', request.ip);
     const { token, password } = parseInput(resetBodySchema, request.body);
-    const user = await resetPassword(services(), token, password);
+    const user = await resetPassword(services(), token, password, clientInfo(request));
     return { user };
   });
 }

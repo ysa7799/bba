@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@businessos/audit": "workspace:*",
     "@businessos/database": "workspace:*",
+    "@businessos/events": "workspace:*",
     "@businessos/organizations": "workspace:*",
     "@businessos/shared": "workspace:*",
     "@node-rs/argon2": "^2.2.1",

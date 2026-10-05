@@ -8,6 +8,7 @@ import {
   type Tx,
   type User,
 } from '@businessos/database';
+import type { AuditContext } from '@businessos/audit';
 import { NotFoundError } from '@businessos/shared';
 import { resolveMembership } from '@businessos/organizations';
 import { and, eq, isNull, ne } from 'drizzle-orm';
@@ -34,6 +35,23 @@ export interface AuthenticatedSession {
 export interface SessionClientInfo {
   ipAddress?: string | null;
   userAgent?: string | null;
+  /** Request id for audit correlation. */
+  requestId?: string | null;
+}
+
+/** Audit context for an account-level action performed by `user` from `client`. */
+export function userAuditContext(
+  user: { id: string; email: string },
+  client: SessionClientInfo | undefined,
+): AuditContext {
+  return {
+    actorType: 'user',
+    actorUserId: user.id,
+    actorLabel: user.email,
+    ipAddress: client?.ipAddress ?? null,
+    userAgent: client?.userAgent ?? null,
+    requestId: client?.requestId ?? null,
+  };
 }
 
 export function toSessionUser(user: User): SessionUser {

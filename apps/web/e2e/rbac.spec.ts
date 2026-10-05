@@ -42,4 +42,15 @@ test('owner invites a teammate who joins with a restricted view of settings', as
 
   await invitee.getByRole('link', { name: 'Settings' }).click();
   await expect(invitee.getByRole('button', { name: 'Save changes' })).toBeVisible();
+
+  // Every step above is in the owner's audit log.
+  await page.getByRole('link', { name: 'Audit log' }).click();
+  for (const action of [
+    'member.invited',
+    'member.joined',
+    'member.roles_changed',
+    'organization.created',
+  ]) {
+    await expect(page.getByRole('cell', { name: action, exact: true }).first()).toBeVisible();
+  }
 });

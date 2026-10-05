@@ -95,6 +95,12 @@ Cursor-based for lists: `?limit=50&cursor=<opaque>` → `{ data: [...], nextCurs
 | GET/POST          | `/app/orgs/:orgId/invitations`                 | `settings.users.manage` | `{email, roleId}`                                |
 | DELETE            | `/app/orgs/:orgId/invitations/:id`             | `settings.users.manage` | revoke                                           |
 
+### Audit log (Phase 5)
+
+| Method | Path                          | Permission   | Notes                                                    |
+| ------ | ----------------------------- | ------------ | -------------------------------------------------------- |
+| GET    | `/app/orgs/:orgId/audit-logs` | `audit.read` | `?limit&cursor&action&actorUserId&from&to`, newest first |
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

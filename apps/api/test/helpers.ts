@@ -1,4 +1,5 @@
 import { defaultAuthConfig, MemoryMailer } from '@businessos/auth';
+import { MemoryJobQueue } from '@businessos/jobs';
 import { createDatabase, type DatabaseHandle } from '@businessos/database';
 import { uniqueSuffix } from '@businessos/testing';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
@@ -16,6 +17,7 @@ export interface TestContext {
   db: DatabaseHandle;
   redis: Redis;
   mailer: MemoryMailer;
+  jobs: MemoryJobQueue;
   close: () => Promise<void>;
 }
 
@@ -40,6 +42,8 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
 export async function createTestContext(options?: {
   env?: Partial<Record<string, string>>;
   strictRateLimits?: boolean;
+  /** Use the production queue-backed mailer instead of the in-memory mailer. */
+  queueMailer?: boolean;
   configure?: (app: FastifyInstance) => void | Promise<void>;
 }): Promise<TestContext> {
   const env = loadApiEnv({
@@ -47,12 +51,12 @@ export async function createTestContext(options?: {
     REDIS_KEY_PREFIX: `test:${uniqueSuffix()}:`,
     PASSWORD_HASH_MEMORY_KIB: '1024',
     PASSWORD_HASH_TIME_COST: '1',
-    MAIL_TRANSPORT: 'memory',
     ...options?.env,
   });
   const db = createDatabase({ url: env.DATABASE_URL, maxConnections: 4 });
   const redis = createRedis(env.REDIS_URL, 'businessos-api-test');
   const mailer = new MemoryMailer();
+  const jobs = new MemoryJobQueue();
   const authConfig = {
     ...defaultAuthConfig(env.APP_URL),
     password: {
@@ -65,7 +69,8 @@ export async function createTestContext(options?: {
     env,
     db,
     redis,
-    mailer,
+    ...(options?.queueMailer ? {} : { mailer }),
+    jobs,
     authConfig,
     ...(options?.strictRateLimits ? {} : { rateLimits: RELAXED_LIMITS }),
   });
@@ -79,6 +84,7 @@ export async function createTestContext(options?: {
     db,
     redis,
     mailer,
+    jobs,
     close: async () => {
       await app.close();
       await db.close();

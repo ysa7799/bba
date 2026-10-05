@@ -38,6 +38,7 @@ export default async function OrganizationLayout({
             <NavLink href={`${base}/members`} label={m.app.nav.members} />
             <NavLink href={`${base}/roles`} label={m.app.nav.roles} />
             <NavLink href={`${base}/settings`} label={m.app.nav.settings} />
+            <NavLink href={`${base}/audit`} label={m.app.nav.audit} />
           </nav>
         </div>
       </aside>

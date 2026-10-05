@@ -16,6 +16,7 @@ import { ConflictError, decodeCursor, NotFoundError, toPage, type Page } from '@
 import { randomBytes } from 'node:crypto';
 import { and, asc, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import { emitEvent } from '@businessos/events';
 import {
   loadMembershipAccess,
   rolesByMembership,
@@ -100,7 +101,10 @@ export async function createOrganization(
   db: Database,
   ownerUserId: string,
   rawInput: CreateOrganizationInput,
-  hooks: ((tx: SystemTx, created: CreatedOrganization) => Promise<void>)[] = [],
+  options: {
+    hooks?: ((tx: SystemTx, created: CreatedOrganization) => Promise<void>)[];
+    correlationId?: string | undefined;
+  } = {},
 ): Promise<CreatedOrganization> {
   const input = createOrganizationInputSchema.parse(rawInput);
   // System scope: the tenant does not exist yet, so no tenant context can authorize the insert.
@@ -140,8 +144,30 @@ export async function createOrganization(
       roleId: roleIds.owner,
     });
 
+    const actor = { type: 'user' as const, id: ownerUserId };
+    await emitEvent(tx, {
+      type: 'organization.created',
+      organizationId: organization.id,
+      subject: { type: 'organization', id: organization.id },
+      actor,
+      payload: { name: organization.name, createdByUserId: ownerUserId },
+      correlationId: options.correlationId,
+    });
+    await emitEvent(tx, {
+      type: 'member.joined',
+      organizationId: organization.id,
+      subject: { type: 'membership', id: ownerMembership.id },
+      actor,
+      payload: {
+        membershipId: ownerMembership.id,
+        userId: ownerUserId,
+        via: 'organization_created',
+      },
+      correlationId: options.correlationId,
+    });
+
     const created = { organization, ownerMembership, roleIds };
-    for (const hook of hooks) {
+    for (const hook of options.hooks ?? []) {
       await hook(tx, created);
     }
     return created;
@@ -234,17 +260,29 @@ export async function updateOrganization(
   tx: TenantTx,
   organizationId: string,
   rawPatch: UpdateOrganizationInput,
-): Promise<{ before: Organization; after: Organization }> {
+  actor: { userId: string; correlationId?: string | undefined } | null,
+): Promise<{ before: Organization; after: Organization; changedFields: string[] }> {
   const patch = updateOrganizationInputSchema.parse(rawPatch);
   const before = await getOrganization(tx, organizationId);
-  if (Object.keys(patch).length === 0) return { before, after: before };
+  const changedFields = (Object.keys(patch) as (keyof typeof patch)[]).filter(
+    (key) => patch[key] !== before[key],
+  );
+  if (changedFields.length === 0) return { before, after: before, changedFields };
   const [after] = await tx
     .update(organizations)
     .set(patch)
     .where(and(eq(organizations.id, organizationId), isNull(organizations.deletedAt)))
     .returning();
   if (!after) throw new NotFoundError('Organization');
-  return { before, after };
+  await emitEvent(tx, {
+    type: 'organization.updated',
+    organizationId,
+    subject: { type: 'organization', id: organizationId },
+    actor: actor ? { type: 'user', id: actor.userId } : { type: 'system', id: null },
+    payload: { changedFields },
+    correlationId: actor?.correlationId,
+  });
+  return { before, after, changedFields };
 }
 
 export interface MemberSummary {

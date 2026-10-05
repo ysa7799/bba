@@ -1,11 +1,13 @@
 import type { AuthConfig, AuthMailer } from '@businessos/auth';
+import type { JobQueue } from '@businessos/jobs';
 import { type DatabaseHandle } from '@businessos/database';
 import { LOG_REDACT_PATHS, newId } from '@businessos/shared';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Redis } from 'ioredis';
 import type { ApiEnv } from './env';
-import { createDevMailer } from './lib/mailer';
+import { QueueMailer } from './lib/mailer';
 import { DEFAULT_RATE_LIMITS, RateLimiter, type RateLimitPolicies } from './lib/rate-limiter';
+import { auditRoutes } from './modules/audit/routes';
 import { authRoutes } from './modules/auth/routes';
 import { healthRoutes } from './modules/health/routes';
 import { invitationRoutes } from './modules/invitations/routes';
@@ -20,7 +22,9 @@ export interface AppDependencies {
   env: ApiEnv;
   db: DatabaseHandle;
   redis: Redis;
-  /** Auth email transport. Defaults to the development log mailer (refused in production). */
+  /** Background job queue (BullMQ in production, in-memory in tests). */
+  jobs: JobQueue;
+  /** Auth email transport. Defaults to queueing `email.send` jobs for the worker. */
   mailer?: AuthMailer;
   authConfig: AuthConfig;
   /** Overrides for named rate-limit policies (tests use relaxed limits). */
@@ -64,7 +68,7 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     routerOptions: { maxParamLength: 200 },
   });
 
-  app.decorate('deps', { ...deps, mailer: deps.mailer ?? createDevMailer(env, app.log) });
+  app.decorate('deps', { ...deps, mailer: deps.mailer ?? new QueueMailer(deps.jobs) });
   app.decorate(
     'rateLimiter',
     new RateLimiter(
@@ -92,6 +96,7 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(authRoutes, { prefix: '/app/auth' });
   await app.register(meRoutes, { prefix: '/app/me' });
   await app.register(organizationRoutes, { prefix: '/app/orgs' });
+  await app.register(auditRoutes, { prefix: '/app/orgs/:orgId/audit-logs' });
   await app.register(invitationRoutes, { prefix: '/app/invitations' });
 
   return app;

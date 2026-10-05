@@ -7,6 +7,8 @@ import path from 'node:path';
  */
 const WEB_PORT = 3100;
 const API_PORT = 4100;
+const WORKER_HEALTH_PORT = 4200;
+const QUEUE_PREFIX = `e2e${Date.now()}`;
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 export const MAIL_FILE = path.join(repoRoot, 'apps/web/test-results/e2e-mail.jsonl');
 
@@ -51,10 +53,30 @@ export default defineConfig({
         APP_URL: `http://localhost:${WEB_PORT}`,
         CORS_ORIGINS: `http://localhost:${WEB_PORT}`,
         TRUST_PROXY: '127.0.0.1',
-        MAIL_TRANSPORT: 'file',
-        MAIL_FILE_PATH: MAIL_FILE,
+        QUEUE_PREFIX: QUEUE_PREFIX,
         PASSWORD_HASH_MEMORY_KIB: '4096',
         PASSWORD_HASH_TIME_COST: '1',
+      },
+    },
+    {
+      // Emails are delivered by the worker (email.send jobs) using the file transport.
+      command: 'node --enable-source-maps dist/main.js',
+      cwd: path.join(repoRoot, 'apps/worker'),
+      url: `http://localhost:${WORKER_HEALTH_PORT}/health`,
+      reuseExistingServer: false,
+      timeout: 60_000,
+      env: {
+        NODE_ENV: 'test',
+        LOG_LEVEL: 'warn',
+        DATABASE_URL:
+          process.env.DATABASE_URL ??
+          'postgres://businessos_app:businessos_app@localhost:5432/businessos_test',
+        REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379/1',
+        QUEUE_PREFIX: QUEUE_PREFIX,
+        WORKER_HEALTH_PORT: String(WORKER_HEALTH_PORT),
+        EMAIL_TRANSPORT: 'file',
+        EMAIL_FILE_PATH: MAIL_FILE,
+        OUTBOX_POLL_MS: '200',
       },
     },
     {

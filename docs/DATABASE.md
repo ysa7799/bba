@@ -57,17 +57,21 @@ CREATE POLICY tenant_isolation ON <t>
 
 Populated as phases land. See the schema files for the source of truth.
 
-| Table                   | Scope                                    | Phase | Delete behaviour                                                        |
-| ----------------------- | ---------------------------------------- | ----- | ----------------------------------------------------------------------- |
-| `users`                 | global (RLS: self, co-members, system)   | 2     | hard delete cascades memberships (privacy flow later)                   |
-| `organizations`         | tenant root (RLS: own tenant, members\*) | 2     | soft delete (`deleted_at`); hard delete cascades all tenant rows        |
-| `memberships`           | tenant                                   | 2     | cascade with organization or user                                       |
-| `organization_settings` | tenant                                   | 2     | cascade with organization; `updated_by_user_id` set null on user delete |
-| `sessions`              | global (RLS: own user, system)           | 3     | cascade with user; `active_organization_id` set null                    |
-| `auth_tokens`           | global (RLS: system only)                | 3     | cascade with user                                                       |
-| `invitations`           | tenant                                   | 3     | cascade with organization; inviter/acceptor set null; role RESTRICT     |
-| `roles`                 | tenant                                   | 4     | cascade with organization                                               |
-| `membership_roles`      | tenant (composite same-tenant FKs)       | 4     | cascade with membership; role RESTRICT                                  |
+| Table                   | Scope                                                                       | Phase | Delete behaviour                                                        |
+| ----------------------- | --------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------- |
+| `users`                 | global (RLS: self, co-members, system)                                      | 2     | hard delete cascades memberships (privacy flow later)                   |
+| `organizations`         | tenant root (RLS: own tenant, members\*)                                    | 2     | soft delete (`deleted_at`); hard delete cascades all tenant rows        |
+| `memberships`           | tenant                                                                      | 2     | cascade with organization or user                                       |
+| `organization_settings` | tenant                                                                      | 2     | cascade with organization; `updated_by_user_id` set null on user delete |
+| `sessions`              | global (RLS: own user, system)                                              | 3     | cascade with user; `active_organization_id` set null                    |
+| `auth_tokens`           | global (RLS: system only)                                                   | 3     | cascade with user                                                       |
+| `invitations`           | tenant                                                                      | 3     | cascade with organization; inviter/acceptor set null; role RESTRICT     |
+| `roles`                 | tenant                                                                      | 4     | cascade with organization                                               |
+| `membership_roles`      | tenant (composite same-tenant FKs)                                          | 4     | cascade with membership; role RESTRICT                                  |
+| `audit_logs`            | tenant or account-level (org null); append-only (no UPDATE/DELETE policies) | 5     | cascade with organization; actor set null                               |
+| `outbox_events`         | tenant insert; system read/update                                           | 5     | cascade with organization                                               |
+| `processed_events`      | system only                                                                 | 5     | retention job later                                                     |
+| `job_failures`          | system only                                                                 | 5     | organization set null                                                   |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.

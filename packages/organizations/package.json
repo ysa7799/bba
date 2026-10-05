@@ -12,7 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@businessos/audit": "workspace:*",
     "@businessos/database": "workspace:*",
+    "@businessos/events": "workspace:*",
     "@businessos/permissions": "workspace:*",
     "@businessos/shared": "workspace:*",
     "drizzle-orm": "^0.45.3",

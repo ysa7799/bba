@@ -21,6 +21,7 @@ import {
   type SystemRoleKey,
 } from '@businessos/permissions';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '@businessos/shared';
+import { emitEvent } from '@businessos/events';
 import { and, asc, count, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
@@ -28,6 +29,8 @@ import { z } from 'zod';
 export interface MemberActor extends Actor {
   userId: string;
   membershipId: string;
+  /** Request/workflow correlation id propagated into domain events. */
+  correlationId?: string | undefined;
 }
 
 export interface RoleSummary {
@@ -336,6 +339,20 @@ export async function setMemberRoles(
     }
   }
 
+  if (added.length > 0 || removed.length > 0) {
+    await emitEvent(tx, {
+      type: 'member.roles_changed',
+      organizationId,
+      subject: { type: 'membership', id: membershipId },
+      actor: { type: 'user', id: actor.userId },
+      payload: {
+        membershipId,
+        addedRoleIds: added.map((role) => role.id),
+        removedRoleIds: removed.map((role) => role.id),
+      },
+      correlationId: actor.correlationId,
+    });
+  }
   if (removed.length > 0) {
     await tx.delete(membershipRoles).where(
       and(
@@ -392,6 +409,14 @@ export async function removeMember(
     .delete(memberships)
     .where(and(eq(memberships.id, membershipId), eq(memberships.organizationId, organizationId)));
   await assertOwnerRemains(tx, organizationId);
+  await emitEvent(tx, {
+    type: 'member.removed',
+    organizationId,
+    subject: { type: 'membership', id: membershipId },
+    actor: { type: 'user', id: actor.userId },
+    payload: { membershipId, userId: membership.userId, reason: 'removed' },
+    correlationId: actor.correlationId,
+  });
   return { userId: membership.userId };
 }
 
@@ -399,13 +424,23 @@ export async function removeMember(
 export async function leaveOrganization(
   tx: TenantTx,
   organizationId: string,
-  membershipId: string,
+  actor: MemberActor,
 ): Promise<void> {
   await lockOrganization(tx, organizationId);
   await tx
     .delete(memberships)
-    .where(and(eq(memberships.id, membershipId), eq(memberships.organizationId, organizationId)));
+    .where(
+      and(eq(memberships.id, actor.membershipId), eq(memberships.organizationId, organizationId)),
+    );
   await assertOwnerRemains(tx, organizationId);
+  await emitEvent(tx, {
+    type: 'member.removed',
+    organizationId,
+    subject: { type: 'membership', id: actor.membershipId },
+    actor: { type: 'user', id: actor.userId },
+    payload: { membershipId: actor.membershipId, userId: actor.userId, reason: 'left' },
+    correlationId: actor.correlationId,
+  });
 }
 
 /** Roles of many memberships at once (for member lists). */

@@ -64,12 +64,13 @@ export function requirePermission(request: FastifyRequest, permission: Permissio
   return tenant;
 }
 
-export function actorOf(tenant: TenantContext): MemberActor {
+export function actorOf(tenant: TenantContext, request?: FastifyRequest): MemberActor {
   return {
     userId: tenant.userId,
     membershipId: tenant.membershipId,
     permissions: tenant.permissions,
     isOwner: tenant.isOwner,
+    correlationId: request?.id,
   };
 }
 
