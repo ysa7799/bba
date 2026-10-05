@@ -29,7 +29,7 @@ export default async function OrganizationLayout({
 
   return (
     <div className="min-h-screen md:flex">
-      <aside className="bg-slate-900 md:fixed md:inset-y-0 md:w-60">
+      <aside className="bg-slate-900 md:fixed md:inset-y-0 md:w-60 print:hidden">
         <div className="flex h-full flex-col gap-4 p-4">
           <div className="text-sm font-semibold tracking-tight text-white">{m.common.appName}</div>
           <OrgSwitcher organizations={me.organizations} currentId={orgId} />
@@ -60,6 +60,13 @@ export default async function OrganizationLayout({
             <NavLink href={`${base}/forms`} label={m.app.nav.forms} />
             <NavLink href={`${base}/automation`} label={m.app.nav.workflows} />
             <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
+              {m.app.nav.salesSection}
+            </p>
+            <NavLink href={`${base}/commerce/quotes`} label={m.app.nav.quotes} />
+            <NavLink href={`${base}/commerce/invoices`} label={m.app.nav.invoices} />
+            <NavLink href={`${base}/commerce/products`} label={m.app.nav.products} />
+            <NavLink href={`${base}/commerce/settings`} label={m.app.nav.commerceSettings} />
+            <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
               {m.app.nav.adminSection}
             </p>
             <NavLink href={`${base}/members`} label={m.app.nav.members} />
@@ -70,8 +77,8 @@ export default async function OrganizationLayout({
           </nav>
         </div>
       </aside>
-      <div className="md:ps-60">
-        <header className="flex h-14 items-center justify-end gap-4 border-b border-slate-200 bg-white px-4 sm:px-6">
+      <div className="md:ps-60 print:ps-0">
+        <header className="flex h-14 items-center justify-end gap-4 border-b border-slate-200 bg-white px-4 sm:px-6 print:hidden">
           <span className="truncate text-sm text-slate-700">{me.user.name}</span>
           <SignOutButton />
         </header>

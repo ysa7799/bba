@@ -334,6 +334,8 @@ export async function syncPayment(
     tx.select().from(payments).where(eq(payments.id, paymentId)),
   );
   if (!initial) throw new NotFoundError('Payment');
+  // Invoice payments are verified through the organization's own provider (commerce).
+  if (initial.purpose !== 'subscription') throw new NotFoundError('Payment');
   if (!initial.providerPaymentId) {
     return { status: initial.status, changed: false, fulfilled: false };
   }
@@ -514,6 +516,9 @@ export async function handlePaymentWebhook(
       .from(payments)
       .where(
         and(
+          // Invoice payments go to the organization's own provider account and are handled
+          // by the commerce webhook route, never by the platform's.
+          eq(payments.purpose, 'subscription'),
           eq(payments.provider, providerName),
           eq(payments.providerPaymentId, event.providerPaymentId),
         ),

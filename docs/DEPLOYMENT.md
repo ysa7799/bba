@@ -99,6 +99,16 @@ re-enter them); keys belong in the secrets manager, never in the repository.
   `API_PUBLIC_URL`; `API_PUBLIC_URL` and `APP_URL` are also used to refuse workflow calls to
   BusinessOS itself.
 
+## Commerce configuration (Phase 14)
+
+- No new required variables. Organizations connect their own payment provider; storing its
+  keys needs `CREDENTIALS_ENCRYPTION_KEYS` (already required in production).
+- Provider notifications arrive at `API_PUBLIC_URL/webhooks/commerce/<connectionId>`; customer
+  links are `APP_URL/i/<token>` (invoices) and `APP_URL/q/<token>` (quotes).
+- The worker schedules `commerce.maintenance` hourly (overdue invoices, expired quotes).
+- `COMMERCE_FAKE_PAYMENTS` (API) and `ENABLE_DEV_PAYMENTS` (web) are development/test only;
+  the API refuses the former in production.
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

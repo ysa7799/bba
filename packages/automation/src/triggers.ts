@@ -21,8 +21,7 @@ export const CONTACT_UPDATE_FIELDS = [
 
 /**
  * Trigger catalogue: the domain event that starts a run (null for inbound webhooks) and the
- * filters staff can set. Triggers for modules that do not exist yet (invoices) are added with
- * those modules.
+ * filters staff can set. New modules add their triggers here.
  */
 export const TRIGGERS = {
   'contact.created': { event: 'contact.created', config: z.object({}) },
@@ -45,6 +44,8 @@ export const TRIGGERS = {
     config: z.object({ appointmentTypeId: optionalId }),
   },
   'task.completed': { event: 'task.completed', config: z.object({}) },
+  'invoice.created': { event: 'invoice.created', config: z.object({}) },
+  'invoice.paid': { event: 'invoice.paid', config: z.object({}) },
   'message.received': {
     event: 'message.received',
     config: z.object({ channel: z.enum(['email', 'whatsapp', 'sms']).nullable().default(null) }),

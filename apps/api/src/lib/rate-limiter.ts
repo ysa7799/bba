@@ -38,6 +38,16 @@ export const DEFAULT_RATE_LIMITS = {
   /** Inbound workflow webhooks, per workflow token and per sender IP. */
   automationWebhookToken: { limit: 1_000, windowSeconds: 3600 },
   automationWebhookIp: { limit: 2_000, windowSeconds: 3600 },
+  /** Customer quote/invoice links (unauthenticated): reads, payments and answers. */
+  commerceDocumentIp: { limit: 300, windowSeconds: 600 },
+  commerceCheckoutIp: { limit: 30, windowSeconds: 3600 },
+  commerceCheckoutDocument: { limit: 60, windowSeconds: 3600 },
+  commerceRespondIp: { limit: 30, windowSeconds: 3600 },
+  /** Payment notifications per organization connection. */
+  commerceWebhookConnection: { limit: 3_000, windowSeconds: 3600 },
+  /** Staff: provider calls (payment re-verification, refunds) per organization. */
+  commerceVerifyOrg: { limit: 300, windowSeconds: 3600 },
+  commerceRefundOrg: { limit: 100, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

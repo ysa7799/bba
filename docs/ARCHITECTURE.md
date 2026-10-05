@@ -178,6 +178,13 @@ deal, note; each step in a savepoint so a failed step becomes a note, not a lost
 with `form.submitted` in the outbox. The embed route gets its per-form `frame-ancestors` from
 the web app's request proxy (`apps/web/src/proxy.ts`).
 
+Commerce (`@businessos/commerce`) holds the catalogue (products, per-currency prices, tax
+rates), quotes and invoices with server-computed lines (integer minor units, tax snapshots),
+gapless invoice numbering, customer links, and invoice payments: online through the
+organization's own provider connection (verified server-side, applied once) or recorded by
+staff, plus refunds. It reuses the payments port and adapters but never the platform billing
+flow. It is not a ledger: accounting arrives as a separate design phase.
+
 Automation (`@businessos/automation`) stores workflows as versions with a trigger and a tree of
 steps. The `automation` event subscriber starts runs for matching published workflows (unique
 per workflow and event) and queues `automation.run`; the executor runs one step per

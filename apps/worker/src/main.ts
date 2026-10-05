@@ -82,6 +82,12 @@ function main(): void {
     .catch((error: unknown) => {
       logger.error({ err: error }, 'could not schedule appointment reminders');
     });
+  // Hourly: overdue invoices (invoice.overdue events) and expired quotes.
+  queue
+    .schedule('commerce-maintenance', 'commerce.maintenance', {}, 3_600_000)
+    .catch((error: unknown) => {
+      logger.error({ err: error }, 'could not schedule commerce maintenance');
+    });
   // Durable workflow continuation: waits and retries that are due, and stalled runs.
   queue.schedule('automation-resume', 'automation.resume', {}, 60_000).catch((error: unknown) => {
     logger.error({ err: error }, 'could not schedule workflow resumption');

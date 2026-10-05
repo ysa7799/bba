@@ -2,6 +2,32 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 14 — Commerce (2026-10-05)
+
+- Schema: `commerce_settings`, `commerce_tax_rates`, `commerce_products`,
+  `commerce_product_prices`, `commerce_quotes`, `commerce_quote_items`, `commerce_invoices`,
+  `commerce_invoice_items`, `commerce_payment_connections`, `commerce_checkouts`,
+  `commerce_invoice_payments`, `commerce_refunds` (migrations 0027–0028).
+- `@businessos/commerce`: exact commercial arithmetic (minor units, per-line half-up rounding,
+  tax snapshots), catalogue, quotes (send, customer accept/decline, convert), invoices (drafts,
+  gapless numbering on issue, customer links, void, overdue), payment connections (sealed
+  credentials, Tap/fake adapters per organization), online checkout with server-side
+  verification, commerce webhooks, manual payments, refunds, timeline projectors.
+- `@businessos/payments`: platform subscription webhooks and sync ignore invoice payments.
+- Permissions `commerce.invoice.read/create/update`, `commerce.catalog.manage`,
+  `commerce.payment.refund`, `commerce.settings.manage`; events `quote.sent/accepted/declined`,
+  `invoice.created/sent/paid/overdue/voided`; audit actions `commerce.*`; activity types
+  `quote.sent/accepted/declined`, `invoice.sent/paid`; job `commerce.maintenance`; email
+  templates `quote_sent`, `invoice_sent`; automation triggers `invoice.created`, `invoice.paid`.
+- API: `/app/orgs/:orgId/commerce/*`, `/public/commerce/*` (invoice and quote links masked in
+  logs; rate limits `commerceDocumentIp`, `commerceCheckoutIp`, `commerceCheckoutDocument`,
+  `commerceRespondIp`, `commerceVerifyOrg`, `commerceRefundOrg`), `/webhooks/commerce/:connectionId`
+  (`commerceWebhookConnection`); env `COMMERCE_FAKE_PAYMENTS` (refused in production).
+- Worker: `commerce.maintenance` hourly; quote/invoice timeline projection.
+- Web: Quotes, Invoices (editor, detail, payments, refunds, print/PDF view), Products,
+  Invoicing setup (tax rates, numbering, payment provider); customer pages `/i/<token>` (pay
+  online) and `/q/<token>` (accept/decline); dev fake checkout; "New invoice" on contacts; E2E.
+
 ## Phase 13 — Automation V1 (2026-10-05)
 
 - Schema: `automation_workflows`, `automation_workflow_versions`, `automation_nodes`,

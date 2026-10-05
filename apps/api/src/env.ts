@@ -57,6 +57,11 @@ export const apiEnvSchema = z
     TAP_API_BASE_URL: z.url().optional(),
     FAKE_PAYMENTS_WEBHOOK_SECRET: z.string().min(16).default('dev-fake-payments-webhook-secret'),
     /**
+     * Development/test: organizations can connect the in-process fake provider so customers can
+     * "pay" invoices without a real provider account.
+     */
+    COMMERCE_FAKE_PAYMENTS: booleanFromEnv.default(false),
+    /**
      * Keys sealing stored provider credentials (`keyId:base64-32-bytes`, comma separated; the
      * first encrypts, all decrypt). Without it channels can be created but not configured.
      */
@@ -124,6 +129,13 @@ export const apiEnvSchema = z
         code: 'custom',
         path: ['PAYMENTS_PROVIDER'],
         message: 'the fake payment provider is not allowed in production',
+      });
+    }
+    if (env.COMMERCE_FAKE_PAYMENTS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['COMMERCE_FAKE_PAYMENTS'],
+        message: 'the fake invoice payment provider is not allowed in production',
       });
     }
     if (env.COMMUNICATIONS_FAKE_PROVIDERS) {

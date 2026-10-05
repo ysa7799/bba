@@ -250,6 +250,53 @@ export const EVENT_DEFINITIONS = {
       to: z.enum(['scheduled', 'cancelled', 'completed', 'no_show']),
     }),
   },
+  'quote.sent': {
+    version: 1,
+    schema: z.object({ quoteId: z.uuid(), contactId: z.uuid() }),
+  },
+  'quote.accepted': {
+    version: 1,
+    schema: z.object({ quoteId: z.uuid(), contactId: z.uuid(), by: z.enum(['customer', 'staff']) }),
+  },
+  'quote.declined': {
+    version: 1,
+    schema: z.object({ quoteId: z.uuid(), contactId: z.uuid(), by: z.enum(['customer', 'staff']) }),
+  },
+  'invoice.created': {
+    version: 1,
+    schema: z.object({
+      invoiceId: z.uuid(),
+      contactId: z.uuid(),
+      dealId: z.uuid().nullable(),
+      quoteId: z.uuid().nullable(),
+    }),
+  },
+  'invoice.sent': {
+    version: 1,
+    schema: z.object({
+      invoiceId: z.uuid(),
+      contactId: z.uuid(),
+      totalMinor: z.string().regex(/^\d+$/),
+      currency: z.string().length(3),
+    }),
+  },
+  'invoice.paid': {
+    version: 1,
+    schema: z.object({
+      invoiceId: z.uuid(),
+      contactId: z.uuid(),
+      totalMinor: z.string().regex(/^\d+$/),
+      currency: z.string().length(3),
+    }),
+  },
+  'invoice.overdue': {
+    version: 1,
+    schema: z.object({ invoiceId: z.uuid(), contactId: z.uuid(), dueDate: z.iso.date() }),
+  },
+  'invoice.voided': {
+    version: 1,
+    schema: z.object({ invoiceId: z.uuid(), contactId: z.uuid() }),
+  },
   'workflow.started': {
     version: 1,
     schema: z.object({

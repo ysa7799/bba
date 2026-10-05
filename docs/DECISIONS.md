@@ -363,3 +363,42 @@ and resolves the host through a lookup that rejects the connection unless every 
 public — checked when connecting, so a DNS answer cannot change between validation and use.
 Private networks are allowed only with `AUTOMATION_ALLOW_PRIVATE_NETWORK` (development and
 tests; refused in production). Responses are discarded; only the status matters.
+
+## ADR-046 — Invoice payments go to the organization's own provider account
+
+Customers pay the organization that issued the invoice, so invoice payments use a
+per-organization connection (sealed credentials) instead of the platform's billing provider.
+They reuse the `payments` table (system-written, `purpose = invoice`), the provider port and
+adapters, the state machine and the webhook dedupe table, but have their own webhook route per
+connection (`/webhooks/commerce/<connectionId>`) authenticated by that connection's signature.
+The platform's subscription webhook and sync ignore invoice payments and vice versa. Routing by
+connection id (not a secret URL token) is enough because every notification is signature
+verified and only triggers a re-fetch; it also lets providers like Tap receive the URL per
+charge with no dashboard setup.
+
+## ADR-047 — Commercial arithmetic in integer minor units, rounded per line
+
+Unit prices are minor units; quantities are exact decimals (≤ 3 places) used as integer ratios;
+discounts and tax rates are basis points. Each line computes subtotal = unit × quantity,
+discount and tax with half-up rounding to the currency's minor unit; document totals are sums of
+the rounded lines (what the customer sees adds up). Totals are bounded to keep every product
+within safe bigint ranges. The browser never computes money: drafts show totals after saving.
+Tax names and rates are snapshotted on lines, so archiving or renaming a rate never changes an
+issued document.
+
+## ADR-048 — Invoices are numbered when issued, from a locked per-organization counter
+
+Drafts have no number. Issuing takes `next_invoice_number` with `UPDATE … RETURNING` inside the
+issuing transaction, so concurrent issues serialize on the settings row and a rolled-back issue
+returns its number: issued numbers are unique and gapless. Numbers only move forward (the
+prefix may change). Issued invoices are immutable; mistakes are voided (number kept). Quotes are
+numbered at creation (gaps from deleted drafts are acceptable for quotes).
+
+## ADR-049 — Invoice status is derived from applied payments
+
+`amount_paid = Σ applied payments − Σ refunded`, recomputed under the invoice row lock whenever
+money is applied or refunded; status is `paid` when it covers the total, otherwise `open`
+(void and draft are explicit). Partial payments, refunds that reopen an invoice and late
+duplicate online payments (recorded as overpaid for staff to refund) all follow from the same
+rule. Manual payments are capped at the amount due; refunds at what remains of the payment, and
+online refunds reserve the amount before calling the provider. No general ledger yet.

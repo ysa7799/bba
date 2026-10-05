@@ -31,6 +31,12 @@ describe('redactUrlForLog', () => {
     ).toBe(
       '/webhooks/communications/whatsapp_cloud/[REDACTED]?hub.mode=subscribe&hub.verify_token=[REDACTED]&hub.challenge=42',
     );
+    expect(redactUrlForLog('/public/commerce/invoices/AbCdEf0123456789_-xyz/checkout')).toBe(
+      '/public/commerce/invoices/[REDACTED]/checkout',
+    );
+    expect(redactUrlForLog('/public/commerce/quotes/AbCdEf0123456789_-xyz')).toBe(
+      '/public/commerce/quotes/[REDACTED]',
+    );
     expect(redactUrlForLog('/auth/verify?token=abc&next=%2Fo')).toBe(
       '/auth/verify?token=[REDACTED]&next=%2Fo',
     );

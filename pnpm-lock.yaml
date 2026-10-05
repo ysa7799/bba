@@ -47,6 +47,9 @@ importers:
       '@businessos/calendar':
         specifier: workspace:*
         version: link:../../packages/calendar
+      '@businessos/commerce':
+        specifier: workspace:*
+        version: link:../../packages/commerce
       '@businessos/communications':
         specifier: workspace:*
         version: link:../../packages/communications
@@ -190,6 +193,9 @@ importers:
       '@businessos/calendar':
         specifier: workspace:*
         version: link:../../packages/calendar
+      '@businessos/commerce':
+        specifier: workspace:*
+        version: link:../../packages/commerce
       '@businessos/communications':
         specifier: workspace:*
         version: link:../../packages/communications
@@ -436,6 +442,49 @@ importers:
       '@businessos/events':
         specifier: workspace:*
         version: link:../events
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../organizations
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/commerce:
+    dependencies:
+      '@businessos/activities':
+        specifier: workspace:*
+        version: link:../activities
+      '@businessos/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@businessos/crm':
+        specifier: workspace:*
+        version: link:../crm
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../events
+      '@businessos/payments':
+        specifier: workspace:*
+        version: link:../payments
       '@businessos/shared':
         specifier: workspace:*
         version: link:../shared

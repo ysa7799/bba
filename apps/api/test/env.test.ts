@@ -75,6 +75,9 @@ describe('API environment validation', () => {
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
       }),
     ).toThrow(/COMMUNICATIONS_FAKE_PROVIDERS/);
+    expect(() =>
+      loadApiEnv({ ...secure, CREDENTIALS_ENCRYPTION_KEYS: keys, COMMERCE_FAKE_PAYMENTS: 'true' }),
+    ).toThrow(/COMMERCE_FAKE_PAYMENTS/);
   });
 
   it('validates credential encryption keys without echoing them', () => {

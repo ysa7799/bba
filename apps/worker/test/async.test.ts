@@ -337,15 +337,24 @@ describe('idempotency and concurrency', () => {
     expect(runs).toBe(1);
   });
 
-  it('concurrent dispatchers deliver every event exactly once', async () => {
+  it('concurrent dispatchers deliver every event exactly once', { timeout: 60_000 }, async () => {
     const ids: string[] = [];
     for (let i = 0; i < 30; i += 1) ids.push(await emitForA('organization.updated', `burst-${i}`));
     const extra = [
       new OutboxDispatcher(handle.db, queue, registry, { batchSize: 7 }),
       new OutboxDispatcher(handle.db, queue, registry, { batchSize: 7 }),
     ];
-    await Promise.all(extra.map((dispatcher) => dispatcher.dispatchBatch()));
-    await waitFor(() => ids.every((id) => received.get('exactly-once')?.some((e) => e.id === id)));
+    // The extra dispatchers keep racing the runtime's until everything is delivered. The shared
+    // test database also receives other suites' events (all dispatched in order), so the
+    // deadline allows for that backlog when every package's tests run in parallel.
+    const delivered = () =>
+      ids.every((id) => received.get('exactly-once')?.some((e) => e.id === id));
+    const deadline = Date.now() + 40_000;
+    while (!delivered()) {
+      if (Date.now() > deadline) throw new Error('timed out waiting for delivery');
+      await Promise.all(extra.map((dispatcher) => dispatcher.dispatchBatch()));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
     await new Promise((resolve) => setTimeout(resolve, 300));
     for (const id of ids) {
       expect(received.get('exactly-once')?.filter((e) => e.id === id)).toHaveLength(1);

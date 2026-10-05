@@ -52,6 +52,14 @@ const TEMPLATES: Record<string, (data: Data) => RenderedEmail> = {
     subject: `Cancelled: ${required(data, 'title')} with ${required(data, 'organization')}`,
     text: `${greeting(data)}Your appointment was cancelled.\n\n${appointmentDetails(data)}`,
   }),
+  quote_sent: (data) => ({
+    subject: `Quote ${required(data, 'number')} from ${required(data, 'organization')}`,
+    text: `${greeting(data)}${required(data, 'organization')} sent you quote ${required(data, 'number')} for ${required(data, 'total')}.\n\nView and accept it here: ${required(data, 'link')}\n`,
+  }),
+  invoice_sent: (data) => ({
+    subject: `Invoice ${required(data, 'number')} from ${required(data, 'organization')}`,
+    text: `${greeting(data)}${required(data, 'organization')} sent you invoice ${required(data, 'number')} for ${required(data, 'total')}, due ${required(data, 'dueDate')}.\n\nView or pay it here: ${required(data, 'link')}\n`,
+  }),
   appointment_reminder: (data) => ({
     subject: `Reminder: ${required(data, 'title')} with ${required(data, 'organization')}`,
     text: `${greeting(data)}This is a reminder of your upcoming appointment.\n\n${appointmentDetails(data)}${manageLine(data, 'Need to change it? Reschedule or cancel here')}`,

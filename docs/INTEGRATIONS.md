@@ -108,6 +108,24 @@ refreshing them needs the OAuth integrations framework (Phase 18), so a pasted t
 until it expires. Zoom meetings also wait for Phase 18 (organization-level OAuth); video links
 come from the calendar providers (Meet, Teams) or the type's location text.
 
+## Invoice payments (Phase 14)
+
+- Customers pay the **organization**, through the organization's own provider account
+  (`commerce_payment_connections`), never through BusinessOS's billing account. Owners connect
+  a provider under Invoicing setup; Tap needs the account's secret key (`sk_test_…` /
+  `sk_live_…`), stored sealed. Without it the connection is **CONFIGURATION_REQUIRED** and
+  invoices simply show no Pay button.
+- The adapter is created per connection from its credentials (same `PaymentProvider` port and
+  Tap adapter as Phase 7). Each checkout passes the connection's notification URL
+  (`/webhooks/commerce/<connectionId>`) as `post.url`, so no dashboard setup is needed; the
+  signature is checked with that connection's key and the charge is always re-fetched.
+- Refunds go through the provider with the refund id as idempotency key; provider-side
+  refunds made outside BusinessOS are detected on sync and logged for reconciliation (the
+  invoice ledger is not rewritten silently).
+- Development and tests: `COMMERCE_FAKE_PAYMENTS=true` adds the in-process fake provider
+  ("Test payments") with a hosted-page stand-in at `/dev/fake-invoice-checkout` (web
+  `ENABLE_DEV_PAYMENTS=true`); both are refused or hidden in production.
+
 ## Workflow webhooks (Phase 13)
 
 - **Outbound** (`http.request` step): `POST` JSON `{workflowId, runId, trigger: {type, data},

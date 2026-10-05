@@ -18,6 +18,7 @@
     "@businessos/automation": "workspace:*",
     "@businessos/billing": "workspace:*",
     "@businessos/calendar": "workspace:*",
+    "@businessos/commerce": "workspace:*",
     "@businessos/communications": "workspace:*",
     "@businessos/config": "workspace:*",
     "@businessos/crm": "workspace:*",

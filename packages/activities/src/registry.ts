@@ -13,6 +13,7 @@ export const ACTIVITY_CATEGORIES = [
   'communication',
   'appointment',
   'form',
+  'commerce',
   'record',
 ] as const;
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
@@ -182,6 +183,31 @@ export const ACTIVITY_TYPES = {
     permission: 'calendar.appointment.read',
     channel: 'meeting',
     metadataKeys: ['appointmentId', 'title', 'startsAt', 'by'],
+  },
+  'quote.sent': {
+    category: 'commerce',
+    permission: 'commerce.invoice.read',
+    metadataKeys: ['quoteId', 'number', 'total'],
+  },
+  'quote.accepted': {
+    category: 'commerce',
+    permission: 'commerce.invoice.read',
+    metadataKeys: ['quoteId', 'number', 'total', 'by'],
+  },
+  'quote.declined': {
+    category: 'commerce',
+    permission: 'commerce.invoice.read',
+    metadataKeys: ['quoteId', 'number', 'total', 'by'],
+  },
+  'invoice.sent': {
+    category: 'commerce',
+    permission: 'commerce.invoice.read',
+    metadataKeys: ['invoiceId', 'number', 'total'],
+  },
+  'invoice.paid': {
+    category: 'commerce',
+    permission: 'commerce.invoice.read',
+    metadataKeys: ['invoiceId', 'number', 'total'],
   },
   'form.submitted': {
     category: 'form',

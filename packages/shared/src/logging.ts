@@ -51,11 +51,12 @@ export function redactSensitive(value: unknown, depth = 0): unknown {
 
 /**
  * Paths whose next segment is a secret: per-connection webhook tokens
- * (`/webhooks/communications/<provider>/<token>`) and invitee manage links
- * (`/public/booking/manage/<token>`).
+ * (`/webhooks/communications/<provider>/<token>`), invitee manage links
+ * (`/public/booking/manage/<token>`) and customer document links
+ * (`/public/commerce/invoices/<token>`, `/public/commerce/quotes/<token>`).
  */
 const SECRET_PATH_SEGMENT =
-  /^(\/webhooks\/communications\/[^/?#]+\/|\/webhooks\/automation\/|\/public\/booking\/manage\/)[^/?#]+/;
+  /^(\/webhooks\/communications\/[^/?#]+\/|\/webhooks\/automation\/|\/public\/booking\/manage\/|\/public\/commerce\/(?:invoices|quotes)\/)[^/?#]+/;
 
 /**
  * Request URL as it may appear in logs: secret path segments (webhook and manage-link tokens)

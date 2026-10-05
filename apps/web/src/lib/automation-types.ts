@@ -9,6 +9,8 @@ export const TRIGGER_TYPES = [
   'deal.stage_changed',
   'appointment.booked',
   'task.completed',
+  'invoice.created',
+  'invoice.paid',
   'message.received',
   'webhook.received',
 ] as const;

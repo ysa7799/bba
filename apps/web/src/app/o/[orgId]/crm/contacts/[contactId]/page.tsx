@@ -74,6 +74,14 @@ export default async function ContactPage({
             {can('communications.send') && (c.email || c.phone || c.whatsappPhone) ? (
               <StartConversationButton contactId={c.id} />
             ) : null}
+            {can('commerce.invoice.create') ? (
+              <Link
+                href={`/o/${orgId}/commerce/invoices/new?contactId=${c.id}`}
+                className="inline-flex h-10 items-center rounded-md px-4 text-sm text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+              >
+                {m.commerce.newInvoice}
+              </Link>
+            ) : null}
             {can('crm.contact.update') ? (
               <ContactFormDialog
                 contact={c}

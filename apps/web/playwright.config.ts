@@ -59,6 +59,7 @@ export default defineConfig({
         TRUST_PROXY: '127.0.0.1',
         QUEUE_PREFIX: QUEUE_PREFIX,
         PAYMENTS_PROVIDER: 'fake',
+        COMMERCE_FAKE_PAYMENTS: 'true',
         API_PUBLIC_URL: `http://localhost:${API_PORT}`,
         CREDENTIALS_ENCRYPTION_KEYS,
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',

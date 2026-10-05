@@ -53,7 +53,7 @@ describe('activity registry', () => {
   it('declares metadata keys and permissions for every type', () => {
     for (const [type, definition] of Object.entries(ACTIVITY_TYPES)) {
       expect(type).toMatch(/^[a-z_]+\.[a-z_]+$/);
-      expect(definition.permission).toMatch(/^(crm|communications|calendar|forms)\./);
+      expect(definition.permission).toMatch(/^(crm|communications|calendar|forms|commerce)\./);
       expect(Array.isArray(definition.metadataKeys)).toBe(true);
     }
     expect(MANUAL_ACTIVITY_TYPES).toEqual([

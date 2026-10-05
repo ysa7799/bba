@@ -252,6 +252,41 @@ threat model and the control catalogue; it is updated whenever a control is adde
 - Templates only substitute plain values from allow-listed paths (no expressions); deal values
   are fixed by staff, never taken from trigger data.
 
+### Commerce (Phase 14)
+
+- Money: every amount is a `bigint` in minor units with an explicit currency; inputs are
+  decimal strings parsed exactly for the currency (too many decimals is refused, never
+  rounded); line math is integer-only (quantities as exact ratios, half-up rounding per line,
+  totals are sums of rounded lines) and bounded. Totals, numbers, statuses and payment fields
+  are never accepted from clients (allow-listed inputs, re-computed on the server).
+- Payment integrity: invoice payment state comes only from server-side retrieval through the
+  organization's own provider connection (webhooks and return redirects only trigger a
+  re-fetch). The amount is the server-computed amount due; the payment row is created before
+  the provider is called and its id is the idempotency key; amount, currency and reference
+  must match or the payment is refused. A verified payment is applied once (unique payment id
+  on `commerce_invoice_payments`, row locks); `invoice.paid` fires once on the transition.
+  Manual payments are capped at the amount due; refunds are capped by what remains of the
+  payment (reserved under row locks before the provider is called, released if it refuses).
+  A payment arriving for an invoice that is no longer open is recorded and surfaced as
+  overpaid, never dropped.
+- Webhooks: per-connection URL; signature verified with that connection's credentials;
+  recorded once per provider event (replay protection); the payment must belong to that
+  connection and organization; platform subscription webhooks never touch invoice payments
+  and vice versa (`payments.purpose`).
+- Credentials: provider secret keys are sealed (AES-256-GCM, bound to organization and
+  connection), never returned or logged; disconnecting erases them.
+- Customer links: 256-bit tokens stored as SHA-256, rotated on every send (old links stop
+  working), masked in request logs, `noindex`/`no-referrer` pages; void invoices and drafts are
+  never shown. Public endpoints are rate limited per IP and per document.
+- Known exposure, accepted: the customer's invoice link is the provider return URL, so the
+  organization's own provider account sees it (the page sends no referrer, so the token does
+  not leak to the provider's pages through `Referer`). Disconnecting a provider stops
+  verification of payments still pending with it; the customer pays again or staff record the
+  payment manually.
+- Numbering: invoice numbers are allocated inside the issuing transaction from a locked
+  counter, so they are unique and gapless; issued invoices cannot be edited or deleted (void
+  keeps the number).
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -263,6 +298,8 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 | Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                         |
 | ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 2026-10-05 | 14    | LOW      | `?includeArchived=false` on the product list was coerced to `true` (`z.coerce.boolean` treats any non-empty string as true), showing archived products. Found in phase review.                           | Fixed: explicit `true`/`false` parsing                                         |
+| 2026-10-05 | 14    | LOW      | A product price archive update filtered by id only, relying on RLS for tenancy (defense-in-depth rule). No exposure. Found in phase review.                                                              | Fixed: explicit `organization_id` filter                                       |
 | 2026-10-05 | 13    | MEDIUM   | A workflow's webhook action could call BusinessOS itself (e.g. its own inbound webhook URL), a loop the run-chain depth cannot see (bounded only by rate limits and quotas). Found in phase review.      | Fixed: own hosts refused at save and send + regression test                    |
 | 2026-10-05 | 13    | LOW      | Job ids for workflow runs and their messages contained `:`, which the queue rejects: runs would not have been queued in production (the test queue did not check). Found while wiring the API.           | Fixed: ids use `-`; the test queue enforces the production pattern             |
 | 2026-10-05 | 12    | LOW      | Some form queries relied on RLS alone (no explicit `organization_id` filter), against the defense-in-depth rule. No exposure (RLS enforced). Found in phase review.                                      | Fixed: explicit filters on every forms query                                   |

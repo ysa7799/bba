@@ -78,6 +78,12 @@ export const JOBS = {
     schema: z.object({ organizationId: z.uuid(), appointmentId: z.uuid() }),
     attempts: 5,
   }),
+  /** Marks invoices past their due date as overdue (once each) and emits `invoice.overdue`. */
+  'commerce.maintenance': defineJob({
+    queue: 'system',
+    schema: z.object({}),
+    attempts: 3,
+  }),
   /** Executes a workflow run until it waits, finishes or fails (idempotent per step). */
   'automation.run': defineJob({
     queue: 'automation',

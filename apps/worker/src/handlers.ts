@@ -4,6 +4,7 @@ import {
   syncAppointmentEvents,
   type CalendarServices,
 } from '@businessos/calendar';
+import { expireQuotes, markOverdueInvoices } from '@businessos/commerce';
 import { deliverMessage, type CommunicationsServices } from '@businessos/communications';
 import { processExport, processImport, runCrmMaintenance } from '@businessos/crm';
 import type { Database } from '@businessos/database';
@@ -45,6 +46,16 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
     'billing.maintenance': async () => {
       const result = await runSubscriptionMaintenance(deps.db);
       deps.logger.info(result, 'subscription maintenance completed');
+      return result;
+    },
+
+    'commerce.maintenance': async () => {
+      const overdue = await markOverdueInvoices(deps.db);
+      const quotes = await expireQuotes(deps.db);
+      const result = { ...overdue, ...quotes };
+      if (overdue.overdue > 0 || quotes.expired > 0) {
+        deps.logger.info(result, 'commerce maintenance completed');
+      }
       return result;
     },
 

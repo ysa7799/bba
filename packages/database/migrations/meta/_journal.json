@@ -190,6 +190,20 @@
       "when": 1791197471990,
       "tag": "0026_force_rls_automation",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791213754004,
+      "tag": "0027_commerce",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1791213756416,
+      "tag": "0028_force_rls_commerce",
+      "breakpoints": true
     }
   ]
 }

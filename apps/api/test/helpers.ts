@@ -3,6 +3,7 @@ import { SecretBox } from '@businessos/shared';
 import { randomBytes } from 'node:crypto';
 import { defaultAuthConfig, MemoryMailer } from '@businessos/auth';
 import { MemoryJobQueue } from '@businessos/jobs';
+import type { CommerceProviderDefinition } from '@businessos/commerce';
 import type { CaptchaVerifier } from '@businessos/forms';
 import type { PaymentProviderRegistry } from '@businessos/payments';
 import { createDatabase, type DatabaseHandle } from '@businessos/database';
@@ -51,6 +52,13 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
     'crmImportOrg',
     'crmExportOrg',
     'crmBulkOrg',
+    'commerceDocumentIp',
+    'commerceCheckoutIp',
+    'commerceCheckoutDocument',
+    'commerceRespondIp',
+    'commerceWebhookConnection',
+    'commerceVerifyOrg',
+    'commerceRefundOrg',
   ].map((name) => [name, { limit: 10_000, windowSeconds: 60 }]),
 );
 
@@ -67,6 +75,8 @@ export async function createTestContext(options?: {
   channelProviders?: ChannelProviderRegistry;
   /** Controllable payment providers (e.g. a FakePaymentProvider). */
   paymentProviders?: PaymentProviderRegistry;
+  /** Providers organizations can connect for invoice payments. */
+  commerceProviders?: ReadonlyMap<string, CommerceProviderDefinition>;
   /** Public-form captcha (defaults to none: CONFIGURATION_REQUIRED). */
   captcha?: CaptchaVerifier | null;
   /** Captures log lines (set `env.LOG_LEVEL` to see request logs). */
@@ -100,6 +110,7 @@ export async function createTestContext(options?: {
     jobs,
     authConfig,
     ...(options?.paymentProviders ? { paymentProviders: options.paymentProviders } : {}),
+    ...(options?.commerceProviders ? { commerceProviders: options.commerceProviders } : {}),
     captcha: options?.captcha ?? null,
     channelProviders: options?.channelProviders ?? createChannelProviders({ fake: true }),
     secretBox: new SecretBox([{ id: 'test', key: randomBytes(32) }]),

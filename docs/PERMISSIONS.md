@@ -79,6 +79,12 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 | `forms.read`                  | forms          | ✓     | ✓     | ✓       | ✓      | ✓          |
 | `forms.manage`                | forms          | ✓     | ✓     | ✓       |        |            |
 | `forms.submission.read`       | forms          | ✓     | ✓     | ✓       | ✓      |            |
+| `commerce.invoice.read`       | commerce       | ✓     | ✓     | ✓       | ✓      |            |
+| `commerce.invoice.create`     | commerce       | ✓     | ✓     | ✓       | ✓      |            |
+| `commerce.invoice.update`     | commerce       | ✓     | ✓     | ✓       |        |            |
+| `commerce.catalog.manage`     | commerce       | ✓     | ✓     | ✓       |        |            |
+| `commerce.payment.refund`     | commerce       | ✓     | ✓     |         |        |            |
+| `commerce.settings.manage`    | commerce       | ✓     | ✓     |         |        |            |
 
 Every member may read the organization profile, members, roles and the permission catalogue.
 
@@ -143,8 +149,20 @@ Automation specifics:
   record they reference was validated to belong to the organization when the version was saved
   and published.
 
+Commerce specifics:
+
+- `commerce.invoice.read` shows products, tax rates, quotes, invoices, their payments and the
+  quote/invoice entries on contact timelines (customer names only with `crm.contact.read`).
+- `commerce.invoice.create` creates and edits **drafts** (and turns quotes into draft
+  invoices); `commerce.invoice.update` sends quotes, issues, re-sends and voids invoices and
+  records payments received. Members can prepare documents; managers send them.
+- `commerce.catalog.manage` maintains products, prices and tax rates.
+- `commerce.payment.refund` (owner/admin) refunds payments; `commerce.settings.manage`
+  (owner/admin) changes numbering, the invoice footer and the payment provider account.
+- Customers act only through their document link (a bearer token for one quote or invoice):
+  view, pay what is due, accept or decline.
+
 ## Planned additions (by phase)
 
-`commerce.*` (14),
 `reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

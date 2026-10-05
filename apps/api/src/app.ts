@@ -10,9 +10,18 @@ import {
   type CalendarServices,
 } from '@businessos/calendar';
 import type { AutomationServices } from '@businessos/automation';
+import {
+  commerceProviders,
+  type CommerceProviderDefinition,
+  type CommerceServices,
+} from '@businessos/commerce';
 import { captchaFromEnv, type CaptchaVerifier } from '@businessos/forms';
 import type { JobQueue } from '@businessos/jobs';
-import type { PaymentProviderRegistry, PaymentServices } from '@businessos/payments';
+import {
+  FakePaymentProvider,
+  type PaymentProviderRegistry,
+  type PaymentServices,
+} from '@businessos/payments';
 import { type DatabaseHandle } from '@businessos/database';
 import { LOG_REDACT_PATHS, newId, redactUrlForLog, SecretBox } from '@businessos/shared';
 import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
@@ -26,6 +35,12 @@ import { automationRoutes, automationWebhookRoutes } from './modules/automation/
 import { authRoutes } from './modules/auth/routes';
 import { billingCatalogRoutes, organizationBillingRoutes } from './modules/billing/routes';
 import { calendarRoutes } from './modules/calendar/routes';
+import {
+  commerceWebhookRoutes,
+  devCommercePaymentRoutes,
+  publicCommerceRoutes,
+} from './modules/commerce/public-routes';
+import { commerceRoutes } from './modules/commerce/routes';
 import { publicBookingRoutes } from './modules/calendar/public-routes';
 import { crmRoutes } from './modules/crm/routes';
 import { publicFormRoutes } from './modules/forms/public-routes';
@@ -62,6 +77,8 @@ export interface AppDependencies {
   authConfig: AuthConfig;
   /** Payment providers (defaults to the configured ones; tests inject controllable fakes). */
   paymentProviders?: PaymentProviderRegistry;
+  /** Providers organizations can connect for invoice payments (tests inject a fake). */
+  commerceProviders?: ReadonlyMap<string, CommerceProviderDefinition>;
   /** Messaging channel providers (defaults to the configured ones; tests inject fakes). */
   channelProviders?: ChannelProviderRegistry;
   /** Credential encryption (defaults to CREDENTIALS_ENCRYPTION_KEYS; tests inject a key). */
@@ -87,6 +104,7 @@ declare module 'fastify' {
     calendar: CalendarServices;
     forms: { captcha: CaptchaVerifier | null; renderTokens: RenderTokenStore };
     automation: AutomationServices;
+    commerce: CommerceServices;
   }
 }
 
@@ -174,6 +192,24 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
         ...(options.correlationId ? { correlationId: options.correlationId } : {}),
       }),
   } satisfies AutomationServices);
+  app.decorate('commerce', {
+    db: deps.db.db,
+    providers:
+      deps.commerceProviders ??
+      commerceProviders({
+        fake: env.COMMERCE_FAKE_PAYMENTS
+          ? new FakePaymentProvider({
+              webhookSecret: env.FAKE_PAYMENTS_WEBHOOK_SECRET,
+              checkoutBaseUrl: `${new URL(env.APP_URL).origin}/dev/fake-invoice-checkout`,
+            })
+          : null,
+        tap: env.TAP_API_BASE_URL ? { baseUrl: env.TAP_API_BASE_URL } : {},
+      }),
+    secretBox: app.communications.secretBox,
+    apiPublicUrl: env.API_PUBLIC_URL.replace(/\/+$/, ''),
+    appUrl: new URL(env.APP_URL).origin,
+    logger: app.log,
+  } satisfies CommerceServices);
   app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
@@ -213,6 +249,12 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(publicFormRoutes, { prefix: '/public/forms' });
   await app.register(automationRoutes, { prefix: '/app/orgs/:orgId/automation' });
   await app.register(automationWebhookRoutes, { prefix: '/webhooks/automation' });
+  await app.register(commerceRoutes, { prefix: '/app/orgs/:orgId/commerce' });
+  await app.register(publicCommerceRoutes, { prefix: '/public/commerce' });
+  await app.register(commerceWebhookRoutes, { prefix: '/webhooks/commerce' });
+  if (env.NODE_ENV !== 'production' && app.commerce.providers.has('fake')) {
+    await app.register(devCommercePaymentRoutes, { prefix: '/public/commerce/dev' });
+  }
   if (env.NODE_ENV !== 'production' && env.COMMUNICATIONS_FAKE_PROVIDERS) {
     await app.register(devCommunicationRoutes, { prefix: '/app/dev/communications/:orgId' });
   }

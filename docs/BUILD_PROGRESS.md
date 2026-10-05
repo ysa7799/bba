@@ -2,9 +2,95 @@
 
 ## Current Phase
 
-Phase 14 — Commerce
+Phase 15 — Dashboards + reporting
 
 Status: NOT_STARTED
+
+---
+
+## Phase 14 — Commerce
+
+Status: PASSED
+
+### Completed
+
+- Schema (12 tables, FORCE RLS, composite same-tenant FKs, money as `bigint` minor units with
+  an explicit currency everywhere): commerce settings (prefixes, next numbers, payment terms,
+  footer), tax rates, products and per-currency prices, quotes and invoices (server-computed
+  totals, hashed customer link tokens, gapless issued numbers), line items (exact quantities,
+  tax snapshots), payment connections (sealed credentials, one live per organization),
+  checkouts, applied payments (online or manual) and refunds.
+- `@businessos/commerce`: integer commercial arithmetic (per-line half-up rounding, totals as
+  sums of rounded lines, bounds); catalogue; quotes (draft, send with a new link each time,
+  customer accept/decline within validity, staff answers, convert to an invoice with the agreed
+  amounts, expiry); invoices (drafts, issue with gapless number and dates in the organization's
+  time zone, customer links, re-send, void, overdue once); payment connections (Tap per
+  organization, development fake, CONFIGURATION_REQUIRED without keys); online checkout for the
+  amount due (reused while pending) with server-side verification applied once; per-connection
+  webhooks; manual payments capped at the amount due; refunds bounded by what remains
+  (provider refunds reserved first, released if refused); overpayments recorded; timeline
+  projectors.
+- Catalogue: permissions `commerce.*` (6); events `quote.*` (3) and `invoice.*` (5); audit
+  actions `commerce.*`; activity types for quotes and invoices; job `commerce.maintenance`;
+  email templates `quote_sent`, `invoice_sent`; workflow triggers `invoice.created`,
+  `invoice.paid`. Platform billing webhooks and sync now ignore invoice payments.
+- API: staff `/app/orgs/:orgId/commerce/*` (audited), customer `/public/commerce/*` (rate
+  limited, link tokens masked in logs), `/webhooks/commerce/:connectionId`; env
+  `COMMERCE_FAKE_PAYMENTS` (refused in production).
+- Worker: hourly `commerce.maintenance`; quote and invoice entries on contact timelines.
+- Web: Quotes, Invoices (editor with product prices and taxes, detail with payments, refunds
+  and online attempts, issue/re-send with copyable link and email, record payment, refund,
+  void, print/save-as-PDF view), Products, Invoicing setup (tax rates, numbering and footer,
+  payment provider); customer pages `/i/<token>` (pay online, verified on return) and
+  `/q/<token>` (accept/decline); "New invoice" on contacts; development fake checkout.
+
+### Tests
+
+- commerce (23): BHD/JPY arithmetic, exactness and bounds; prices per currency (no silent
+  conversion, no rounding of over-precise input); server-computed totals ignoring client
+  fields; **gapless numbering under concurrency** (with a rolled-back issue); immutability of
+  issued invoices; customer links (rotation, void); overdue once; quote → acceptance →
+  invoice with the agreed amounts (once) and the timeline entry; quote expiry; **payment
+  integrity**: concurrent webhook + duplicate webhook + sync + return-page refresh apply a
+  payment once and emit `invoice.paid` once; webhook status never trusted; **tampered amount**
+  refused; partial payments (manual then online for exactly the remainder); no manual
+  overpayment; late second online payment recorded as overpaid; **refund bounds including
+  concurrent refunds**, reopening and voiding; manual refunds; forged/unsigned webhooks; no
+  online payment without an active connection; sealed credentials (never returned, bound to
+  the connection); **tenant isolation** across every service, foreign references and another
+  organization's webhook endpoint.
+- payments (+1): subscription webhooks and sync never touch invoice payments.
+- API (6): totals and privileged fields; permissions per role; cross-tenant 404s; emailed link
+  → public page → checkout → dev completion → verified paid, webhook replay and forged
+  signature, link token never logged; quote send/accept/convert; credentials never returned.
+  Worker: commerce email templates. Shared: link-token masking.
+- E2E: tax rate and fake provider setup, product in BHD, invoice priced from the product with
+  VAT, issue and email, customer pays online through the hosted page and sees it paid, staff
+  sees the online payment; quote sent, accepted by the customer, converted to an invoice.
+- Full suite (uncached): 528 unit/integration + 12 E2E passing.
+
+### Fixed during the phase
+
+- `?includeArchived=false` was read as true by the product list (see SECURITY findings).
+- A price archive update relied on RLS alone (see SECURITY findings).
+- The worker's outbox concurrency test timed out under the full parallel suite: its single
+  runtime dispatcher drains every suite's events from the shared test database. The extra
+  dispatchers now keep racing until delivery (stronger concurrency, same exactly-once
+  assertions) with a deadline that allows for the backlog.
+
+### Risks
+
+- Not an accounting system: no ledger, credit notes or tax reports yet (accounting design is a
+  later phase). Refunds reopen invoices; staff void what should not be collected.
+- Tap invoice payments are CONFIGURATION_REQUIRED until validated against a Tap sandbox
+  account; provider-side refunds made outside BusinessOS are only logged for reconciliation.
+- Payments pending with a connection that is later disconnected can no longer be verified.
+- Customer link tokens are part of the provider return URL (the organization's own provider).
+- Commerce has no plan entitlement yet; module gating arrives with the module-gates phase.
+
+### Next
+
+- Phase 15: dashboards and permission-aware reporting.
 
 ---
 

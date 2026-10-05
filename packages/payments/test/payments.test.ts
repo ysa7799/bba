@@ -369,6 +369,53 @@ describe('webhooks', () => {
       handlePaymentWebhook(services, 'stripe', Buffer.from(event.body), event.headers),
     ).rejects.toMatchObject({ code: 'not_found' });
   });
+
+  it('never touches invoice payments (they belong to the organization connection)', async () => {
+    const user = await createTestUser(handle.db, { name: 'Merchant' });
+    const { organization } = await createOrganization(handle.db, user.id, {
+      name: `Merchant ${uniqueSuffix()}`,
+    });
+    const checkout = await fake.createCheckout({
+      reference: 'invoice-payment',
+      amount: money(5_000n, 'BHD'),
+      description: 'Invoice',
+      customer: { name: 'Customer', email: 'c@example.com' },
+      returnUrl: 'http://localhost:3000/i/x',
+      webhookUrl: 'http://localhost:4000/webhooks/commerce/x',
+      idempotencyKey: `invoice-${uniqueSuffix()}`,
+    });
+    const [invoicePayment] = await withSystem(handle.db, (tx) =>
+      tx
+        .insert(payments)
+        .values({
+          organizationId: organization.id,
+          purpose: 'invoice',
+          provider: 'fake',
+          providerPaymentId: checkout.providerPaymentId,
+          amountMinor: 5_000n,
+          currency: 'BHD',
+        })
+        .returning(),
+    );
+    if (!invoicePayment) throw new Error('missing payment');
+    fake.simulate(checkout.providerPaymentId, 'captured');
+    const event = fake.signedWebhook({
+      id: `evt_${uniqueSuffix()}`,
+      payment_id: checkout.providerPaymentId,
+      status: 'captured',
+      reference: invoicePayment.id,
+    });
+    expect(
+      await handlePaymentWebhook(services, 'fake', Buffer.from(event.body), event.headers),
+    ).toBe('ignored');
+    await expect(syncPayment(services, invoicePayment.id)).rejects.toMatchObject({
+      code: 'not_found',
+    });
+    const [after] = await withSystem(handle.db, (tx) =>
+      tx.select().from(payments).where(eq(payments.id, invoicePayment.id)),
+    );
+    expect(after?.status).toBe('pending');
+  });
 });
 
 describe('tenant access', () => {

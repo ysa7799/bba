@@ -320,6 +320,59 @@ Inbound (no session; rate limited per IP and per workflow; URL token masked in l
 | ------ | ----------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | POST   | `/webhooks/automation/:token` | JSON object ≤ 64 KB → 202 `{runId, duplicate}`; `Idempotency-Key` header dedupes retries; 404 unless active |
 
+### Commerce (Phase 14)
+
+All under `/app/orgs/:orgId/commerce`. Amounts in requests are decimal strings in the document
+currency (`"12.345"` for BHD, never floats; too many decimals for the currency is a 400). Every
+subtotal, discount, tax and total is computed by the server; responses carry money as
+`{amountMinor, amount, currency}`. Client-sent totals, numbers, statuses and payment fields are
+ignored.
+
+| Method        | Path                                       | Permission                 | Notes                                                                                                                      |
+| ------------- | ------------------------------------------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| GET / PATCH   | `/settings`                                | read / `settings.manage`   | numbering (prefixes, next numbers — forward only), payment terms, invoice footer; GET adds `onlinePayments` (audited)      |
+| GET           | `/payment-connection`                      | `commerce.settings.manage` | the organization's provider account (credentials never returned), provider options, `credentialStorage`                    |
+| POST          | `/payment-connection`                      | `commerce.settings.manage` | `{provider, name, credentials?}` → `active` or `configuration_required`; one live connection (audited)                     |
+| PATCH/DELETE  | `/payment-connection/:id`                  | `commerce.settings.manage` | replace credentials / disconnect and erase them (audited)                                                                  |
+| GET / POST    | `/tax-rates`                               | read / `catalog.manage`    | `?includeArchived`; `{name, percent}` (≤ 2 decimals, ≤ 100) (audited)                                                      |
+| PATCH         | `/tax-rates/:id`                           | `commerce.catalog.manage`  | `{name?, archived?}` — rates are snapshotted on lines, never edited                                                        |
+| GET / POST    | `/products`                                | read / `catalog.manage`    | `?q&includeArchived&limit`; `{name, description?, sku?, kind, taxRateId?, prices: [{currency, amount}]}` (audited)         |
+| GET / PATCH   | `/products/:id`                            | read / `catalog.manage`    | PATCH also `archived`; changed prices archive the old price (audited)                                                      |
+| GET / POST    | `/quotes`                                  | read / `invoice.create`    | `?status&contactId&dealId&cursor&limit`; `{contactId, companyId?, dealId?, currency?, validUntil?, notes?, terms?, lines}` |
+| GET/PATCH/DEL | `/quotes/:id`                              | read / `invoice.create`    | drafts only for PATCH and DELETE                                                                                           |
+| POST          | `/quotes/:id/send`                         | `commerce.invoice.update`  | `{email?}` → `{quote, link, emailed}`; a new customer link each time (audited)                                             |
+| POST          | `/quotes/:id/respond`                      | `commerce.invoice.update`  | `{decision: accept\|decline}` recorded by staff                                                                            |
+| POST          | `/quotes/:id/convert`                      | `commerce.invoice.create`  | sent/accepted → draft invoice with the same lines and amounts (once)                                                       |
+| GET / POST    | `/invoices`                                | read / `invoice.create`    | `?status (draft\|open\|paid\|void\|overdue)&contactId&dealId&cursor&limit`; body as quotes with `dueDate?`                 |
+| GET/PATCH/DEL | `/invoices/:id`                            | read / `invoice.create`    | detail with lines, payments, refunds, online attempts; drafts only for PATCH and DELETE                                    |
+| GET           | `/invoices/:id/document`                   | `commerce.invoice.read`    | printable document: organization, footer, invoice                                                                          |
+| POST          | `/invoices/:id/issue`                      | `commerce.invoice.update`  | `{email?}` → gapless number, issue/due dates, `{invoice, link, emailed}` (audited)                                         |
+| POST          | `/invoices/:id/resend`                     | `commerce.invoice.update`  | new customer link (old one stops working), emailed if asked                                                                |
+| POST          | `/invoices/:id/void`                       | `commerce.invoice.update`  | open invoices without payments (audited)                                                                                   |
+| POST          | `/invoices/:id/payments`                   | `commerce.invoice.update`  | `{amount, method, receivedAt?, reference?, note?}`; at most the amount due (audited)                                       |
+| POST          | `/invoices/:id/payments/:paymentId/refund` | `commerce.payment.refund`  | `{amount, reason}`; at most what remains of that payment; online payments through the provider (audited)                   |
+| POST          | `/invoices/:id/refresh-payments`           | `commerce.invoice.read`    | re-verifies pending online payments with the provider                                                                      |
+
+Lines: `[{productId?, description, quantity (≤ 3 decimals), unitAmount? (omitted: the product's
+price in the document currency), discountPercent?, taxRateId?}]`, 1–200 per document.
+
+Customer pages (no session; the link token is the credential, masked in logs; rate limited per
+IP and per document):
+
+| Method | Path                                              | Notes                                                                               |
+| ------ | ------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| GET    | `/public/commerce/invoices/:token`                | issued invoices only → `{organization, invoice, payable}`                           |
+| POST   | `/public/commerce/invoices/:token/checkout`       | `{method?}` → `{redirectUrl}` for what is due (a recent pending checkout is reused) |
+| POST   | `/public/commerce/invoices/:token/refresh`        | re-verifies the invoice's pending payments with the provider (return page)          |
+| GET    | `/public/commerce/quotes/:token`                  | sent quotes → `{organization, quote}` with `canRespond`                             |
+| POST   | `/public/commerce/quotes/:token/respond`          | `{decision}` once, while valid                                                      |
+| POST   | `/public/commerce/dev/fake-payments/:id/complete` | development only (fake provider enabled, never in production)                       |
+
+Provider notifications: `POST /webhooks/commerce/:connectionId` (raw body; signature verified
+with that connection's credentials; recorded once per provider event; the payment is always
+re-fetched from the provider) → `{received, outcome: processed|ignored|duplicate}`; 401 for
+bad signatures, 404 for unknown or disconnected connections.
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

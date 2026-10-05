@@ -77,7 +77,12 @@ Implemented: `organization.created`, `organization.updated`, `member.invited`, `
 (completed / no-show) (Phase 11 — no invitee contact details); `form.submitted` (form,
 version, submission, contact and deal ids — never answers) (Phase 12); `workflow.started`,
 `workflow.completed`, `workflow.failed` (workflow, run and version ids; the failure message)
-(Phase 13). Changes made by workflow runs carry the actor `{type: 'workflow', id: workflowId}`
+(Phase 13); `quote.sent`, `quote.accepted` and `quote.declined` (`by` customer or staff),
+`invoice.created` (contact, deal and quote ids), `invoice.sent` and `invoice.paid` (total in
+minor units + currency), `invoice.overdue` (due date; once per invoice, from the hourly
+`commerce.maintenance` job), `invoice.voided` (Phase 14). Invoice payments emit the existing
+`payment.succeeded/failed/refunded` with `purpose: invoice`; `invoice.paid` fires once, on the
+transition into paid. Customer actions (paying, accepting) carry the `system` actor. Changes made by workflow runs carry the actor `{type: 'workflow', id: workflowId}`
 and the correlation id `automation:<runId>`; the automation subscriber uses it to recognise
 events caused by runs (loop protection, ADR-044). CRM events
 carry ids and small facts only — never contact details. Bulk actions emit one event per

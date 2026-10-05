@@ -132,3 +132,28 @@ describe('appointment email templates', () => {
     );
   });
 });
+
+describe('commerce email templates', () => {
+  it('renders invoice and quote links with exact amounts', () => {
+    const invoice = renderEmail('invoice_sent', {
+      organization: 'Juffair Fitness',
+      name: 'Fatima',
+      number: 'INV-000042',
+      total: 'BHD 36.664',
+      dueDate: '2026-10-19',
+      link: 'https://app.example.com/i/token',
+    });
+    expect(invoice.subject).toBe('Invoice INV-000042 from Juffair Fitness');
+    expect(invoice.text).toContain('BHD 36.664, due 2026-10-19');
+    expect(invoice.text).toContain('https://app.example.com/i/token');
+    const quote = renderEmail('quote_sent', {
+      organization: 'Juffair Fitness',
+      name: null,
+      number: 'QUO-000007',
+      total: 'BHD 462.000',
+      link: 'https://app.example.com/q/token',
+    });
+    expect(quote.text).toMatch(/^Hello,/);
+    expect(() => renderEmail('invoice_sent', { organization: 'X' })).toThrow();
+  });
+});
