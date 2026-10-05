@@ -10,3 +10,4 @@ export * from './crm';
 export * from './activities';
 export * from './communications';
 export * from './calendar';
+export * from './forms';

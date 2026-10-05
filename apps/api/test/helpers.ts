@@ -3,6 +3,7 @@ import { SecretBox } from '@businessos/shared';
 import { randomBytes } from 'node:crypto';
 import { defaultAuthConfig, MemoryMailer } from '@businessos/auth';
 import { MemoryJobQueue } from '@businessos/jobs';
+import type { CaptchaVerifier } from '@businessos/forms';
 import type { PaymentProviderRegistry } from '@businessos/payments';
 import { createDatabase, type DatabaseHandle } from '@businessos/database';
 import { uniqueSuffix } from '@businessos/testing';
@@ -42,6 +43,9 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
     'bookingCreateIp',
     'bookingCreatePage',
     'bookingManageIp',
+    'formReadIp',
+    'formSubmitIp',
+    'formSubmitForm',
     'crmImportOrg',
     'crmExportOrg',
     'crmBulkOrg',
@@ -61,6 +65,8 @@ export async function createTestContext(options?: {
   channelProviders?: ChannelProviderRegistry;
   /** Controllable payment providers (e.g. a FakePaymentProvider). */
   paymentProviders?: PaymentProviderRegistry;
+  /** Public-form captcha (defaults to none: CONFIGURATION_REQUIRED). */
+  captcha?: CaptchaVerifier | null;
   /** Captures log lines (set `env.LOG_LEVEL` to see request logs). */
   logStream?: { write(line: string): void };
   configure?: (app: FastifyInstance) => void | Promise<void>;
@@ -92,6 +98,7 @@ export async function createTestContext(options?: {
     jobs,
     authConfig,
     ...(options?.paymentProviders ? { paymentProviders: options.paymentProviders } : {}),
+    captcha: options?.captcha ?? null,
     channelProviders: options?.channelProviders ?? createChannelProviders({ fake: true }),
     secretBox: new SecretBox([{ id: 'test', key: randomBytes(32) }]),
     ...(options?.strictRateLimits ? {} : { rateLimits: RELAXED_LIMITS }),
@@ -159,6 +166,10 @@ export class TestClient {
 
   patch(url: string, payload?: unknown) {
     return this.request('PATCH', url, payload ?? {});
+  }
+
+  put(url: string, payload?: unknown) {
+    return this.request('PUT', url, payload ?? {});
   }
 
   delete(url: string) {

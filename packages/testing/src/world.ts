@@ -2,6 +2,7 @@ import {
   createDatabase,
   membershipRoles,
   memberships,
+  planEntitlements,
   plans,
   roles,
   users,
@@ -194,7 +195,16 @@ export async function ensureTestPlan(db: Database): Promise<string> {
       existing ??
       (await createPlan(tx, { key: TEST_PLAN_KEY, name: 'Test unlimited', isPublic: false }));
     const published = await latestPublishedVersion(tx, plan.id);
-    if (published) return published.id;
+    if (published) {
+      // Reuse it unless the entitlement catalogue gained keys since it was published (a key
+      // missing from the version would silently fall back to its default limit).
+      const keys = await tx
+        .select({ key: planEntitlements.key })
+        .from(planEntitlements)
+        .where(eq(planEntitlements.planVersionId, published.id));
+      const present = new Set(keys.map((row) => row.key));
+      if (Object.keys(ENTITLEMENTS).every((key) => present.has(key))) return published.id;
+    }
     const values: Record<string, unknown> = {};
     for (const [key, definition] of Object.entries(ENTITLEMENTS)) {
       values[key] = definition.kind === 'feature' ? true : null;

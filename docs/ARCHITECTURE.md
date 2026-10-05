@@ -60,7 +60,7 @@ packages/
 
 Planned packages, created in the phase that needs them: `auth` (P3), `permissions` (P4),
 `events`, `jobs`, `audit` (P5), `billing` (P6), `payments` (P7), `crm` (P8),
-`communications` (P10), `calendar` (P11), `automation` (P13), `commerce` (P14),
+`communications` (P10), `calendar` (P11), `forms` (P12), `automation` (P13), `commerce` (P14),
 `files`, `notifications` (P16), `integrations` (P18), `ui` (when the web app needs shared
 primitives across more than one surface).
 
@@ -169,6 +169,14 @@ combined per scheduling mode (one host, round robin, team). Booking re-validates
 inserts busy blocks guarded by a PostgreSQL exclusion constraint, which settles concurrent
 bookings; round robin falls through to the next free host. Public booking pages and invitee
 manage links are separate unauthenticated routes that resolve the tenant from a slug or token.
+
+Forms (`@businessos/forms`) keep fields as rows of immutable versions (one draft, one
+published). Loading a public form issues a render token (Redis); a submission is validated
+against that version, checked for spam, stored idempotently and — unless quarantined — mapped
+into the CRM in the same transaction (find-or-create contact, fill empty properties, tags,
+deal, note; each step in a savepoint so a failed step becomes a note, not a lost submission)
+with `form.submitted` in the outbox. The embed route gets its per-form `frame-ancestors` from
+the web app's request proxy (`apps/web/src/proxy.ts`).
 
 ## 8. Frontend
 

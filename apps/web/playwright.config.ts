@@ -99,7 +99,8 @@ export default defineConfig({
       timeout: 60_000,
       env: {
         API_INTERNAL_URL: `http://127.0.0.1:${API_PORT}`,
-        TRUST_PROXY_HEADERS: 'false',
+        // Each test acts as its own visitor (see `asDistinctVisitor` in e2e/helpers.ts).
+        TRUST_PROXY_HEADERS: 'true',
         ENABLE_DEV_PAYMENTS: 'true',
       },
     },

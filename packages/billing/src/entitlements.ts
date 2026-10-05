@@ -27,6 +27,7 @@ export const ENTITLEMENTS = {
   'crm.contacts.max': { kind: 'limit', description: 'CRM contacts', fallback: 500 },
   'crm.pipelines.max': { kind: 'limit', description: 'Sales pipelines', fallback: 1 },
   'automation.workflows.max': { kind: 'limit', description: 'Active workflows', fallback: 0 },
+  'forms.max': { kind: 'limit', description: 'Forms (not archived)', fallback: 3 },
   'automation.monthly_executions': {
     kind: 'quota',
     description: 'Workflow runs per month',

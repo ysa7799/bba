@@ -7,7 +7,21 @@ export function uniqueEmail(label: string): string {
   return `${label}.${Date.now()}.${Math.random().toString(16).slice(2, 8)}@example.com`;
 }
 
+/**
+ * A distinct client IP for this browser context. Every E2E request comes from 127.0.0.1, so
+ * without it the suite's sign-ups would share the production per-IP registration limit. The
+ * web server trusts the header in E2E (`TRUST_PROXY_HEADERS`), as it would behind a load
+ * balancer.
+ */
+export async function asDistinctVisitor(page: Page): Promise<void> {
+  const octet = () => 1 + Math.floor(Math.random() * 254);
+  await page.context().setExtraHTTPHeaders({
+    'x-forwarded-for': `10.${octet()}.${octet()}.${octet()}`,
+  });
+}
+
 export async function registerVerifyAndSignIn(page: Page, name: string, email: string) {
+  await asDistinctVisitor(page);
   await page.goto('/register');
   await page.getByLabel('Full name').fill(name);
   await page.getByLabel('Work email').fill(email);

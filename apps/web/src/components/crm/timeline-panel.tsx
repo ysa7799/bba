@@ -22,10 +22,21 @@ const CATEGORY_STYLES: Record<ActivityCategory, string> = {
   task: 'bg-sky-500',
   deal: 'bg-emerald-500',
   communication: 'bg-purple-500',
+  appointment: 'bg-indigo-500',
+  form: 'bg-teal-500',
   record: 'bg-slate-400',
 };
 
-const CATEGORIES = ['all', 'note', 'task', 'deal', 'communication', 'record'] as const;
+const CATEGORIES = [
+  'all',
+  'note',
+  'task',
+  'deal',
+  'communication',
+  'appointment',
+  'form',
+  'record',
+] as const;
 
 interface Page {
   data: ActivitySummary[];

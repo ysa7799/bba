@@ -2,6 +2,26 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 12 — Forms (2026-10-05)
+
+- Schema: `forms`, `form_versions`, `form_fields`, `form_submissions` (migrations 0023–0024).
+- `@businessos/forms`: fields and answer validation, settings, CRM mapping allow-list,
+  versioned builder services with `forms.max`, public resolution, submissions (render-token
+  idempotency, spam quarantine, CRM processing with savepoints and notes, release), timeline
+  projector, `CaptchaVerifier` with Turnstile and fake adapters.
+- Permissions `forms.read/manage`, `forms.submission.read`; event `form.submitted`; audit
+  actions `forms.form.*`, `forms.submission.released`; entitlement `forms.max` (seed: 3 / 25 /
+  unlimited); timeline category `form` (and the missing `appointment` filter in the web app).
+- API: `/app/orgs/:orgId/forms/*`, public `/public/forms/*` with Redis render tokens and rate
+  limits `formReadIp`, `formSubmitIp`, `formSubmitForm`; env `TURNSTILE_SITE_KEY`,
+  `TURNSTILE_SECRET_KEY`, `FORMS_FAKE_CAPTCHA`.
+- Worker: forms timeline projector registered.
+- Web: Forms list, builder, submissions, public `/f/<slug>` and `/f/<slug>/embed`; request proxy
+  (`src/proxy.ts`) for per-form `frame-ancestors`; global `X-Frame-Options: DENY` now also
+  `frame-ancestors 'none'`; E2E.
+- Testing: shared test plan republished when entitlements are added; E2E visitors get distinct
+  client IPs.
+
 ## Phase 11 — Calendar & booking (2026-10-05)
 
 - Schema: `calendars`, `calendar_availability_rules`, `calendar_availability_exceptions`,

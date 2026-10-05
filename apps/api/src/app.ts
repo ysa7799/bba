@@ -9,6 +9,7 @@ import {
   type CalendarProviderRegistry,
   type CalendarServices,
 } from '@businessos/calendar';
+import { captchaFromEnv, type CaptchaVerifier } from '@businessos/forms';
 import type { JobQueue } from '@businessos/jobs';
 import type { PaymentProviderRegistry, PaymentServices } from '@businessos/payments';
 import { type DatabaseHandle } from '@businessos/database';
@@ -25,6 +26,9 @@ import { billingCatalogRoutes, organizationBillingRoutes } from './modules/billi
 import { calendarRoutes } from './modules/calendar/routes';
 import { publicBookingRoutes } from './modules/calendar/public-routes';
 import { crmRoutes } from './modules/crm/routes';
+import { publicFormRoutes } from './modules/forms/public-routes';
+import { RenderTokenStore } from './modules/forms/render-tokens';
+import { formRoutes } from './modules/forms/routes';
 import {
   communicationsRoutes,
   communicationWebhookRoutes,
@@ -62,6 +66,8 @@ export interface AppDependencies {
   secretBox?: SecretBox | null;
   /** External calendar providers (defaults to the live adapters, plus the fake when enabled). */
   calendarProviders?: CalendarProviderRegistry;
+  /** Public-form captcha (defaults to Turnstile when configured, else none). */
+  captcha?: CaptchaVerifier | null;
   /** Overrides for named rate-limit policies (tests use relaxed limits). */
   rateLimits?: Partial<RateLimitPolicies>;
   /** Log destination (defaults to stdout; tests capture log lines). */
@@ -77,6 +83,7 @@ declare module 'fastify' {
     payments: PaymentServices;
     communications: CommunicationsServices;
     calendar: CalendarServices;
+    forms: { captcha: CaptchaVerifier | null; renderTokens: RenderTokenStore };
   }
 }
 
@@ -149,6 +156,10 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
       deps.calendarProviders ?? createCalendarProviders({ fake: env.CALENDAR_FAKE_PROVIDERS }),
     secretBox: app.communications.secretBox,
   } satisfies CalendarServices);
+  app.decorate('forms', {
+    captcha: deps.captcha !== undefined ? deps.captcha : captchaFromEnv(env),
+    renderTokens: new RenderTokenStore(deps.redis, env.REDIS_KEY_PREFIX),
+  });
   app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
@@ -184,6 +195,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(communicationWebhookRoutes, { prefix: '/webhooks/communications' });
   await app.register(calendarRoutes, { prefix: '/app/orgs/:orgId/calendar' });
   await app.register(publicBookingRoutes, { prefix: '/public/booking' });
+  await app.register(formRoutes, { prefix: '/app/orgs/:orgId/forms' });
+  await app.register(publicFormRoutes, { prefix: '/public/forms' });
   if (env.NODE_ENV !== 'production' && env.COMMUNICATIONS_FAKE_PROVIDERS) {
     await app.register(devCommunicationRoutes, { prefix: '/app/dev/communications/:orgId' });
   }

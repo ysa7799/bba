@@ -67,6 +67,12 @@ export const AUDIT_ACTIONS = [
   'calendar.booking_page.deleted',
   'calendar.connection.connected',
   'calendar.connection.disconnected',
+  'forms.form.created',
+  'forms.form.updated',
+  'forms.form.published',
+  'forms.form.archived',
+  'forms.form.restored',
+  'forms.submission.released',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -267,6 +267,27 @@ export const PERMISSION_DEFINITIONS = [
       "Configure appointment types, booking pages, shared calendars, everyone's availability and calendar connections.",
     roles: ['manager'],
   },
+  {
+    key: 'forms.read',
+    module: 'forms',
+    label: 'View forms',
+    description: 'See forms and their configuration.',
+    roles: ['manager', 'member', 'restricted'],
+  },
+  {
+    key: 'forms.manage',
+    module: 'forms',
+    label: 'Manage forms',
+    description: 'Build, publish and archive forms and set how submissions map to the CRM.',
+    roles: ['manager'],
+  },
+  {
+    key: 'forms.submission.read',
+    module: 'forms',
+    label: 'View form submissions',
+    description: 'Read submitted answers (may contain personal data).',
+    roles: ['manager', 'member'],
+  },
 ] as const satisfies readonly PermissionDefinition[];
 
 export type Permission = (typeof PERMISSION_DEFINITIONS)[number]['key'];

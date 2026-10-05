@@ -74,7 +74,8 @@ Implemented: `organization.created`, `organization.updated`, `member.invited`, `
 (Phase 10 — ids, channel and direction only; never message text or addresses);
 `appointment.booked` (type, host calendars, contact, start, source), `appointment.rescheduled`
 (new and previous start, by invitee/staff), `appointment.cancelled`, `appointment.status_changed`
-(completed / no-show) (Phase 11 — no invitee contact details). CRM events
+(completed / no-show) (Phase 11 — no invitee contact details); `form.submitted` (form,
+version, submission, contact and deal ids — never answers) (Phase 12). CRM events
 carry ids and small facts only — never contact details. Bulk actions emit one event per
 affected record; imports emit the same events as manual creation with the importer as actor
 and `import:<id>` as correlation id. The rest arrive with their modules:

@@ -31,6 +31,10 @@ export const DEFAULT_RATE_LIMITS = {
   bookingCreateIp: { limit: 10, windowSeconds: 3600 },
   bookingCreatePage: { limit: 300, windowSeconds: 3600 },
   bookingManageIp: { limit: 30, windowSeconds: 3600 },
+  /** Public forms: loading (issues a render token) and submitting, per IP and per form. */
+  formReadIp: { limit: 300, windowSeconds: 600 },
+  formSubmitIp: { limit: 20, windowSeconds: 3600 },
+  formSubmitForm: { limit: 1_000, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

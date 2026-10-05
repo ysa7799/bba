@@ -250,6 +250,38 @@ Public booking (no session; rate limited per IP and per page; `Cache-Control: no
 | GET    | `/public/booking/manage/:token/slots`                 | times to move to (same type and rules)                                                                                                                                  |
 | POST   | `/public/booking/manage/:token/cancel`, `/reschedule` | `{reason?}` / `{startsAt}`                                                                                                                                              |
 
+### Forms (Phase 12)
+
+All under `/app/orgs/:orgId/forms`. A form has at most one editable draft and one published
+version; submissions keep the version they were made with.
+
+| Method      | Path                                     | Permission                               | Notes                                                                                                                                                             |
+| ----------- | ---------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET         | `/`                                      | `forms.read`                             | `?status=active\|archived&limit` (≤ 200) with publish state and submission counts                                                                                 |
+| GET         | `/builder-options`                       | `forms.manage`                           | mapping targets (allow-list + contact custom fields with compatible field types), tags, pipelines (open stages), members, captcha status                          |
+| POST        | `/`                                      | `forms.manage`                           | `{name, slug?}` → draft v1 with default fields; slugs are global; `forms.max` (402) (audited)                                                                     |
+| GET / PATCH | `/:id`                                   | `forms.read` / `forms.manage`            | detail with `draft` and `published` versions; PATCH `{name?, slug?}` (409 taken) (audited)                                                                        |
+| PUT         | `/:id/draft`                             | `forms.manage`                           | `{fields: [{key, type, label, required, placeholder, helpText, options, validation, defaultValue, target}], settings}` replaces the draft (≤ 50 fields) (audited) |
+| DELETE      | `/:id/draft`                             | `forms.manage`                           | back to the published version                                                                                                                                     |
+| POST        | `/:id/publish`                           | `forms.manage`                           | re-validates mapping and referenced records; the previous version is retired (audited)                                                                            |
+| POST        | `/:id/archive`, `/:id/restore`           | `forms.manage`                           | archived forms are offline and free a `forms.max` slot (audited)                                                                                                  |
+| GET         | `/:id/submissions`                       | `forms.submission.read`                  | `?status=accepted\|spam&cursor&limit`, newest first; contact names only with `crm.contact.read`                                                                   |
+| GET         | `/:id/submissions/:submissionId`         | `forms.submission.read`                  | answers with labels, spam reasons, processing notes                                                                                                               |
+| POST        | `/:id/submissions/:submissionId/release` | `forms.manage` + `forms.submission.read` | "not spam": processes a quarantined submission into the CRM (audited)                                                                                             |
+
+Settings: `title, description, submitLabel, successMessage, redirectUrl (https),
+contact {enabled, ownerUserId, lifecycleStage, tagIds, addNote}, deal {pipelineId, stageId} |
+null, captcha, embedOrigins`. Targets: `contact.fullName|firstName|lastName|email|phone|
+whatsappPhone|jobTitle` and `contact.custom.<key>` — nothing else is mappable.
+
+Public forms (no session; rate limited per IP and per form; `Cache-Control: no-store`):
+
+| Method | Path                               | Notes                                                                                                                                            |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/public/forms/:slug`              | published form (fields without mapping targets), organization name, a fresh `renderToken`, captcha site key when required                        |
+| GET    | `/public/forms/:slug/embed-policy` | `{frameAncestors}` (read by the web app's proxy for the embed route)                                                                             |
+| POST   | `/public/forms/:slug/submissions`  | `{renderToken, answers, website (honeypot), captchaToken?}` → 201 `{successMessage, redirectUrl}` — the same for quarantined spam; 400 per field |
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

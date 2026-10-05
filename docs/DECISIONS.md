@@ -291,3 +291,44 @@ appointment, URLs are masked in logs). Reminders go out 24 hours before the star
 booking was made or moved less than 12 hours before it; that decision is stored at booking
 time (`reminder_sent_at`), and each reminder is claimed before sending so overlapping runs
 cannot send twice.
+
+## ADR-039 — Forms are versioned; fields are rows of immutable versions
+
+A form has at most one draft and one published version (partial unique indexes); publishing
+retires the previous version instead of editing it. Fields are rows (`form_fields`), not a
+JSON blob, so keys are unique per version and mapping targets are checked like any column.
+Submissions reference the version they answered, so old answers keep their labels and options
+after the form changes, and a visitor who loaded the form before a republish can still submit
+it. Drafts can be discarded; published and retired versions cannot be changed. Forms are
+archived, never deleted (submissions are records).
+
+## ADR-040 — Public submissions need a render token; spam is quarantined, not rejected
+
+Loading a public form issues a 256-bit render token stored (as a SHA-256 key) in Redis for 24
+hours with the form, version and issue time. A submission must present it: this proves the
+form was loaded from us, pins the version, gives a server-side minimum fill time, and is the
+idempotency key (unique per form), so double clicks and retries store one submission. Rate
+limits, the honeypot and heuristics then classify the submission; suspected spam is stored as
+`spam` without touching the CRM or emitting events, and the visitor gets the normal answer so
+bots learn nothing. Staff can release false positives, which processes them like new
+submissions. Captcha is an optional extra layer behind a port (Turnstile).
+
+## ADR-041 — Form submissions only complete the CRM, through an allow-list
+
+Fields map to an allow-list of contact properties and contact custom fields; everything else a
+submission does (owner, lifecycle stage, tags, deal pipeline/stage, notes) is fixed by staff in
+the version's settings. A submission finds the contact by email (then phone) and only fills
+properties that are empty — names only when both are empty — so an anonymous visitor who knows
+a customer's email cannot overwrite that customer's data. CRM steps run in savepoints; a step
+that cannot be done (contact quota reached, a tag deleted since publishing, a custom field that
+changed type) is recorded as a processing note on the submission instead of failing it. Deal
+values are never taken from forms.
+
+## ADR-042 — Embedding is allowed per form via the web app's request proxy
+
+Pages are not frameable (`X-Frame-Options: DENY`, `frame-ancestors 'none'`) except the embed
+route `/f/<slug>/embed`. Its `frame-ancestors` comes from the form's `embedOrigins`, fetched by
+the Next.js request proxy from the API on each request, re-validated against the same strict
+origin pattern and replaced by `'none'` on any error. Origins are validated when saved (they
+end up in a header): `https://host[:port]`, `https://*.host`, or a localhost origin. An empty
+list means the form cannot be embedded; the standalone link always works.

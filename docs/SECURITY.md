@@ -204,6 +204,30 @@ threat model and the control catalogue; it is updated whenever a control is adde
 - External calendar credentials are sealed like channel credentials; a provider that cannot
   be read makes its host unavailable rather than looking free.
 
+### Forms (Phase 12)
+
+- Public forms resolve their tenant by global slug (system scope, justified); the submission
+  runs in that tenant. Answers are validated against the version that was rendered: unknown
+  keys are ignored, every value is type-checked and normalized (email, E.164 phone, decimal
+  strings, calendar dates, allowed options only), lengths are bounded, and the body is capped
+  at 64 KB / 100 keys.
+- No mass assignment: submitters can only answer defined fields; fields can only feed an
+  allow-listed set of contact properties or contact custom fields; owner, lifecycle stage,
+  tags, deals, source and organization come from staff-defined settings (validated to be live
+  records of the same organization at save and publish). Existing contacts are only completed
+  (empty properties), never overwritten, so knowing someone's email does not let a stranger
+  change their record. Deal value is never taken from a form.
+- Spam: per-IP render and submit limits plus a per-form submit limit; a server-issued render
+  token (256-bit, only its SHA-256 is stored in Redis, 24 h) proves the form was loaded, fixes
+  the version, enforces a minimum fill time and makes double submits idempotent; a honeypot
+  field; link-stuffing heuristics; optional captcha (Turnstile, verified server-side, fails
+  closed). Suspected spam is stored as quarantined (no CRM changes, no event) and gets the
+  same response as genuine submissions.
+- Embeds: every page is `X-Frame-Options: DENY` / `frame-ancestors 'none'` except
+  `/f/<slug>/embed`, whose `frame-ancestors` lists the form's allowed origins (strictly
+  validated, re-validated by the web proxy, `'none'` on any doubt or API failure).
+- Redirects after submission are staff-configured `https://` URLs without credentials.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -215,6 +239,7 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 | Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                         |
 | ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 2026-10-05 | 12    | LOW      | Some form queries relied on RLS alone (no explicit `organization_id` filter), against the defense-in-depth rule. No exposure (RLS enforced). Found in phase review.                                      | Fixed: explicit filters on every forms query                                   |
 | 2026-10-05 | 11    | MEDIUM   | Invitee manage-link tokens travel in URL paths and would have been written to request logs (same class as the Phase 10 webhook-token finding). Found in phase review before release.                     | Fixed: `redactUrlForLog` masks them + regression tests                         |
 | 2026-10-05 | 10    | HIGH     | Request logs included full URLs, so per-connection webhook tokens (path) and WhatsApp `hub.verify_token` (query) would have been written to logs. Found in phase review before release.                  | Fixed: redacting `req` serializer (`redactUrlForLog`) + regression tests       |
 | 2026-10-05 | 8     | MEDIUM   | Turborepo cache keys ignored internal package sources: lint/typecheck/test/build results could be replayed after a package change, so a regression could pass local gates.                               | Fixed: package sources in `globalDependencies` (ADR-031); full uncached re-run |

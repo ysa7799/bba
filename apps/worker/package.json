@@ -19,6 +19,7 @@
     "@businessos/crm": "workspace:*",
     "@businessos/database": "workspace:*",
     "@businessos/events": "workspace:*",
+    "@businessos/forms": "workspace:*",
     "@businessos/jobs": "workspace:*",
     "@businessos/payments": "workspace:*",
     "@businessos/shared": "workspace:*",

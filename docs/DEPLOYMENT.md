@@ -75,6 +75,19 @@ re-enter them); keys belong in the secrets manager, never in the repository.
   `/public/booking/*` behind the same proxy (rate limited per client IP, so keep
   `TRUST_PROXY` / `TRUST_PROXY_HEADERS` correct).
 
+## Forms configuration (Phase 12)
+
+- Public forms are served by the web app at `/f/<slug>` and `/f/<slug>/embed`; their API
+  routes live under `/public/forms/*` (rate limited per client IP and per form — keep
+  `TRUST_PROXY` / `TRUST_PROXY_HEADERS` correct).
+- The web app's request proxy (`src/proxy.ts`) calls the API for each embed request to set
+  `Content-Security-Policy: frame-ancestors …`; it needs `API_INTERNAL_URL` like the rest of
+  the web server. All other pages send `X-Frame-Options: DENY`.
+- Render tokens live in Redis for 24 hours under `REDIS_KEY_PREFIX`; Redis is required to load
+  and submit forms.
+- Captcha (optional): `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` on the API (secret in the
+  secrets manager). `FORMS_FAKE_CAPTCHA` is for development/tests and refused in production.
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

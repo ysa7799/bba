@@ -111,6 +111,11 @@ Populated as phases land. See the schema files for the source of truth.
 | `appointment_manage_tokens`                                       | tenant; SHA-256 of invitee link tokens, expiring                            | 11    | cascade with appointment                                                |
 | `calendar_connections`, `appointment_external_events`             | tenant; sealed credentials; mirrored external events                        | 11    | disconnect (status); cascade with calendar                              |
 
+| `forms` | tenant; slug globally unique (public URL); active/archived | 12 | archived, never deleted; cascade with organization |
+| `form_versions` | tenant; one draft and one published per form (partial unique indexes) | 12 | published/retired immutable; drafts deletable; cascade with form |
+| `form_fields` | tenant; answer key unique per version; allow-listed CRM target | 12 | cascade with version |
+| `form_submissions` | tenant; validated answers, accepted/spam, unique render-token key per form | 12 | kept; contact/deal links NO ACTION (ADR-027); version NO ACTION |
+
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.
 

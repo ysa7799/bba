@@ -12,6 +12,7 @@ export const ACTIVITY_CATEGORIES = [
   'deal',
   'communication',
   'appointment',
+  'form',
   'record',
 ] as const;
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number];
@@ -181,6 +182,11 @@ export const ACTIVITY_TYPES = {
     permission: 'calendar.appointment.read',
     channel: 'meeting',
     metadataKeys: ['appointmentId', 'title', 'startsAt', 'by'],
+  },
+  'form.submitted': {
+    category: 'form',
+    permission: 'forms.submission.read',
+    metadataKeys: ['formId', 'formName', 'submissionId'],
   },
 } as const satisfies Record<string, ActivityTypeDefinition>;
 

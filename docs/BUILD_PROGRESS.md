@@ -2,9 +2,93 @@
 
 ## Current Phase
 
-Phase 12 — Forms
+Phase 13 — Automation V1
 
 Status: NOT_STARTED
+
+---
+
+## Phase 12 — Forms
+
+Status: PASSED
+
+### Completed
+
+- Schema (4 tables, FORCE RLS, composite same-tenant FKs): forms (global public slug,
+  active/archived), versions (one draft and one published per form), fields as rows (12
+  types), submissions (validated answers, accepted/spam, processing notes, unique render-token
+  key per form).
+- `@businessos/forms`: field definitions and answer validation/normalization; settings
+  (texts, https redirect, CRM behaviour, captcha, embed origins); CRM mapping allow-list with
+  custom-field compatibility; create/draft/discard/publish/archive with `forms.max`; public
+  resolution; submissions (idempotent, spam quarantine, find-or-create contact that only
+  fills empty properties, tags, deal, note, each step in a savepoint with processing notes,
+  `form.submitted`); release from spam; listing; timeline projector; spam heuristics and a
+  `CaptchaVerifier` port with Turnstile (CONFIGURATION_REQUIRED) and fake adapters.
+- Catalogue: permissions `forms.read/manage`, `forms.submission.read`; event `form.submitted`;
+  audit actions `forms.form.*`, `forms.submission.released`; entitlement `forms.max`; timeline
+  category `form`.
+- API: staff routes under `/app/orgs/:orgId/forms` (permission-checked, audited), public
+  `/public/forms/*` (render tokens in Redis, per-IP and per-form limits, 64 KB bodies,
+  `no-store`, identical answer for spam), env `TURNSTILE_*` and `FORMS_FAKE_CAPTCHA`.
+- Worker: form submissions projected onto contact (and deal) timelines.
+- Web: Forms list, builder (fields, mapping, options, validation, settings, publish/discard,
+  share link and embed code), submissions (received/spam, answers, notes, release), public
+  `/f/<slug>` and embeddable `/f/<slug>/embed` (hidden fields prefilled from the link, height
+  reported to the embedding page); per-form `frame-ancestors` via the request proxy, every
+  other page `X-Frame-Options: DENY`.
+- Also fixed: the Phase 11 timeline filter had no Appointments category (and now Forms).
+
+### Tests
+
+- forms (28): field definition rules; normalization of every type, unknown and prototype keys
+  ignored, all errors reported per field; settings (redirects and embed origins that could be
+  abused are refused); mapping allow-list (protected properties, type compatibility, custom
+  options); spam heuristics; Turnstile verification incl. fail-closed; versioning and
+  republishing; draft validation incl. foreign tags, pipelines and members; global slugs;
+  `forms.max` under concurrency; full CRM processing (contact, owner and lifecycle from
+  settings, tags, custom field, deal without value, note, event, timeline); fill-empty policy
+  on existing contacts; invalid answers store nothing; spam quarantine and release;
+  **5 concurrent submits of one rendered form → 1 submission, 1 contact**; processing notes
+  for deleted tags and a full contact quota; old versions accepted, drafts refused; tenant
+  isolation across every service.
+- API (9): role permissions; privileged fields ignored on create, audit entries; public render
+  (no mapping targets or settings exposed) and submission into the CRM, double submit; answer
+  validation; forged, missing and other-form render tokens; honeypot and instant submissions
+  quarantined with the normal response, release; archived/unpublished forms offline, embed
+  policy; cross-tenant 404s and foreign settings refused; **per-IP submit rate limit**;
+  captcha required and verified when configured, refused when not.
+- Web: embed-policy unit tests (route matching, header injection fails closed).
+- E2E: build a form with a choice field and an allowed embed site, publish, embed headers,
+  public submission with a validation error then success, submission with labels, new contact
+  with the submission on its timeline.
+- Full suite (uncached): 463 unit/integration + 10 E2E passing.
+
+### Fixed during the phase
+
+- A full contact quota was reported as "custom fields not saved" (found in phase review);
+  now a dedicated note + regression test.
+- Some form queries relied on RLS alone (see SECURITY findings).
+- The shared test plan predated new entitlements, so fixture organizations fell back to
+  default limits; it is republished whenever the catalogue gains keys.
+- The E2E suite outgrew the per-IP registration limit (all sign-ups from 127.0.0.1); each test
+  now acts as its own visitor through `X-Forwarded-For` instead of relaxing the limit.
+
+### Risks
+
+- File upload fields wait for the files service (Phase 16).
+- Notifications to staff on new submissions arrive with the notification system (Phase 16);
+  automation on `form.submitted` with Phase 13.
+- No CSV export of submissions yet (the CRM export framework can be reused).
+- A visitor who knows a customer's email can add missing details (e.g. a phone number) to that
+  contact — the deliberate fill-empty policy (ADR-041); nothing is overwritten.
+- The inbox E2E logs a harmless "destination stream closed early" from an aborted RSC stream
+  (pre-existing, Phase 10).
+
+### Next
+
+- Phase 13: automation V1 (triggers including `form.submitted`, durable waits, retries,
+  idempotency, loop protection).
 
 ---
 

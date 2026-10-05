@@ -72,10 +72,18 @@ export const apiEnvSchema = z
           return false;
         }
       }, 'expected keyId:base64 pairs with 32-byte keys'),
-    /** Development/test fake channel providers. */
     /** Development/test in-memory external calendar provider. */
     CALENDAR_FAKE_PROVIDERS: booleanFromEnv.default(false),
+    /** Development/test fake channel providers. */
     COMMUNICATIONS_FAKE_PROVIDERS: booleanFromEnv.default(false),
+    /**
+     * Cloudflare Turnstile for public forms (both or neither). The site key is public; the
+     * secret only ever stays on the server. Without them captcha is CONFIGURATION_REQUIRED.
+     */
+    TURNSTILE_SITE_KEY: z.string().min(10).max(200).optional(),
+    TURNSTILE_SECRET_KEY: z.string().min(10).max(200).optional(),
+    /** Development/test captcha that accepts the token `pass`. */
+    FORMS_FAKE_CAPTCHA: booleanFromEnv.default(false),
     PASSWORD_HASH_MEMORY_KIB: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
     PASSWORD_HASH_TIME_COST: z.coerce.number().int().min(1).max(10).default(2),
   })
@@ -87,7 +95,21 @@ export const apiEnvSchema = z
         message: 'required when PAYMENTS_PROVIDER=tap in production',
       });
     }
+    if (Boolean(env.TURNSTILE_SITE_KEY) !== Boolean(env.TURNSTILE_SECRET_KEY)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TURNSTILE_SECRET_KEY'],
+        message: 'set both TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY, or neither',
+      });
+    }
     if (env.NODE_ENV !== 'production') return;
+    if (env.FORMS_FAKE_CAPTCHA) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['FORMS_FAKE_CAPTCHA'],
+        message: 'the fake captcha is not allowed in production',
+      });
+    }
     if (env.PAYMENTS_PROVIDER === 'fake') {
       ctx.addIssue({
         code: 'custom',

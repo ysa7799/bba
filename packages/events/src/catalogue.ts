@@ -250,6 +250,16 @@ export const EVENT_DEFINITIONS = {
       to: z.enum(['scheduled', 'cancelled', 'completed', 'no_show']),
     }),
   },
+  'form.submitted': {
+    version: 1,
+    schema: z.object({
+      formId: z.uuid(),
+      versionId: z.uuid(),
+      submissionId: z.uuid(),
+      contactId: z.uuid().nullable(),
+      dealId: z.uuid().nullable(),
+    }),
+  },
 } as const satisfies Record<string, { version: number; schema: z.ZodType }>;
 
 export type EventType = keyof typeof EVENT_DEFINITIONS;

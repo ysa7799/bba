@@ -74,6 +74,9 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 | `calendar.appointment.read`   | calendar       | ✓     | ✓     | ✓       | ✓      | ✓          |
 | `calendar.appointment.manage` | calendar       | ✓     | ✓     | ✓       | ✓      |            |
 | `calendar.manage`             | calendar       | ✓     | ✓     | ✓       |        |            |
+| `forms.read`                  | forms          | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `forms.manage`                | forms          | ✓     | ✓     | ✓       |        |            |
+| `forms.submission.read`       | forms          | ✓     | ✓     | ✓       | ✓      |            |
 
 Every member may read the organization profile, members, roles and the permission catalogue.
 
@@ -121,8 +124,16 @@ Calendar specifics:
   availability and connections, and (de)activating calendars.
 - Invitees act only through their manage link (a bearer token for one appointment).
 
+Forms specifics:
+
+- `forms.read` shows forms and their configuration; `forms.manage` builds, publishes,
+  archives and decides what submissions do in the CRM (owner, lifecycle stage, tags, deals).
+- `forms.submission.read` shows answers (personal data) and the form timeline entries on
+  contacts. Releasing a submission from spam needs it together with `forms.manage`.
+- Submitters are anonymous: they can only answer the defined fields.
+
 ## Planned additions (by phase)
 
-`forms.*` (12), `automation.workflow.*` (13), `commerce.*` (14),
+`automation.workflow.*` (13), `commerce.*` (14),
 `reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

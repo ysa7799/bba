@@ -20,6 +20,7 @@
 | `StorageProvider`  | 16    | S3-compatible, local FS (dev)                                           | CONFIGURATION_REQUIRED |
 | `CalendarProvider` | 11/18 | Google Calendar, Microsoft 365, Fake (implemented)                      | CONFIGURATION_REQUIRED |
 | `AIProvider`       | 20    | Anthropic-compatible, Fake                                              | CONFIGURATION_REQUIRED |
+| `CaptchaVerifier`  | 12    | Cloudflare Turnstile, Fake (implemented)                                | CONFIGURATION_REQUIRED |
 
 ## Tap Payments (Phase 7)
 
@@ -106,6 +107,19 @@ Live status: **CONFIGURATION_REQUIRED**. Access tokens expire within an hour; ob
 refreshing them needs the OAuth integrations framework (Phase 18), so a pasted token works only
 until it expires. Zoom meetings also wait for Phase 18 (organization-level OAuth); video links
 come from the calendar providers (Meet, Teams) or the type's location text.
+
+## Captcha for public forms (Phase 12)
+
+`CaptchaVerifier` (`packages/forms/src/spam.ts`): `verify(token, remoteIp)`. Cloudflare
+Turnstile is verified server-side (`POST https://challenges.cloudflare.com/turnstile/v0/siteverify`,
+5 s timeout); an unreachable provider fails closed (502, the visitor can retry). The browser
+only receives the public site key.
+
+Setup: create a Turnstile widget for the web app's domain, then set `TURNSTILE_SITE_KEY` and
+`TURNSTILE_SECRET_KEY` on the API (both or neither). Until then captcha is
+**CONFIGURATION_REQUIRED**: the builder shows it as unavailable and forms cannot require it;
+every form still has rate limits, render tokens, a minimum fill time and a honeypot.
+`FORMS_FAKE_CAPTCHA=true` (development/tests, refused in production) accepts the token `pass`.
 
 ## Connection state machine (Phase 18)
 

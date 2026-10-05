@@ -19,6 +19,7 @@ export async function seedExampleCatalog(db: Database): Promise<void> {
       'users.max': 3,
       'crm.contacts.max': 500,
       'crm.pipelines.max': 1,
+      'forms.max': 3,
       'email.monthly_limit': 200,
     });
     await publishPlanVersion(tx, freeVersion.id);
@@ -33,6 +34,7 @@ export async function seedExampleCatalog(db: Database): Promise<void> {
       'users.max': 10,
       'crm.contacts.max': 10_000,
       'crm.pipelines.max': 5,
+      'forms.max': 25,
       'automation.workflows.max': 10,
       'automation.monthly_executions': 5_000,
       'email.monthly_limit': 10_000,
@@ -62,6 +64,7 @@ export async function seedExampleCatalog(db: Database): Promise<void> {
       'users.max': 50,
       'crm.contacts.max': null,
       'crm.pipelines.max': null,
+      'forms.max': null,
       'automation.workflows.max': null,
       'automation.monthly_executions': 100_000,
       'email.monthly_limit': 100_000,

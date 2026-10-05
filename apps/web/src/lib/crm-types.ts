@@ -284,7 +284,8 @@ export const CURRENCIES = [
   'KRW',
 ] as const;
 
-export type ActivityCategory = 'note' | 'task' | 'deal' | 'communication' | 'record';
+export type ActivityCategory =
+  'note' | 'task' | 'deal' | 'communication' | 'appointment' | 'form' | 'record';
 
 export interface ActivitySummary {
   id: string;
