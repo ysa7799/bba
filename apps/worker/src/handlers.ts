@@ -1,3 +1,4 @@
+import { processExport, processImport, runCrmMaintenance } from '@businessos/crm';
 import type { Database } from '@businessos/database';
 import { loadEvent, type SubscriberRegistry } from '@businessos/events';
 import { UnrecoverableError, type JobHandlers } from '@businessos/jobs';
@@ -32,6 +33,24 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
     'billing.maintenance': async () => {
       const result = await runSubscriptionMaintenance(deps.db);
       deps.logger.info(result, 'subscription maintenance completed');
+      return result;
+    },
+
+    'crm.import': async (payload) => {
+      const result = await processImport(deps.db, payload.organizationId, payload.importId);
+      deps.logger.info({ importId: payload.importId, result }, 'crm import processed');
+      return { result };
+    },
+
+    'crm.export': async (payload) => {
+      const result = await processExport(deps.db, payload.organizationId, payload.exportId);
+      deps.logger.info({ exportId: payload.exportId, result }, 'crm export processed');
+      return { result };
+    },
+
+    'crm.maintenance': async () => {
+      const result = await runCrmMaintenance(deps.db);
+      deps.logger.info(result, 'crm maintenance completed');
       return result;
     },
 

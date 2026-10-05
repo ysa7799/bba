@@ -37,6 +37,21 @@ export const AUDIT_ACTIONS = [
   'billing.profile_updated',
   'billing.checkout_started',
   'billing.subscription_activated',
+  'crm.contact.deleted',
+  'crm.company.deleted',
+  'crm.deal.deleted',
+  'crm.bulk_action',
+  'crm.pipeline.created',
+  'crm.pipeline.updated',
+  'crm.pipeline.deleted',
+  'crm.custom_field.created',
+  'crm.custom_field.updated',
+  'crm.custom_field.archived',
+  'crm.tag.deleted',
+  'crm.import.started',
+  'crm.import.completed',
+  'crm.export.requested',
+  'crm.export.downloaded',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

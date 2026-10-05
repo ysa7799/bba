@@ -73,10 +73,10 @@ describe('checkout over HTTP', () => {
       currency: 'USD',
     });
     expect(response.statusCode).toBe(201);
-    const { paymentId, redirectUrl } = response.json() as {
+    const { paymentId, redirectUrl } = response.json<{
       paymentId: string;
       redirectUrl: string;
-    };
+    }>();
     expect(redirectUrl).toContain('/dev/fake-checkout?payment=fake_');
     const [row] = await withSystem(ctx.db.db, (tx) =>
       tx.select().from(payments).where(eq(payments.id, paymentId)),
@@ -115,7 +115,7 @@ describe('payment state cannot be forged from the client', () => {
   it('ignores "success" hints on the return/verify path until the provider confirms', async () => {
     const { client, orgId } = await freshOrg();
     const created = await client.post(`/app/orgs/${orgId}/billing/checkout`, { priceId });
-    const { checkoutId, paymentId } = created.json() as { checkoutId: string; paymentId: string };
+    const { checkoutId, paymentId } = created.json<{ checkoutId: string; paymentId: string }>();
 
     const forged = await client.post(
       `/app/orgs/${orgId}/billing/checkout/${checkoutId}/verify?tap_id=chg_fake&status=CAPTURED`,
@@ -144,7 +144,7 @@ describe('payment state cannot be forged from the client', () => {
   it('has no client endpoint to set payment status', async () => {
     const { client, orgId } = await freshOrg();
     const created = await client.post(`/app/orgs/${orgId}/billing/checkout`, { priceId });
-    const { checkoutId } = created.json() as { checkoutId: string };
+    const { checkoutId } = created.json<{ checkoutId: string }>();
     for (const method of ['PATCH', 'PUT', 'DELETE'] as const) {
       expect(
         (
@@ -161,7 +161,7 @@ describe('webhook endpoint', () => {
   it('verifies signatures over the raw body', async () => {
     const { client, orgId } = await freshOrg();
     const created = await client.post(`/app/orgs/${orgId}/billing/checkout`, { priceId });
-    const { paymentId } = created.json() as { paymentId: string };
+    const { paymentId } = created.json<{ paymentId: string }>();
     const ref = await providerRef(paymentId);
     fake.simulate(ref, 'captured');
     const event = fake.signedWebhook({

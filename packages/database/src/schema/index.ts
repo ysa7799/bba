@@ -6,3 +6,4 @@ export * from './auth';
 export * from './platform';
 export * from './billing';
 export * from './payments';
+export * from './crm';

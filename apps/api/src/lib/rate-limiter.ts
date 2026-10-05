@@ -23,6 +23,9 @@ export const DEFAULT_RATE_LIMITS = {
   changePasswordUser: { limit: 10, windowSeconds: 3600 },
   checkoutOrg: { limit: 30, windowSeconds: 3600 },
   checkoutVerifyOrg: { limit: 300, windowSeconds: 3600 },
+  crmImportOrg: { limit: 20, windowSeconds: 3600 },
+  crmExportOrg: { limit: 30, windowSeconds: 3600 },
+  crmBulkOrg: { limit: 300, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

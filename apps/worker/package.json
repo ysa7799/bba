@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@businessos/config": "workspace:*",
+    "@businessos/crm": "workspace:*",
     "@businessos/database": "workspace:*",
     "@businessos/events": "workspace:*",
     "@businessos/jobs": "workspace:*",
@@ -21,6 +22,7 @@
     "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.3",
     "ioredis": "^5.11.1",
+    "libphonenumber-js": "^1.13.14",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
     "zod": "^4.6.5"

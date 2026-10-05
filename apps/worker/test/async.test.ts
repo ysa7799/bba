@@ -12,7 +12,7 @@ import {
   SubscriberRegistry,
   type DomainEvent,
 } from '@businessos/events';
-import { BullJobQueue, UnrecoverableError } from '@businessos/jobs';
+import { BullJobQueue, QUEUE_NAMES, UnrecoverableError } from '@businessos/jobs';
 import { newId } from '@businessos/shared';
 import {
   createTestDatabase,
@@ -155,7 +155,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await runtime.close();
   await queue.close();
-  for (const name of ['system', 'events', 'email']) {
+  for (const name of QUEUE_NAMES) {
     const q = new Queue(name, { connection: producerRedis, prefix: PREFIX });
     await q.obliterate({ force: true });
     await q.close();

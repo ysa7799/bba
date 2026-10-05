@@ -43,6 +43,10 @@ function main(): void {
     .catch((error: unknown) => {
       logger.error({ err: error }, 'could not schedule billing maintenance');
     });
+  // Hourly CRM upkeep (expired export files, stuck exports, old import staging rows).
+  queue.schedule('crm-maintenance', 'crm.maintenance', {}, 3_600_000).catch((error: unknown) => {
+    logger.error({ err: error }, 'could not schedule crm maintenance');
+  });
   const health =
     env.WORKER_HEALTH_PORT > 0 ? startHealthServer(env.WORKER_HEALTH_PORT, db, redis) : null;
   logger.info(

@@ -1,5 +1,6 @@
 import { tokenFromLink } from '@businessos/auth';
 import { membershipRoles, roles, withSystem } from '@businessos/database';
+import { systemRolePermissions } from '@businessos/permissions';
 import { newId } from '@businessos/shared';
 import {
   actorFor,
@@ -50,7 +51,11 @@ describe('permission enforcement', () => {
       expect.arrayContaining(['organization.update', 'settings.roles.manage']),
     );
     const restricted = await (await as(world.orgA.users.restricted)).get(`/app/orgs/${A}/access`);
-    expect(restricted.json()).toMatchObject({ isOwner: false, permissions: [] });
+    expect(restricted.json()).toMatchObject({ isOwner: false });
+    expect([...restricted.json().permissions].sort()).toEqual(
+      [...systemRolePermissions('restricted')].sort(),
+    );
+    expect(restricted.json().permissions).not.toContain('crm.contact.create');
   });
 
   const guarded: [
@@ -209,7 +214,8 @@ describe('privilege escalation', () => {
         })
       ).statusCode,
     ).toBe(403);
-    // Inviting someone as admin is escalation; inviting as member is fine.
+    // Inviting someone as admin is escalation, and so is the member role (it grants CRM
+    // permissions the delegate lacks); inviting with a role within their own access is fine.
     expect(
       (
         await client.post(`/app/orgs/${A}/invitations`, {
@@ -223,6 +229,14 @@ describe('privilege escalation', () => {
         await client.post(`/app/orgs/${A}/invitations`, {
           email: 'member-invite@example.com',
           roleId: memberRole,
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await client.post(`/app/orgs/${A}/invitations`, {
+          email: 'peer-invite@example.com',
+          roleId: peopleOps,
         })
       ).statusCode,
     ).toBe(201);

@@ -35,6 +35,9 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
     'changePasswordUser',
     'checkoutOrg',
     'checkoutVerifyOrg',
+    'crmImportOrg',
+    'crmExportOrg',
+    'crmBulkOrg',
   ].map((name) => [name, { limit: 10_000, windowSeconds: 60 }]),
 );
 

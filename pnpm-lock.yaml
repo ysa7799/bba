@@ -41,6 +41,9 @@ importers:
       '@businessos/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@businessos/crm':
+        specifier: workspace:*
+        version: link:../../packages/crm
       '@businessos/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -92,6 +95,9 @@ importers:
       ioredis:
         specifier: ^5.11.1
         version: 5.11.1
+      libphonenumber-js:
+        specifier: ^1.13.14
+        version: 1.13.14
       pg:
         specifier: ^8.23.1
         version: 8.23.1
@@ -163,6 +169,9 @@ importers:
       '@businessos/config':
         specifier: workspace:*
         version: link:../../packages/config
+      '@businessos/crm':
+        specifier: workspace:*
+        version: link:../../packages/crm
       '@businessos/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -187,6 +196,9 @@ importers:
       ioredis:
         specifier: ^5.11.1
         version: 5.11.1
+      libphonenumber-js:
+        specifier: ^1.13.14
+        version: 1.13.14
       pg:
         specifier: ^8.23.1
         version: 8.23.1
@@ -330,6 +342,46 @@ importers:
       typescript-eslint:
         specifier: ^8.71.0
         version: 8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@6.0.3)
+
+  packages/crm:
+    dependencies:
+      '@businessos/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@businessos/billing':
+        specifier: workspace:*
+        version: link:../billing
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../events
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      libphonenumber-js:
+        specifier: ^1.13.14
+        version: 1.13.14
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../organizations
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
 
   packages/database:
     dependencies:
@@ -3270,6 +3322,9 @@ packages:
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
+
+  libphonenumber-js@1.13.14:
+    resolution: {integrity: sha512-llihgCcx0BFLksecLP+x1J+6JDE1GsXS1RN/LoPF6qcwpeQcnjj0lcvZxY8AzbEpYwyZWPZW/nDuqkqzm3amiw==}
 
   light-my-request@6.6.0:
     resolution: {integrity: sha512-CHYbu8RtboSIoVsHZ6Ye4cj4Aw/yg2oAFimlF7mNvfDV192LR7nDiKtSIfCuLT7KokPSTn/9kfVLm5OGN0A28A==}
@@ -6735,6 +6790,8 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
       type-check: 0.4.0
+
+  libphonenumber-js@1.13.14: {}
 
   light-my-request@6.6.0:
     dependencies:

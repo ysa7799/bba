@@ -17,3 +17,6 @@ test-results
 *.log
 storage/
 .e2e-state.json
+
+# Local Redis snapshots (never commit)
+*.rdb

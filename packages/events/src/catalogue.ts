@@ -84,6 +84,79 @@ export const EVENT_DEFINITIONS = {
       reason: z.enum(['removed', 'left']),
     }),
   },
+  'contact.created': {
+    version: 1,
+    schema: z.object({ contactId: z.uuid(), source: z.string() }),
+  },
+  'contact.updated': {
+    version: 1,
+    schema: z.object({ contactId: z.uuid(), changedFields: z.array(z.string()) }),
+  },
+  'contact.deleted': {
+    version: 1,
+    schema: z.object({ contactId: z.uuid() }),
+  },
+  'contact.tag_added': {
+    version: 1,
+    schema: z.object({ contactId: z.uuid(), tagId: z.uuid() }),
+  },
+  'contact.tag_removed': {
+    version: 1,
+    schema: z.object({ contactId: z.uuid(), tagId: z.uuid() }),
+  },
+  'company.created': {
+    version: 1,
+    schema: z.object({ companyId: z.uuid() }),
+  },
+  'company.updated': {
+    version: 1,
+    schema: z.object({ companyId: z.uuid(), changedFields: z.array(z.string()) }),
+  },
+  'company.deleted': {
+    version: 1,
+    schema: z.object({ companyId: z.uuid() }),
+  },
+  'deal.created': {
+    version: 1,
+    schema: z.object({ dealId: z.uuid(), pipelineId: z.uuid(), stageId: z.uuid() }),
+  },
+  'deal.updated': {
+    version: 1,
+    schema: z.object({ dealId: z.uuid(), changedFields: z.array(z.string()) }),
+  },
+  'deal.stage_changed': {
+    version: 1,
+    schema: z.object({
+      dealId: z.uuid(),
+      pipelineId: z.uuid(),
+      fromStageId: z.uuid(),
+      toStageId: z.uuid(),
+    }),
+  },
+  'deal.won': {
+    version: 1,
+    schema: z.object({
+      dealId: z.uuid(),
+      valueMinor: z.string().regex(/^\d+$/).nullable(),
+      currency: z.string().length(3),
+    }),
+  },
+  'deal.lost': {
+    version: 1,
+    schema: z.object({ dealId: z.uuid(), lostReason: z.string().nullable() }),
+  },
+  'deal.deleted': {
+    version: 1,
+    schema: z.object({ dealId: z.uuid() }),
+  },
+  'task.created': {
+    version: 1,
+    schema: z.object({ taskId: z.uuid(), assigneeUserId: z.uuid().nullable() }),
+  },
+  'task.completed': {
+    version: 1,
+    schema: z.object({ taskId: z.uuid(), completedByUserId: z.uuid().nullable() }),
+  },
 } as const satisfies Record<string, { version: number; schema: z.ZodType }>;
 
 export type EventType = keyof typeof EVENT_DEFINITIONS;
