@@ -2,6 +2,20 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 5 — Audit, events and jobs (2026-10-05)
+
+- Schema: `audit_logs` (append-only), `outbox_events`, `processed_events`, `job_failures`.
+- `@businessos/audit`: `recordAudit` (redacted, size-capped) and paginated `listAuditLogs`.
+- `@businessos/events`: typed catalogue, `emitEvent`, `OutboxDispatcher` (SKIP LOCKED claims,
+  leases, backoff, failure state), `SubscriberRegistry`, `processOnce`.
+- `@businessos/jobs`: job registry with Zod payloads, BullMQ and in-memory queues,
+  deterministic job ids, validated processor, final-failure detection.
+- Worker: per-queue BullMQ workers, outbox dispatcher loop, `event.deliver` and `email.send`
+  handlers, dev email transports (log/file), dead-letter persistence, health endpoint.
+- API: events emitted by org/invitation services, audit records for all sensitive actions,
+  `audit.read` permission and `/audit-logs` endpoint, queue-backed mailer.
+- Web: audit log page; E2E now runs the worker (emails flow through jobs).
+
 ## Phase 4 — RBAC (2026-10-05)
 
 - `@businessos/permissions`: catalogue, code-defined system roles, effective permission

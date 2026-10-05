@@ -42,12 +42,13 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 | `organization.update`   | organization | ✓     | ✓     |         |        |            |
 | `settings.users.manage` | settings     | ✓     | ✓     |         |        |            |
 | `settings.roles.manage` | settings     | ✓     | ✓     |         |        |            |
+| `audit.read`            | settings     | ✓     | ✓     |         |        |            |
 
 Every member may read the organization profile, members, roles and the permission catalogue.
 
 ## Planned additions (by phase)
 
-`audit.read` (5), `settings.billing.manage` (6), `crm.*` (8), `communications.*` (10),
+`settings.billing.manage` (6), `crm.*` (8), `communications.*` (10),
 `calendar.*` (11), `forms.*` (12), `automation.workflow.*` (13), `commerce.*` (14),
 `reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

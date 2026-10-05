@@ -105,6 +105,24 @@ threat model and the control catalogue; it is updated whenever a control is adde
 
 - Separate from tenant RBAC, all actions audited, no silent impersonation.
 
+### Audit trail (Phase 5)
+
+- Sensitive actions are audited in the same transaction as the change: sign-in (success and
+  failure for known accounts), sign-out, email verification, password reset request/complete,
+  password change, organization create/update/settings, invitations, joins, role changes,
+  suspensions, removals, leaving, custom role create/update/delete.
+- `audit_logs` is append-only at the database level (forced RLS with no UPDATE/DELETE
+  policies), metadata is redacted (`redactSensitive`) and size-capped, IP addresses validated.
+- Reading requires `audit.read` and is tenant-isolated; account-level records (no
+  organization) are only readable in system scope (platform admin, Phase 24).
+
+### Jobs
+
+- Job payloads are validated on enqueue and processing; failures are logged with correlation
+  ids and persisted (redacted) to `job_failures`.
+- Email jobs carry links containing single-use tokens; they live in Redis only until the job
+  completes (`removeOnComplete`) — Redis must be private and encrypted in transit in production.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·

@@ -125,3 +125,23 @@ code running in system scope. This pattern applies to all future tenant join tab
 Next.js App Router layouts are not re-rendered on client navigation, so permission data fetched
 in a layout goes stale after a role change. Tenant pages fetch access themselves (deduplicated
 per request with React `cache`) and provide it to client components.
+
+## ADR-020 — Events from services, audit from the request layer
+
+Domain services emit domain events inside their transactions (any caller — API, worker,
+workflow — produces the same events). Audit records need request context (actor, IP, request id)
+and are written by the API handler (or the auth service, which owns its transactions) inside
+the same transaction as the change.
+
+## ADR-021 — Auth emails are jobs, enqueued after commit
+
+Auth emails are rendered and delivered by the worker (`email.send`) so delivery gets retries
+and dead-letter visibility. They are enqueued after the auth transaction commits rather than
+through the outbox, so token-bearing links are never persisted in Postgres in plaintext. A lost
+enqueue (Redis down) is recoverable by the user (resend / request again).
+
+## ADR-022 — Polling outbox dispatcher
+
+The dispatcher polls (500 ms idle, continuous while backlogged) instead of using LISTEN/NOTIFY.
+It is simple, works through connection poolers, and latency is acceptable. LISTEN/NOTIFY can be
+added as a wake-up hint later without changing semantics.

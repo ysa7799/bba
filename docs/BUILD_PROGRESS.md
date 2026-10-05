@@ -2,9 +2,47 @@
 
 ## Current Phase
 
-Phase 5 — Audit + Events + Jobs
+Phase 6 — Billing + Entitlements
 
 Status: IN_PROGRESS
+
+---
+
+## Phase 5 — Audit + Events + Jobs
+
+Status: PASSED
+
+### Completed
+
+- Append-only audit log covering auth and organization administration, with UI.
+- Domain events via transactional outbox; dispatcher with SKIP LOCKED, leases, backoff and
+  failed state; subscriber registry; once-only processing helper.
+- Typed job system (BullMQ) with retries/backoff, payload validation, idempotent enqueue,
+  dead-letter persistence; emails moved to `email.send` jobs; worker health endpoint.
+
+### Tests
+
+- worker (14, real Redis + Postgres): delivery with full envelope, rollback emits nothing,
+  invalid event payloads rejected, cross-tenant emit blocked by RLS, transient failure retries
+  with backoff, unrecoverable failures dead-lettered, invalid job payloads fail permanently,
+  re-dispatch delivers once, `processOnce` dedupe, concurrent dispatchers exactly-once,
+  crash-recovery reclaim, system.ping, email delivery, enqueue validation.
+- events (5): fan-out with deterministic ids, no-subscriber dispatch, enqueue-failure backoff
+  → failed, not-yet-due events untouched, registry validation.
+- jobs (5), API audit/events (8): attribution, permission + tenant isolation, pagination and
+  filter validation, append-only enforcement (tenant and system scope), security events
+  without secrets, events with correlation ids, rejected actions emit nothing, queued email.
+- Full suite: 215 unit/integration + 4 E2E passing.
+
+### Risks
+
+- Outbox and processed_events need retention/cleanup jobs (Phase 26/29).
+- Email delivery is CONFIGURATION_REQUIRED in production until a provider adapter lands.
+
+### Next
+
+- Phase 6: plans, plan versions, prices, subscriptions, entitlements, usage metering with
+  server-side enforcement.
 
 ---
 
