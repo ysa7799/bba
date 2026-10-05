@@ -7,6 +7,7 @@ import { DealFormDialog } from '@/components/crm/deal-form';
 import { DeleteRecordButton } from '@/components/crm/delete-record-button';
 import { DetailList, Section } from '@/components/crm/detail';
 import { NotesPanel } from '@/components/crm/notes-panel';
+import { AttachmentsPanel } from '@/components/files/attachments-panel';
 import { TagList } from '@/components/crm/tag-badge';
 import { TimelinePanel } from '@/components/crm/timeline-panel';
 import { NewTaskButton, TaskList } from '@/components/crm/task-list';
@@ -21,6 +22,7 @@ import type {
   PipelineDetail,
   TaskSummary,
 } from '@/lib/crm-types';
+import type { FileSummary } from '@/lib/files-types';
 import { formatDate, formatMoney } from '@/lib/format';
 import { getOrgAccess } from '@/lib/org-data';
 import { getMe, serverGetJson } from '@/lib/server-api';
@@ -38,7 +40,7 @@ export default async function DealPage({
   const can = (permission: string) => access.permissions.includes(permission);
   if (!can('crm.deal.read')) return <CrmForbidden title={m.crm.deals.title} />;
   const base = `/app/orgs/${orgId}/crm`;
-  const [deal, notes, tasks, pipelines, options, timeline] = await Promise.all([
+  const [deal, notes, tasks, pipelines, options, timeline, files] = await Promise.all([
     serverGetJson<{ deal: DealSummary }>(`${base}/deals/${dealId}`),
     serverGetJson<Page<NoteSummary>>(`${base}/deals/${dealId}/notes?limit=50`),
     can('crm.task.read')
@@ -48,6 +50,9 @@ export default async function DealPage({
     crmFormOptions(orgId, 'deal'),
     serverGetJson<{ data: ActivitySummary[]; nextCursor: string | null }>(
       `${base}/deals/${dealId}/timeline?limit=25`,
+    ),
+    serverGetJson<{ data: FileSummary[] }>(
+      `/app/orgs/${orgId}/files?entityType=deal&entityId=${dealId}`,
     ),
   ]);
   if (!deal) notFound();
@@ -163,6 +168,11 @@ export default async function DealPage({
             parentPath={`deals/${d.id}`}
             notes={notes?.data ?? []}
             currentUserId={me.user.id}
+          />
+          <AttachmentsPanel
+            entity={{ type: 'deal', id: d.id }}
+            files={files?.data ?? []}
+            timezone={organization?.timezone ?? 'Asia/Bahrain'}
           />
           {tasks ? (
             <Section

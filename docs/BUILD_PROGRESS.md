@@ -2,9 +2,95 @@
 
 ## Current Phase
 
-Phase 16 — Files + notifications
+Phase 17 — Public API + webhooks
 
 Status: NOT_STARTED
+
+---
+
+## Phase 16 — Files + notifications
+
+Status: PASSED
+
+### Completed
+
+- Schema: `files` (pending/ready/deleted, size, SHA-256, server-generated storage key, attached
+  contact/company/deal), `notifications` (unique per user, type and source event; link checked
+  to stay inside the organization) and `notification_preferences`; FORCE RLS; notifications and
+  preferences use an **owner-only** policy (organization and user). Migrations 0030–0032.
+- `@businessos/files`: `FileStorage` port — S3-compatible adapter with in-house SigV4 (verified
+  against AWS's published example; `CONFIGURATION_REQUIRED` without a bucket and keys), local
+  disk (development only; refused in production; keys confined to its root) and memory (tests).
+  Type detection from the bytes against an allow-list (PNG, JPEG, GIF, WebP, PDF, UTF-8
+  text/CSV, DOCX/XLSX/PPTX; never HTML, SVG, archives or executables); safe names (no paths,
+  control characters, quotes or bidirectional overrides; extension always matches the detected
+  type); 10 MB maximum; `storage.bytes` quota reserved inside the organization's advisory lock
+  before the object is written; SHA-256 verified on every read; hourly `files.maintenance`
+  (abandoned uploads, deferred deletions).
+- `@businessos/notifications`: nine types (task assigned, conversation assigned, deal won,
+  appointment booked, quote accepted/declined, invoice paid/overdue, workflow failed) built from
+  domain events by the `notifications` outbox subscriber; every recipient re-checked at delivery
+  (active membership, read permission, not the actor, channel choices); in-app rows and
+  `notification` emails (deterministic job ids); inbox (list with cursor, unread count, mark
+  read, mark all read); per-member preferences limited to receivable types; hourly retention
+  (read after 90 days, unread after a year).
+- API: `/app/orgs/:orgId/files` (list, raw-body upload, download with `nosniff`, attachment
+  disposition and a sandbox CSP, delete; access follows the record's read/update permissions;
+  audited; rate limited) and `/app/orgs/:orgId/notifications`; storage usage in the billing
+  entitlements; env `FILES_STORAGE`, `FILES_LOCAL_DIR`, `S3_*` (production requires S3).
+- Worker: notifications subscriber, `notification` email template, `files.maintenance` and
+  `notifications.maintenance` schedules.
+- Web: attachments panel on contact, company and deal pages (upload, open images, download,
+  delete); notification bell with unread count in the header (refreshed on navigation, focus
+  and every minute); notifications page (all/unread, mark read, mark all read, show more,
+  channel preferences); file storage usage on the billing page; the proxy allows 10 MB uploads
+  and forwards download safety headers.
+
+### Tests
+
+- files (14): type detection by bytes, refusal of scriptable and unknown formats, safe names,
+  **bidirectional overrides stripped**, **extension matches the detected type**, SigV4 against
+  AWS's example, S3 `CONFIGURATION_REQUIRED` and signed requests, local storage confinement,
+  store/list/read/delete, empty/oversized/disallowed uploads, **quota under parallel
+  uploads**, reservation released on storage failure, damaged objects detected, **files stay
+  inside their organization**, maintenance.
+- notifications (8): delivery in-app and by email once per event, no self-notification,
+  **membership and permission re-checked at delivery**, withheld when the recipient may not
+  read the subject, channel choices, **private inbox** (other members and other organizations
+  see nothing, RLS and filters), preferences limited to receivable types, retention.
+- API: attachments with access following the record, download headers, **cross-tenant 404s**
+  (list, download, upload, delete), audit entries; disguised, renamed, oversized and
+  cross-site uploads; private notifications, unread count, mark read, preferences; production
+  configuration refuses local storage and requires a bucket.
+- Worker: `notification` email template; production configuration.
+- Web unit: byte formatting, proxy upload limit, forwarded download headers.
+- E2E: attach an Arabic-named PDF to a contact, download the exact bytes under its name with
+  the sandbox headers, a renamed web page refused, delete; a task assigned to a teammate
+  reaches their bell, notifications page and inbox (email), mark all read, email preference
+  saved, unavailable types hidden.
+- Full suite (uncached): 568 unit/integration + 15 E2E passing.
+
+### Risks
+
+- Downloads stream through the API and web proxy (10 MB cap); larger files will need presigned
+  direct uploads/downloads (ADR-052).
+- No antivirus scanning yet: files are limited to inert formats and always served as
+  downloads (images inline only); add a scanning hook before allowing more types.
+- The bell polls once a minute; no push channel yet (ADR-053).
+- Notification texts are English until the Arabic catalogue lands.
+
+### Fixed during the phase
+
+- The web app's global CSP replaced the API's sandbox policy on downloads (security finding,
+  MEDIUM); the proxy now forwards it and the download path is exempt from the page policy.
+- Stored names could carry a misleading extension or bidirectional overrides (LOW).
+- Two catalogue tests depended on leftovers in the shared test database (the plan list is
+  bounded); they now sort their plan first and restore the catalogue.
+- E2E browsers run with a UTF-8 locale so non-Latin download names are kept.
+
+### Next
+
+- Phase 17: public API (API keys) and outbound webhooks.
 
 ---
 

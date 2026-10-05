@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, humanize } from './format';
+import { formatBytes, formatMoney, humanize } from './format';
 
 describe('formatMoney', () => {
   it('keeps exact decimal digits (3 for BHD) and groups thousands', () => {
@@ -13,5 +13,16 @@ describe('formatMoney', () => {
 describe('humanize', () => {
   it('turns keys into labels', () => {
     expect(humanize('multi_select')).toBe('Multi select');
+  });
+});
+
+describe('formatBytes', () => {
+  it('uses binary units with one decimal below ten', () => {
+    expect(formatBytes(0)).toBe('0 B');
+    expect(formatBytes(1023)).toBe('1,023 B');
+    expect(formatBytes(2560)).toBe('2.5 KB');
+    expect(formatBytes('10485760')).toBe('10 MB');
+    expect(formatBytes(1_073_741_824)).toBe('1 GB');
+    expect(formatBytes(-1)).toBe('—');
   });
 });

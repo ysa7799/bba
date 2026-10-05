@@ -13,6 +13,7 @@ import {
 } from '@businessos/billing';
 import { recordAudit } from '@businessos/audit';
 import { billingCustomers, withTenant, withUser } from '@businessos/database';
+import { storageUsedBytes } from '@businessos/files';
 import { isCurrencyCode, money, toMoneyJson } from '@businessos/shared';
 import { eq } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
@@ -96,6 +97,8 @@ export function organizationBillingRoutes(app: FastifyInstance): void {
         sources: resolved.sources,
         usage: {
           'users.max': { used: await seatUsage(tx, tenant.organizationId) },
+          // Bytes stay well inside Number's exact range (limits are in the gigabytes).
+          'storage.bytes': { used: Number(await storageUsedBytes(tx, tenant.organizationId)) },
           ...quotas,
         },
       };

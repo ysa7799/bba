@@ -171,6 +171,16 @@ Reports specifics:
   need `crm.contact.read`). Restricted members have no reports by default.
 - Downloading a report as CSV needs the same permissions and is audited.
 
+Files and notifications specifics (Phase 16, no new permissions):
+
+- Attachments follow their record: listing and downloading need the record's read permission,
+  uploading and deleting its update permission (`crm.contact.*`, `crm.company.*`,
+  `crm.deal.*`).
+- Notifications are private to their member. Each type requires a read permission
+  (`crm.task.read`, `communications.read`, `crm.deal.read`, `calendar.appointment.read`,
+  `commerce.invoice.read`, `automation.workflow.read`), checked again when it is delivered;
+  members only see preferences for types they can receive.
+
 ## Planned additions (by phase)
 
 `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),

@@ -77,6 +77,20 @@ export const apiEnvSchema = z
           return false;
         }
       }, 'expected keyId:base64 pairs with 32-byte keys'),
+    /** File storage: `local` disk (development, tests) or an S3-compatible bucket (production). */
+    FILES_STORAGE: z.enum(['local', 's3']).default('local'),
+    FILES_LOCAL_DIR: z.string().min(1).default('.data/files'),
+    S3_ENDPOINT: z.url().optional(),
+    S3_REGION: z
+      .string()
+      .regex(/^[a-z0-9-]{3,40}$/)
+      .optional(),
+    S3_BUCKET: z
+      .string()
+      .regex(/^[a-z0-9.-]{3,63}$/)
+      .optional(),
+    S3_ACCESS_KEY_ID: z.string().min(8).max(128).optional(),
+    S3_SECRET_ACCESS_KEY: z.string().min(16).max(256).optional(),
     /** Development/test in-memory external calendar provider. */
     CALENDAR_FAKE_PROVIDERS: booleanFromEnv.default(false),
     /** Development/test fake channel providers. */
@@ -110,6 +124,19 @@ export const apiEnvSchema = z
       });
     }
     if (env.NODE_ENV !== 'production') return;
+    if (env.FILES_STORAGE === 'local') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['FILES_STORAGE'],
+        message: 'local file storage is not allowed in production (use s3)',
+      });
+    } else if (!env.S3_BUCKET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['S3_BUCKET'],
+        message: 'required when FILES_STORAGE=s3',
+      });
+    }
     if (env.AUTOMATION_ALLOW_PRIVATE_NETWORK) {
       ctx.addIssue({
         code: 'custom',

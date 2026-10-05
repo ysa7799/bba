@@ -6,10 +6,12 @@ import {
 } from '@businessos/calendar';
 import { expireQuotes, markOverdueInvoices } from '@businessos/commerce';
 import { deliverMessage, type CommunicationsServices } from '@businessos/communications';
+import { runFilesMaintenance, type FileServices } from '@businessos/files';
 import { processExport, processImport, runCrmMaintenance } from '@businessos/crm';
 import type { Database } from '@businessos/database';
 import { loadEvent, type SubscriberRegistry } from '@businessos/events';
 import { JOBS, UnrecoverableError, type JobHandlers } from '@businessos/jobs';
+import { pruneNotifications } from '@businessos/notifications';
 import { runSubscriptionMaintenance } from '@businessos/payments';
 import type { Logger } from 'pino';
 import { renderEmail } from './email/templates';
@@ -20,6 +22,7 @@ export interface HandlerDeps {
   communications: CommunicationsServices;
   calendar: CalendarServices;
   automation: AutomationServices;
+  files: FileServices;
   /** Public web app URL for links in job-sent emails. */
   appUrl: string;
   registry: SubscriberRegistry;
@@ -47,6 +50,20 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
       const result = await runSubscriptionMaintenance(deps.db);
       deps.logger.info(result, 'subscription maintenance completed');
       return result;
+    },
+
+    'files.maintenance': async () => {
+      const result = await runFilesMaintenance(deps.files);
+      if (result.abandoned > 0 || result.purged > 0) {
+        deps.logger.info(result, 'file maintenance completed');
+      }
+      return result;
+    },
+
+    'notifications.maintenance': async () => {
+      const removed = await pruneNotifications(deps.db);
+      if (removed > 0) deps.logger.info({ removed }, 'notification retention completed');
+      return { removed };
     },
 
     'commerce.maintenance': async () => {

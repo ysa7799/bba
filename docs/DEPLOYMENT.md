@@ -109,6 +109,18 @@ re-enter them); keys belong in the secrets manager, never in the repository.
 - `COMMERCE_FAKE_PAYMENTS` (API) and `ENABLE_DEV_PAYMENTS` (web) are development/test only;
   the API refuses the former in production.
 
+## Files and notifications configuration (Phase 16)
+
+- `FILES_STORAGE` (`local` | `s3`, API and worker). Production requires `s3` with
+  `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` and, for non-AWS
+  providers, `S3_ENDPOINT` (see `INTEGRATIONS.md`). `FILES_LOCAL_DIR` (default `.data/files`)
+  is for development only.
+- Uploads are at most 10 MB; reverse proxies in front of the web app must allow request bodies
+  of at least 10.1 MB on `/api/app/orgs/*/files`.
+- The worker schedules `files.maintenance` (abandoned uploads, deferred object deletions) and
+  `notifications.maintenance` (retention) hourly. Notification emails use the existing email
+  transport and `APP_URL` for links.
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

@@ -21,7 +21,7 @@ import {
   uniqueSuffix,
 } from '@businessos/testing';
 import { createOrganization } from '@businessos/organizations';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, min } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   addPrice,
@@ -83,12 +83,18 @@ async function newPlanVersion(
   options: { publish?: boolean; isPublic?: boolean } = {},
 ) {
   return withSystem(handle.db, async (tx) => {
-    // Test plans are private unless a test is about the public catalogue (then sorted first).
+    // Test plans are private unless a test is about the public catalogue. Those sort before
+    // every plan already in the shared test database, whose catalogue page is bounded.
+    let sortOrder = 0;
+    if (options.isPublic) {
+      const [lowest] = await tx.select({ value: min(plans.sortOrder) }).from(plans);
+      sortOrder = Math.min(lowest?.value ?? 0, 0) - 1;
+    }
     const plan = await createPlan(tx, {
       key: `plan-${uniqueSuffix()}`,
       name: 'Test plan',
       isPublic: options.isPublic ?? false,
-      sortOrder: options.isPublic ? -1_000 : 0,
+      sortOrder,
     });
     const version = await createPlanVersion(tx, plan.id, values);
     if (options.publish !== false) await publishPlanVersion(tx, version.id);
@@ -146,6 +152,10 @@ describe('plan catalogue', () => {
     expect(listed?.prices).toEqual([
       expect.objectContaining({ currency: 'BHD', interval: 'month', amountMinor: 12_500n }),
     ]);
+    // Leave the shared catalogue as it was.
+    await withSystem(handle.db, (tx) =>
+      tx.update(plans).set({ isPublic: false }).where(eq(plans.id, plan.id)),
+    );
   });
 
   it('rejects unknown entitlements, invalid values, negative prices and unknown currencies', async () => {

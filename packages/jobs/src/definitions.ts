@@ -78,6 +78,18 @@ export const JOBS = {
     schema: z.object({ organizationId: z.uuid(), appointmentId: z.uuid() }),
     attempts: 5,
   }),
+  /** Removes abandoned uploads and retries deferred object deletions. */
+  'files.maintenance': defineJob({
+    queue: 'system',
+    schema: z.object({}),
+    attempts: 3,
+  }),
+  /** Removes notifications past their retention period. */
+  'notifications.maintenance': defineJob({
+    queue: 'system',
+    schema: z.object({}),
+    attempts: 3,
+  }),
   /** Marks invoices past their due date as overdue (once each) and emits `invoice.overdue`. */
   'commerce.maintenance': defineJob({
     queue: 'system',

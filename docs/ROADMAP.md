@@ -22,7 +22,7 @@ Phases execute in order. A phase is complete only when its quality gate passes (
 | 13  | Automation V1                                           | Durable waits, retry, idempotency, loop protection | PASSED      |
 | 14  | Commerce                                                | Money precision and payment integrity              | PASSED      |
 | 15  | Dashboards + reporting                                  | Permission-aware reports                           | PASSED      |
-| 16  | Files + notifications                                   | Production-grade shared services                   | NOT_STARTED |
+| 16  | Files + notifications                                   | Production-grade shared services                   | PASSED      |
 | 17  | Public API + webhooks                                   | API-key isolation and signature tests              | NOT_STARTED |
 | 18  | Integrations framework                                  | Encrypted credentials, state machine               | NOT_STARTED |
 | 19  | White label + custom domains                            | Host/domain security                               | NOT_STARTED |

@@ -299,6 +299,30 @@ threat model and the control catalogue; it is updated whenever a control is adde
   customers 10); reports are rate limited per user; supporting indexes (migration 0029).
 - CSV exports escape spreadsheet formulas (`= + - @`, tab, CR) and are audited.
 
+### Files and notifications (Phase 16)
+
+- Uploads: the type comes from the file's bytes, never its name or the client's
+  `Content-Type`; only images, PDF, UTF-8 text/CSV and Office documents are accepted (no HTML,
+  SVG, scripts, archives or executables; text that starts like markup is refused). Names lose
+  paths, control characters, quotes and bidirectional overrides, and always end with an
+  extension of the detected type, so a polyglot can never be saved as `.html`. ≤ 10 MB
+  (enforced by the web proxy and the API), rate limited per member, audited.
+- Quota: `storage.bytes` is reserved inside the organization's advisory lock before the object
+  is written (parallel uploads cannot overshoot); failed writes release the reservation.
+- Downloads: served by the API only, with `nosniff`, `Content-Disposition: attachment` (inline
+  only for images on request) and `default-src 'none'; sandbox; frame-ancestors 'none'`; the
+  web proxy passes those headers through and the global page policy does not replace them.
+  Objects are checked against their SHA-256 when read. Storage keys are server-generated
+  (`<org>/<uuid>`); the local driver refuses keys outside its root; production refuses it
+  entirely (S3 with SigV4).
+- Access follows the attached record (read/update permissions), with organization filters and
+  RLS on every query; isolation tested for list, download, upload and delete.
+- Notifications: rows are private to their member (owner-only RLS policy plus filters);
+  recipients are re-checked at delivery (active membership, permission, not the actor); titles
+  and bodies are plain text (rendered as text, emailed as text); links are relative paths
+  constrained to the same organization (database check, and the UI links nothing else).
+  Read notifications are deleted after 90 days, unread ones after a year.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -308,21 +332,23 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 ## Findings log
 
-| Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                         |
-| ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| 2026-10-05 | 14    | LOW      | `?includeArchived=false` on the product list was coerced to `true` (`z.coerce.boolean` treats any non-empty string as true), showing archived products. Found in phase review.                           | Fixed: explicit `true`/`false` parsing                                         |
-| 2026-10-05 | 14    | LOW      | A product price archive update filtered by id only, relying on RLS for tenancy (defense-in-depth rule). No exposure. Found in phase review.                                                              | Fixed: explicit `organization_id` filter                                       |
-| 2026-10-05 | 13    | MEDIUM   | A workflow's webhook action could call BusinessOS itself (e.g. its own inbound webhook URL), a loop the run-chain depth cannot see (bounded only by rate limits and quotas). Found in phase review.      | Fixed: own hosts refused at save and send + regression test                    |
-| 2026-10-05 | 13    | LOW      | Job ids for workflow runs and their messages contained `:`, which the queue rejects: runs would not have been queued in production (the test queue did not check). Found while wiring the API.           | Fixed: ids use `-`; the test queue enforces the production pattern             |
-| 2026-10-05 | 12    | LOW      | Some form queries relied on RLS alone (no explicit `organization_id` filter), against the defense-in-depth rule. No exposure (RLS enforced). Found in phase review.                                      | Fixed: explicit filters on every forms query                                   |
-| 2026-10-05 | 11    | MEDIUM   | Invitee manage-link tokens travel in URL paths and would have been written to request logs (same class as the Phase 10 webhook-token finding). Found in phase review before release.                     | Fixed: `redactUrlForLog` masks them + regression tests                         |
-| 2026-10-05 | 10    | HIGH     | Request logs included full URLs, so per-connection webhook tokens (path) and WhatsApp `hub.verify_token` (query) would have been written to logs. Found in phase review before release.                  | Fixed: redacting `req` serializer (`redactUrlForLog`) + regression tests       |
-| 2026-10-05 | 8     | MEDIUM   | Turborepo cache keys ignored internal package sources: lint/typecheck/test/build results could be replayed after a package change, so a regression could pass local gates.                               | Fixed: package sources in `globalDependencies` (ADR-031); full uncached re-run |
-| 2026-10-05 | 8     | LOW      | Test isolation: one test file flushed the shared Redis test database, intermittently erasing other files' rate-limit counters (could mask or fake limiter behaviour).                                    | Fixed: no flushes; unique key prefixes per test context                        |
-| 2026-10-05 | 8     | LOW      | A local Redis snapshot (`dump.rdb`, hashed test rate-limit counters only — no secrets or personal data) had been committed since Phase 0.                                                                | Fixed: untracked, `*.rdb` ignored                                              |
-| 2026-10-05 | 3     | MEDIUM   | Web proxy forwarded client `X-Forwarded-For` unconditionally; a directly exposed web server would let clients spoof IPs to evade per-IP limits.                                                          | Fixed: opt-in `TRUST_PROXY_HEADERS`; API `TRUST_PROXY` accepts hops/CIDRs      |
-| 2026-10-05 | 3     | LOW      | Authenticated API responses lacked `Cache-Control: no-store`.                                                                                                                                            | Fixed + test                                                                   |
-| 2026-10-05 | 2     | HIGH     | Membership/organization RLS policies allowed a user's other-tenant rows to be visible inside a tenant context (user-scope clause applied in tenant scope). Caught by the isolation suite before release. | Fixed (migration 0003) + regression test                                       |
+| Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                            |
+| ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 2026-10-05 | 16    | MEDIUM   | The web app's global `Content-Security-Policy: frame-ancestors 'none'` replaced the API's `default-src 'none'; sandbox` on attachment downloads, so files were served without the sandbox. Found by E2E. | Fixed: download path exempt from the page policy; proxy forwards it + E2E check   |
+| 2026-10-05 | 16    | LOW      | Stored file names kept the uploader's extension and bidirectional overrides: an image/HTML polyglot could be downloaded as `.html`, and `x<RLO>fdp.exe` displayed as a PDF. Found in phase review.       | Fixed: overrides stripped, extension matches the detected type + regression tests |
+| 2026-10-05 | 14    | LOW      | `?includeArchived=false` on the product list was coerced to `true` (`z.coerce.boolean` treats any non-empty string as true), showing archived products. Found in phase review.                           | Fixed: explicit `true`/`false` parsing                                            |
+| 2026-10-05 | 14    | LOW      | A product price archive update filtered by id only, relying on RLS for tenancy (defense-in-depth rule). No exposure. Found in phase review.                                                              | Fixed: explicit `organization_id` filter                                          |
+| 2026-10-05 | 13    | MEDIUM   | A workflow's webhook action could call BusinessOS itself (e.g. its own inbound webhook URL), a loop the run-chain depth cannot see (bounded only by rate limits and quotas). Found in phase review.      | Fixed: own hosts refused at save and send + regression test                       |
+| 2026-10-05 | 13    | LOW      | Job ids for workflow runs and their messages contained `:`, which the queue rejects: runs would not have been queued in production (the test queue did not check). Found while wiring the API.           | Fixed: ids use `-`; the test queue enforces the production pattern                |
+| 2026-10-05 | 12    | LOW      | Some form queries relied on RLS alone (no explicit `organization_id` filter), against the defense-in-depth rule. No exposure (RLS enforced). Found in phase review.                                      | Fixed: explicit filters on every forms query                                      |
+| 2026-10-05 | 11    | MEDIUM   | Invitee manage-link tokens travel in URL paths and would have been written to request logs (same class as the Phase 10 webhook-token finding). Found in phase review before release.                     | Fixed: `redactUrlForLog` masks them + regression tests                            |
+| 2026-10-05 | 10    | HIGH     | Request logs included full URLs, so per-connection webhook tokens (path) and WhatsApp `hub.verify_token` (query) would have been written to logs. Found in phase review before release.                  | Fixed: redacting `req` serializer (`redactUrlForLog`) + regression tests          |
+| 2026-10-05 | 8     | MEDIUM   | Turborepo cache keys ignored internal package sources: lint/typecheck/test/build results could be replayed after a package change, so a regression could pass local gates.                               | Fixed: package sources in `globalDependencies` (ADR-031); full uncached re-run    |
+| 2026-10-05 | 8     | LOW      | Test isolation: one test file flushed the shared Redis test database, intermittently erasing other files' rate-limit counters (could mask or fake limiter behaviour).                                    | Fixed: no flushes; unique key prefixes per test context                           |
+| 2026-10-05 | 8     | LOW      | A local Redis snapshot (`dump.rdb`, hashed test rate-limit counters only — no secrets or personal data) had been committed since Phase 0.                                                                | Fixed: untracked, `*.rdb` ignored                                                 |
+| 2026-10-05 | 3     | MEDIUM   | Web proxy forwarded client `X-Forwarded-For` unconditionally; a directly exposed web server would let clients spoof IPs to evade per-IP limits.                                                          | Fixed: opt-in `TRUST_PROXY_HEADERS`; API `TRUST_PROXY` accepts hops/CIDRs         |
+| 2026-10-05 | 3     | LOW      | Authenticated API responses lacked `Cache-Control: no-store`.                                                                                                                                            | Fixed + test                                                                      |
+| 2026-10-05 | 2     | HIGH     | Membership/organization RLS policies allowed a user's other-tenant rows to be visible inside a tenant context (user-scope clause applied in tenant scope). Caught by the isolation suite before release. | Fixed (migration 0003) + regression test                                          |
 
 ## Reporting
 

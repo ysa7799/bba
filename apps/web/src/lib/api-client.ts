@@ -38,6 +38,29 @@ export async function apiRequest<T>(
   } catch {
     throw new ApiError(0, 'network_error', 'Could not reach the server. Check your connection.');
   }
+  return parseResponse<T>(response);
+}
+
+/**
+ * Uploads a file as the raw request body (no multipart parsing on the server). The name and
+ * any other parameters travel in the query string.
+ */
+export async function apiUpload<T>(path: string, file: Blob): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'content-type': 'application/octet-stream' },
+      body: file,
+    });
+  } catch {
+    throw new ApiError(0, 'network_error', 'Could not reach the server. Check your connection.');
+  }
+  return parseResponse<T>(response);
+}
+
+async function parseResponse<T>(response: Response): Promise<T> {
   if (response.status === 204) return undefined as T;
   const text = await response.text();
   let parsed: unknown = null;

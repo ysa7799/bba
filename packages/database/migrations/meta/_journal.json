@@ -211,6 +211,27 @@
       "when": 1791217957873,
       "tag": "0029_reporting_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1791230727288,
+      "tag": "0030_files_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791230729785,
+      "tag": "0031_force_rls_files_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791232796592,
+      "tag": "0032_notifications_retention_index",
+      "breakpoints": true
     }
   ]
 }

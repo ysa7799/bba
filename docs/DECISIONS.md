@@ -421,3 +421,32 @@ read replica) when a report exceeds its latency budget (Phase 26).
 revenue without `commerce.invoice.read`). Each report therefore declares its module read
 permission; the API, the service and the dashboard all apply both. Names inside reports
 follow the record-type read permissions. Restricted members get no reports by default.
+
+## ADR-052 — Files behind a storage port; the API serves every download; quota reserved first
+
+Attachments are stored through a `FileStorage` port (S3-compatible with in-house SigV4, local
+disk for development, memory for tests) instead of a vendor SDK: one small adapter covers AWS,
+R2, MinIO and Wasabi, and nothing else in the codebase knows about buckets. Buckets stay
+private and every download goes through the API, which checks the record's permission each
+time and adds the safety headers (nosniff, attachment disposition, sandbox CSP); presigned
+URLs were rejected for now because a leaked URL would bypass permissions and revocation, and
+volumes are small (≤ 10 MB per file). Uploads send the raw bytes (no multipart parsing) with
+the name in the query string. The type is detected from the bytes against an allow-list and
+the stored name is given a matching extension. The organization's `storage.bytes` quota is
+checked and the row inserted as `pending` inside an advisory lock **before** the object is
+written, so parallel uploads cannot overshoot; the row becomes `ready` after the write, and an
+hourly job removes abandoned `pending` rows and retries object deletions. Revisit presigned
+direct uploads when files larger than 10 MB are needed.
+
+## ADR-053 — Notifications are derived from domain events and re-checked at delivery
+
+Notifications are produced by an outbox subscriber from existing domain events, not by the
+modules themselves, so modules stay unaware of who wants to hear about what. A builder per
+event reads the subject in the event's tenant scope and names the recipients (assignee,
+owner, creator, hosts); each recipient is then re-checked at delivery time — still an active
+member, still holding the type's read permission, not the person who acted — because roles and
+memberships can change between the event and its delivery. Each member chooses in-app and
+email per type (defaults per type). Rows are private to their member (owner-only RLS, not just
+tenant RLS). Redelivery is harmless: one row per (user, type, event) and deterministic email
+job ids. The bell polls the unread count once a minute while visible; push (SSE/WebSocket)
+waits until there is a second real-time feature to share the connection.

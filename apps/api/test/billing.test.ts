@@ -7,7 +7,7 @@ import {
   startSubscription,
   changeSubscriptionPlan,
 } from '@businessos/billing';
-import { subscriptions, withSystem } from '@businessos/database';
+import { plans, subscriptions, withSystem } from '@businessos/database';
 import {
   actorFor,
   addTestMember,
@@ -17,7 +17,7 @@ import {
   uniqueSuffix,
   type TestWorld,
 } from '@businessos/testing';
-import { eq } from 'drizzle-orm';
+import { eq, min } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestContext, loginAs, TEST_PASSWORD, TestClient, type TestContext } from './helpers';
 
@@ -35,12 +35,18 @@ afterAll(async () => {
 
 async function planWith(values: Record<string, unknown>, price?: bigint, isPublic = false) {
   return withSystem(ctx.db.db, async (tx) => {
-    // Private unless the test is about the public catalogue (which then sorts first).
+    // Private unless the test is about the public catalogue. Those sort before every plan
+    // already in the shared test database, whose catalogue page is bounded.
+    let sortOrder = 0;
+    if (isPublic) {
+      const [lowest] = await tx.select({ value: min(plans.sortOrder) }).from(plans);
+      sortOrder = Math.min(lowest?.value ?? 0, 0) - 1;
+    }
     const plan = await createPlan(tx, {
       key: `api-${uniqueSuffix()}`,
       name: `Plan ${uniqueSuffix()}`,
       isPublic,
-      sortOrder: isPublic ? -1_000 : 0,
+      sortOrder,
     });
     const version = await createPlanVersion(tx, plan.id, values);
     if (price !== undefined) {
@@ -263,6 +269,10 @@ describe('plan catalogue', () => {
     expect(listed?.prices).toEqual([
       expect.objectContaining({ amount: '15.000', currency: 'BHD', interval: 'month' }),
     ]);
+    // Leave the shared catalogue as it was.
+    await withSystem(ctx.db.db, (tx) =>
+      tx.update(plans).set({ isPublic: false }).where(eq(plans.id, plan.id)),
+    );
   });
 
   it('requires a session', async () => {

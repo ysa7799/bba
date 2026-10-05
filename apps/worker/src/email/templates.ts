@@ -52,6 +52,10 @@ const TEMPLATES: Record<string, (data: Data) => RenderedEmail> = {
     subject: `Cancelled: ${required(data, 'title')} with ${required(data, 'organization')}`,
     text: `${greeting(data)}Your appointment was cancelled.\n\n${appointmentDetails(data)}`,
   }),
+  notification: (data) => ({
+    subject: `${required(data, 'title')} — ${required(data, 'organization')}`,
+    text: `${greeting(data)}${required(data, 'title')}\n${data.body ? `${data.body}\n` : ''}\nOpen it here: ${required(data, 'link')}\n\nYou can choose which notifications you receive by email in BusinessOS.\n`,
+  }),
   quote_sent: (data) => ({
     subject: `Quote ${required(data, 'number')} from ${required(data, 'organization')}`,
     text: `${greeting(data)}${required(data, 'organization')} sent you quote ${required(data, 'number')} for ${required(data, 'total')}.\n\nView and accept it here: ${required(data, 'link')}\n`,

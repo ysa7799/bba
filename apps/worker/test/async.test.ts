@@ -28,6 +28,7 @@ import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { MemoryFileStorage } from '@businessos/files';
 import { pino } from 'pino';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { FileEmailTransport } from '../src/email/transports';
@@ -151,6 +152,7 @@ beforeAll(async () => {
       },
       calendar: { providers: createCalendarProviders({ fake: true }), secretBox: null },
       automation: { allowPrivateNetwork: false, enqueue: () => Promise.resolve() },
+      files: { db: handle.db, storage: new MemoryFileStorage() },
       appUrl: 'http://localhost:3000',
       registry,
       email: new FileEmailTransport(emailFile),

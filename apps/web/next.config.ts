@@ -12,6 +12,12 @@ const noFraming = [
   { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
 ];
 
+/**
+ * Attachment downloads keep the API's own, stricter policy (`default-src 'none'; sandbox;
+ * frame-ancestors 'none'`); a config header would replace it.
+ */
+const FILE_CONTENT = 'api/app/orgs/[^/]+/files/[^/]+/content';
+
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -20,7 +26,11 @@ const config: NextConfig = {
   headers: () =>
     Promise.resolve([
       { source: '/:path*', headers: securityHeaders },
-      { source: '/((?!f/[^/]+/embed).*)', headers: noFraming },
+      { source: `/((?!f/[^/]+/embed|${FILE_CONTENT}).*)`, headers: noFraming },
+      {
+        source: '/api/app/orgs/:orgId/files/:fileId/content',
+        headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+      },
     ]),
 };
 

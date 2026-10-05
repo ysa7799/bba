@@ -397,6 +397,44 @@ Reports and their module permission: `sales_pipeline` (`crm.deal.read`), `revenu
 (`forms.submission.read`), `automation` (`automation.workflow.read`). Rate limited per user
 (`reportRunUser`, `reportExportUser`).
 
+### Files (Phase 16)
+
+All under `/app/orgs/:orgId/files`. Attachments on contacts, companies and deals. Access
+follows the record: listing and downloading need the record's read permission
+(`crm.contact.read`, `crm.company.read`, `crm.deal.read`), uploading and deleting its update
+permission. Records and files of another organization answer 404.
+
+| Method | Path                         | Permission    | Notes                                                                                                                                                                                                                                                                |
+| ------ | ---------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/?entityType&entityId`      | record read   | `{data: [file]}`, newest first (≤ 100)                                                                                                                                                                                                                               |
+| POST   | `/?entityType&entityId&name` | record update | the body **is** the file (`Content-Type: application/octet-stream`, ≤ 10 MB) → 201 `{file}`; type detected from the bytes; 400 empty or disallowed type, 413 too large, 402 storage quota (`storage.bytes`); rate limited `fileUploadUser`; audited `files.uploaded` |
+| GET    | `/:id/content` `[?inline=1]` | record read   | the bytes with `Content-Disposition` (exact UTF-8 name), `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; sandbox; frame-ancestors 'none'`; `inline=1` is honoured for images only                                                   |
+| DELETE | `/:id`                       | record update | 204; audited `files.deleted`; the stored object is removed at once or by the worker's retry                                                                                                                                                                          |
+
+`file`: `{id, name, contentType, sizeBytes, entityType, entityId, uploadedBy: {id, name} | null,
+inline, createdAt}`; `sizeBytes` is a decimal string. Allowed types: PNG, JPEG, GIF, WebP, PDF,
+UTF-8 text and CSV, DOCX, XLSX, PPTX. The stored name always ends with an extension of the
+detected type. The billing entitlements response reports `storage.bytes` usage.
+
+### Notifications (Phase 16)
+
+All under `/app/orgs/:orgId/notifications`. Any member; each member only ever reaches their own
+notifications and preferences (others' answer 404).
+
+| Method | Path            | Notes                                                                                               |
+| ------ | --------------- | --------------------------------------------------------------------------------------------------- |
+| GET    | `/`             | `?unread=true&cursor&limit` (≤ 50) → `{data: [notification], nextCursor, unread}`, newest first     |
+| GET    | `/unread-count` | `{unread}`                                                                                          |
+| POST   | `/:id/read`     | `{notification}` (idempotent)                                                                       |
+| POST   | `/read-all`     | `{updated}`                                                                                         |
+| GET    | `/preferences`  | `{preferences: [{type, inApp, email}]}` for the types this member can receive                       |
+| PUT    | `/preferences`  | `{preferences: [{type, inApp, email}]}` → the updated list; 400 for types the member cannot receive |
+
+`notification`: `{id, type, title, body, link, readAt, createdAt}`; `link` is an in-app path
+inside the same organization. Types: `task.assigned`, `conversation.assigned`, `deal.won`,
+`appointment.booked`, `quote.accepted`, `quote.declined`, `invoice.paid`, `invoice.overdue`,
+`workflow.failed`.
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

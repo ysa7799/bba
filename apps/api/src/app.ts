@@ -15,6 +15,7 @@ import {
   type CommerceProviderDefinition,
   type CommerceServices,
 } from '@businessos/commerce';
+import { createFileStorage, type FileServices, type FileStorage } from '@businessos/files';
 import { captchaFromEnv, type CaptchaVerifier } from '@businessos/forms';
 import type { JobQueue } from '@businessos/jobs';
 import {
@@ -43,6 +44,7 @@ import {
 import { commerceRoutes } from './modules/commerce/routes';
 import { publicBookingRoutes } from './modules/calendar/public-routes';
 import { crmRoutes } from './modules/crm/routes';
+import { fileRoutes } from './modules/files/routes';
 import { publicFormRoutes } from './modules/forms/public-routes';
 import { reportRoutes } from './modules/reports/routes';
 import { RenderTokenStore } from './modules/forms/render-tokens';
@@ -55,6 +57,7 @@ import {
 import { healthRoutes } from './modules/health/routes';
 import { invitationRoutes } from './modules/invitations/routes';
 import { meRoutes } from './modules/me/routes';
+import { notificationRoutes } from './modules/notifications/routes';
 import { organizationRoutes } from './modules/organizations/routes';
 import {
   devPaymentRoutes,
@@ -78,6 +81,8 @@ export interface AppDependencies {
   authConfig: AuthConfig;
   /** Payment providers (defaults to the configured ones; tests inject controllable fakes). */
   paymentProviders?: PaymentProviderRegistry;
+  /** Object storage for uploads (defaults to FILES_STORAGE; tests inject memory storage). */
+  fileStorage?: FileStorage;
   /** Providers organizations can connect for invoice payments (tests inject a fake). */
   commerceProviders?: ReadonlyMap<string, CommerceProviderDefinition>;
   /** Messaging channel providers (defaults to the configured ones; tests inject fakes). */
@@ -106,6 +111,7 @@ declare module 'fastify' {
     forms: { captcha: CaptchaVerifier | null; renderTokens: RenderTokenStore };
     automation: AutomationServices;
     commerce: CommerceServices;
+    files: FileServices;
   }
 }
 
@@ -211,6 +217,23 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     appUrl: new URL(env.APP_URL).origin,
     logger: app.log,
   } satisfies CommerceServices);
+  app.decorate('files', {
+    db: deps.db.db,
+    storage:
+      deps.fileStorage ??
+      createFileStorage({
+        driver: env.FILES_STORAGE,
+        localDir: env.FILES_LOCAL_DIR,
+        s3: {
+          endpoint: env.S3_ENDPOINT,
+          region: env.S3_REGION,
+          bucket: env.S3_BUCKET,
+          accessKeyId: env.S3_ACCESS_KEY_ID,
+          secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+        },
+      }),
+    logger: app.log,
+  } satisfies FileServices);
   app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
@@ -252,6 +275,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(automationWebhookRoutes, { prefix: '/webhooks/automation' });
   await app.register(commerceRoutes, { prefix: '/app/orgs/:orgId/commerce' });
   await app.register(reportRoutes, { prefix: '/app/orgs/:orgId/reports' });
+  await app.register(fileRoutes, { prefix: '/app/orgs/:orgId/files' });
+  await app.register(notificationRoutes, { prefix: '/app/orgs/:orgId/notifications' });
   await app.register(publicCommerceRoutes, { prefix: '/public/commerce' });
   await app.register(commerceWebhookRoutes, { prefix: '/webhooks/commerce' });
   if (env.NODE_ENV !== 'production' && app.commerce.providers.has('fake')) {

@@ -14,8 +14,11 @@ const QUEUE_PREFIX = `e2e${Date.now()}`;
 const CREDENTIALS_ENCRYPTION_KEYS = `e2e:${randomBytes(32).toString('base64')}`;
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 export const MAIL_FILE = path.join(repoRoot, 'apps/web/test-results/e2e-mail.jsonl');
+// Attachments uploaded during the run (local storage driver; S3 in production).
+const FILES_LOCAL_DIR = path.join(repoRoot, 'apps/web/test-results/e2e-files');
 
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+const utf8Locale = /utf-?8/i.test(process.env.LANG ?? '') ? (process.env.LANG ?? '') : 'C.UTF-8';
 
 export default defineConfig({
   testDir: './e2e',
@@ -33,7 +36,12 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        ...(executablePath ? { launchOptions: { executablePath } } : {}),
+        launchOptions: {
+          ...(executablePath ? { executablePath } : {}),
+          // Chromium names downloads in the system encoding: without a UTF-8 locale (bare CI
+          // containers) a non-Latin file name such as Arabic falls back to "download".
+          env: { ...process.env, LANG: utf8Locale },
+        },
       },
     },
   ],
@@ -63,6 +71,7 @@ export default defineConfig({
         API_PUBLIC_URL: `http://localhost:${API_PORT}`,
         CREDENTIALS_ENCRYPTION_KEYS,
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
+        FILES_LOCAL_DIR,
         PASSWORD_HASH_MEMORY_KIB: '4096',
         PASSWORD_HASH_TIME_COST: '1',
       },
@@ -90,6 +99,7 @@ export default defineConfig({
         APP_URL: `http://localhost:${WEB_PORT}`,
         CREDENTIALS_ENCRYPTION_KEYS,
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
+        FILES_LOCAL_DIR,
       },
     },
     {

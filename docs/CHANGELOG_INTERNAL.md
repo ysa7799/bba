@@ -2,6 +2,26 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 16 — Files + notifications (2026-10-05)
+
+- Schema: `files`, `notifications`, `notification_preferences` (migrations 0030–0032; owner-only
+  RLS for notifications and preferences; retention index).
+- `@businessos/files`: `FileStorage` port (S3 SigV4, local, memory), byte-based type detection
+  with an allow-list, safe names with type-matched extensions, attachments to contacts,
+  companies and deals, `storage.bytes` quota reserved under an organization lock, SHA-256
+  integrity checks, `files.maintenance` job.
+- `@businessos/notifications`: catalogue of nine types, event builders, `notifications`
+  subscriber with delivery re-checks, inbox (list, unread count, mark read/all), channel
+  preferences, `notifications.maintenance` retention job; worker email template
+  `notification`.
+- API: `/app/orgs/:orgId/files` (list, raw upload, download, delete; audited `files.uploaded`,
+  `files.deleted`; rate limit `fileUploadUser`), `/app/orgs/:orgId/notifications`; storage usage
+  in billing entitlements; env `FILES_STORAGE`, `FILES_LOCAL_DIR`, `S3_*`.
+- Web: attachments panel on contact, company and deal pages; notification bell with unread
+  count in the header; notifications page (all/unread, mark read, show more, preferences);
+  file storage on the billing page; the proxy forwards download safety headers and allows
+  10 MB uploads; E2E.
+
 ## Phase 15 — Dashboards + reporting (2026-10-05)
 
 - `@businessos/reporting`: periods in the organization time zone (day / ISO week / month,

@@ -64,10 +64,18 @@ describe('API environment validation', () => {
       APP_URL: 'https://app.example.com',
       CORS_ORIGINS: 'https://app.example.com',
       API_PUBLIC_URL: 'https://api.example.com',
+      FILES_STORAGE: 's3',
+      S3_BUCKET: 'bos-files',
     };
     expect(() => loadApiEnv(secure)).toThrow(/CREDENTIALS_ENCRYPTION_KEYS/);
     const keys = `k1:${Buffer.alloc(32, 3).toString('base64')}`;
     expect(() => loadApiEnv({ ...secure, CREDENTIALS_ENCRYPTION_KEYS: keys })).not.toThrow();
+    expect(() =>
+      loadApiEnv({ ...secure, CREDENTIALS_ENCRYPTION_KEYS: keys, FILES_STORAGE: 'local' }),
+    ).toThrow(/FILES_STORAGE/);
+    expect(() =>
+      loadApiEnv({ ...secure, CREDENTIALS_ENCRYPTION_KEYS: keys, S3_BUCKET: undefined }),
+    ).toThrow(/S3_BUCKET/);
     expect(() =>
       loadApiEnv({
         ...secure,

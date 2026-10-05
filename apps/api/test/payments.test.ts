@@ -249,6 +249,8 @@ describe('payment configuration safety', () => {
     CORS_ORIGINS: 'https://app.example.com',
     API_PUBLIC_URL: 'https://api.example.com',
     CREDENTIALS_ENCRYPTION_KEYS: `k1:${Buffer.alloc(32, 7).toString('base64')}`,
+    FILES_STORAGE: 's3',
+    S3_BUCKET: 'businessos-files',
   };
 
   it('refuses the fake provider and a keyless Tap setup in production', () => {

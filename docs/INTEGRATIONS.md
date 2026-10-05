@@ -17,7 +17,7 @@
 | ------------------ | ----- | ----------------------------------------------------------------------- | ---------------------- |
 | `PaymentProvider`  | 7     | Tap Payments, Fake (implemented)                                        | CONFIGURATION_REQUIRED |
 | `ChannelProvider`  | 10    | Postmark (email), WhatsApp Cloud API, Twilio (SMS), Fakes (implemented) | CONFIGURATION_REQUIRED |
-| `StorageProvider`  | 16    | S3-compatible, local FS (dev)                                           | CONFIGURATION_REQUIRED |
+| `FileStorage`      | 16    | S3-compatible (SigV4), local disk (dev), Memory (tests) (implemented)   | CONFIGURATION_REQUIRED |
 | `CalendarProvider` | 11/18 | Google Calendar, Microsoft 365, Fake (implemented)                      | CONFIGURATION_REQUIRED |
 | `AIProvider`       | 20    | Anthropic-compatible, Fake                                              | CONFIGURATION_REQUIRED |
 | `CaptchaVerifier`  | 12    | Cloudflare Turnstile, Fake (implemented)                                | CONFIGURATION_REQUIRED |
@@ -149,6 +149,24 @@ Setup: create a Turnstile widget for the web app's domain, then set `TURNSTILE_S
 **CONFIGURATION_REQUIRED**: the builder shows it as unavailable and forms cannot require it;
 every form still has rate limits, render tokens, a minimum fill time and a honeypot.
 `FORMS_FAKE_CAPTCHA=true` (development/tests, refused in production) accepts the token `pass`.
+
+## File storage (Phase 16)
+
+`FileStorage` (`packages/files`) has three adapters: `S3FileStorage` for any S3-compatible
+store (AWS S3, Cloudflare R2, MinIO, Wasabi…) with dependency-free SigV4 request signing
+(verified against AWS's published example), `LocalFileStorage` for development (refused in
+production) and `MemoryFileStorage` for tests. Without a bucket and keys the S3 adapter reports
+`CONFIGURATION_REQUIRED` and uploads fail with a provider error instead of pretending to work.
+
+### Setup
+
+1. Create a private bucket (no public access; BusinessOS serves every download itself) in the
+   region closest to your users (e.g. `me-south-1` Bahrain).
+2. Create an access key limited to `s3:PutObject`, `s3:GetObject` and `s3:DeleteObject` on
+   that bucket.
+3. Set `FILES_STORAGE=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`,
+   `S3_SECRET_ACCESS_KEY` (and `S3_ENDPOINT` for non-AWS providers) on the API **and** the
+   worker. The keys stay server-side.
 
 ## Connection state machine (Phase 18)
 

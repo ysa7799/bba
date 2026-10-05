@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { NavLink } from '@/components/app/nav-link';
 import { OrgSwitcher } from '@/components/app/org-switcher';
 import { SignOutButton } from '@/components/app/sign-out-button';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { getMessages } from '@/i18n';
 import { getMe } from '@/lib/server-api';
 
@@ -80,6 +81,7 @@ export default async function OrganizationLayout({
       </aside>
       <div className="min-w-0 md:flex-1 md:ps-60 print:ps-0">
         <header className="flex h-14 items-center justify-end gap-4 border-b border-slate-200 bg-white px-4 sm:px-6 print:hidden">
+          <NotificationBell orgId={orgId} />
           <span className="truncate text-sm text-slate-700">{me.user.name}</span>
           <SignOutButton />
         </header>

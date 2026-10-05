@@ -2,6 +2,8 @@ import type { AutomationServices } from '@businessos/automation';
 import { createCalendarProviders } from '@businessos/calendar';
 import { createChannelProviders } from '@businessos/communications';
 import { createDatabase } from '@businessos/database';
+import { createFileStorage } from '@businessos/files';
+import type { NotificationServices } from '@businessos/notifications';
 import { SecretBox } from '@businessos/shared';
 import { BullJobQueue } from '@businessos/jobs';
 import { createEmailTransport } from './email/transports';
@@ -35,7 +37,32 @@ function main(): void {
         ...(options.correlationId ? { correlationId: options.correlationId } : {}),
       }),
   };
-  const registry = createSubscriberRegistry(db.db, automation);
+  const notifications: NotificationServices = {
+    db: db.db,
+    appUrl: env.APP_URL,
+    enqueueEmail: (payload, jobId, correlationId) =>
+      queue.enqueue(
+        'email.send',
+        { template: 'notification', to: payload.to, locale: 'en', data: payload.data },
+        { jobId, ...(correlationId ? { correlationId } : {}) },
+      ),
+  };
+  const registry = createSubscriberRegistry(db.db, automation, notifications);
+  const files = {
+    db: db.db,
+    storage: createFileStorage({
+      driver: env.FILES_STORAGE,
+      localDir: env.FILES_LOCAL_DIR,
+      s3: {
+        endpoint: env.S3_ENDPOINT,
+        region: env.S3_REGION,
+        bucket: env.S3_BUCKET,
+        accessKeyId: env.S3_ACCESS_KEY_ID,
+        secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+      },
+    }),
+    logger,
+  };
   const secretBox = env.CREDENTIALS_ENCRYPTION_KEYS
     ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
     : null;
@@ -56,6 +83,7 @@ function main(): void {
         secretBox,
       },
       automation,
+      files,
       appUrl: env.APP_URL,
       registry,
       email: createEmailTransport(env, logger),
@@ -81,6 +109,18 @@ function main(): void {
     .schedule('calendar-reminders', 'calendar.reminders', {}, 5 * 60_000)
     .catch((error: unknown) => {
       logger.error({ err: error }, 'could not schedule appointment reminders');
+    });
+  // Hourly: abandoned uploads and deferred deletions of stored files.
+  queue
+    .schedule('files-maintenance', 'files.maintenance', {}, 3_600_000)
+    .catch((error: unknown) => {
+      logger.error({ err: error }, 'could not schedule file maintenance');
+    });
+  // Hourly: notifications past their retention period.
+  queue
+    .schedule('notifications-maintenance', 'notifications.maintenance', {}, 3_600_000)
+    .catch((error: unknown) => {
+      logger.error({ err: error }, 'could not schedule notification maintenance');
     });
   // Hourly: overdue invoices (invoice.overdue events) and expired quotes.
   queue

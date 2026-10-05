@@ -290,6 +290,8 @@ describe('automation configuration and logging', () => {
         API_PUBLIC_URL: 'https://api.example.com',
         CORS_ORIGINS: 'https://app.example.com',
         CREDENTIALS_ENCRYPTION_KEYS: `k1:${Buffer.alloc(32, 1).toString('base64')}`,
+        FILES_STORAGE: 's3',
+        S3_BUCKET: 'businessos-files',
         AUTOMATION_ALLOW_PRIVATE_NETWORK: 'true',
       }),
     ).toThrow(/AUTOMATION_ALLOW_PRIVATE_NETWORK/);

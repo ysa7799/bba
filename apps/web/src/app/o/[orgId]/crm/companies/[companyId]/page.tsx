@@ -7,6 +7,7 @@ import { CustomFieldValues } from '@/components/crm/custom-field-inputs';
 import { DeleteRecordButton } from '@/components/crm/delete-record-button';
 import { DetailList, Section } from '@/components/crm/detail';
 import { NotesPanel } from '@/components/crm/notes-panel';
+import { AttachmentsPanel } from '@/components/files/attachments-panel';
 import { TagList } from '@/components/crm/tag-badge';
 import { TimelinePanel } from '@/components/crm/timeline-panel';
 import { NewTaskButton, TaskList } from '@/components/crm/task-list';
@@ -22,6 +23,7 @@ import type {
   NoteSummary,
   TaskSummary,
 } from '@/lib/crm-types';
+import type { FileSummary } from '@/lib/files-types';
 import { formatDate, formatMoney } from '@/lib/format';
 import { getOrgAccess } from '@/lib/org-data';
 import { getMe, serverGetJson } from '@/lib/server-api';
@@ -39,7 +41,7 @@ export default async function CompanyPage({
   const can = (permission: string) => access.permissions.includes(permission);
   if (!can('crm.company.read')) return <CrmForbidden title={m.crm.companies.title} />;
   const base = `/app/orgs/${orgId}/crm`;
-  const [company, notes, contacts, deals, tasks, options, timeline] = await Promise.all([
+  const [company, notes, contacts, deals, tasks, options, timeline, files] = await Promise.all([
     serverGetJson<{ company: CompanySummary }>(`${base}/companies/${companyId}`),
     serverGetJson<Page<NoteSummary>>(`${base}/companies/${companyId}/notes?limit=50`),
     can('crm.contact.read')
@@ -56,6 +58,9 @@ export default async function CompanyPage({
     crmFormOptions(orgId, 'company'),
     serverGetJson<{ data: ActivitySummary[]; nextCursor: string | null }>(
       `${base}/companies/${companyId}/timeline?limit=25`,
+    ),
+    serverGetJson<{ data: FileSummary[] }>(
+      `/app/orgs/${orgId}/files?entityType=company&entityId=${companyId}`,
     ),
   ]);
   if (!company) notFound();
@@ -192,6 +197,11 @@ export default async function CompanyPage({
             parentPath={`companies/${c.id}`}
             notes={notes?.data ?? []}
             currentUserId={me.user.id}
+          />
+          <AttachmentsPanel
+            entity={{ type: 'company', id: c.id }}
+            files={files?.data ?? []}
+            timezone={timezone}
           />
           {tasks ? (
             <Section

@@ -55,6 +55,8 @@ describe('worker production configuration', () => {
     REDIS_URL: 'redis://redis:6379',
     API_PUBLIC_URL: 'https://api.example.com',
     APP_URL: 'https://app.example.com',
+    FILES_STORAGE: 's3',
+    S3_BUCKET: 'bos-files',
   };
 
   it('requires a real email provider and credential encryption keys', () => {
@@ -80,6 +82,16 @@ describe('worker production configuration', () => {
         CREDENTIALS_ENCRYPTION_KEYS: `k1:${key}`,
       }).EMAIL_TRANSPORT,
     ).toBe('postmark');
+    expect(() =>
+      loadWorkerEnv({
+        ...base,
+        EMAIL_TRANSPORT: 'postmark',
+        POSTMARK_SERVER_TOKEN: 'server-token-123',
+        EMAIL_FROM: 'no-reply@example.com',
+        CREDENTIALS_ENCRYPTION_KEYS: `k1:${key}`,
+        FILES_STORAGE: 'local',
+      }),
+    ).toThrow(/FILES_STORAGE/);
     const secure = {
       ...base,
       EMAIL_TRANSPORT: 'postmark',
@@ -155,5 +167,29 @@ describe('commerce email templates', () => {
     });
     expect(quote.text).toMatch(/^Hello,/);
     expect(() => renderEmail('invoice_sent', { organization: 'X' })).toThrow();
+  });
+});
+
+describe('notification email template', () => {
+  it('renders the notification with its link and an optional body', () => {
+    const email = renderEmail('notification', {
+      organization: 'Juffair Fitness',
+      name: 'Fatima',
+      title: 'Invoice INV-000042 paid',
+      body: 'BHD 36.664',
+      link: 'https://app.example.com/o/org/commerce/invoices/1',
+    });
+    expect(email.subject).toBe('Invoice INV-000042 paid — Juffair Fitness');
+    expect(email.text).toContain('BHD 36.664');
+    expect(email.text).toContain('Open it here: https://app.example.com/o/org/commerce/invoices/1');
+    const bare = renderEmail('notification', {
+      organization: 'Juffair Fitness',
+      name: null,
+      title: 'Task assigned to you: Call back',
+      body: null,
+      link: 'https://app.example.com/o/org/crm/tasks',
+    });
+    expect(bare.text).not.toContain('null');
+    expect(() => renderEmail('notification', { organization: 'X', title: 'Y' })).toThrow();
   });
 });

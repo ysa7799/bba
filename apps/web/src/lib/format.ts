@@ -58,3 +58,18 @@ export function humanize(value: string): string {
   const text = value.replace(/_/g, ' ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+
+const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
+
+/** Human-readable size in binary units (1 KB = 1024 bytes), e.g. `2.4 MB`. */
+export function formatBytes(bytes: number | string): string {
+  let value = Number(bytes);
+  if (!Number.isFinite(value) || value < 0) return '—';
+  let unit = 0;
+  while (value >= 1024 && unit < BYTE_UNITS.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  const digits = unit === 0 || value >= 10 ? 0 : 1;
+  return `${new Intl.NumberFormat('en', { maximumFractionDigits: digits }).format(value)} ${BYTE_UNITS[unit]}`;
+}

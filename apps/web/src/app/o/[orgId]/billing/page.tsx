@@ -11,6 +11,7 @@ import type {
   PaymentsConfig,
   SubscriptionResponse,
 } from '@/lib/api-types';
+import { formatBytes } from '@/lib/format';
 import { getOrgAccess } from '@/lib/org-data';
 import { serverGetJson } from '@/lib/server-api';
 
@@ -24,7 +25,11 @@ const LIMIT_LABELS: Record<string, string> = {
   'sms.monthly_limit': 'SMS / month',
   'whatsapp.monthly_limit': 'WhatsApp messages / month',
   'ai.monthly_credits': 'AI credits / month',
+  'storage.bytes': 'File storage',
 };
+
+/** Limits measured in bytes rather than counts. */
+const BYTE_LIMITS = new Set(['storage.bytes']);
 
 const FEATURE_LABELS: Record<string, string> = {
   'projects.enabled': 'Projects',
@@ -35,9 +40,17 @@ const FEATURE_LABELS: Record<string, string> = {
   'custom_domain.enabled': 'Custom domain',
 };
 
-function formatLimit(value: boolean | number | null | undefined, unlimited: string): string {
+function formatQuantity(key: string, value: number): string {
+  return BYTE_LIMITS.has(key) ? formatBytes(value) : new Intl.NumberFormat('en').format(value);
+}
+
+function formatLimit(
+  key: string,
+  value: boolean | number | null | undefined,
+  unlimited: string,
+): string {
   if (value === null) return unlimited;
-  return typeof value === 'number' ? new Intl.NumberFormat('en').format(value) : '—';
+  return typeof value === 'number' ? formatQuantity(key, value) : '—';
 }
 
 export default async function BillingPage({ params }: { params: Promise<{ orgId: string }> }) {
@@ -94,8 +107,8 @@ export default async function BillingPage({ params }: { params: Promise<{ orgId:
                 <div key={key} className="rounded-md border border-slate-200 p-3">
                   <dt className="text-xs text-slate-500">{label}</dt>
                   <dd className="mt-1 text-sm font-medium text-slate-900">
-                    {used !== undefined ? `${new Intl.NumberFormat('en').format(used)} / ` : ''}
-                    {formatLimit(limit, m.app.billing.unlimited)}
+                    {used !== undefined ? `${formatQuantity(key, used)} / ` : ''}
+                    {formatLimit(key, limit, m.app.billing.unlimited)}
                   </dd>
                   {pct !== null ? (
                     <div

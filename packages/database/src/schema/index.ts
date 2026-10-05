@@ -13,3 +13,4 @@ export * from './calendar';
 export * from './forms';
 export * from './automation';
 export * from './commerce';
+export * from './files';

@@ -51,6 +51,8 @@ export const DEFAULT_RATE_LIMITS = {
   /** Reports and dashboards (bounded aggregate queries) and their CSV downloads, per user. */
   reportRunUser: { limit: 300, windowSeconds: 600 },
   reportExportUser: { limit: 30, windowSeconds: 3600 },
+  /** File uploads per user. */
+  fileUploadUser: { limit: 120, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

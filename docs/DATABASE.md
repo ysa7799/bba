@@ -126,6 +126,9 @@ Populated as phases land. See the schema files for the source of truth.
 | `commerce_checkouts`                                                   | tenant; online payment attempts (unique payment)                                                                                   | 14    | kept; payment and invoice NO ACTION                                                         |
 | `commerce_invoice_payments`                                            | tenant; online (verified payment, unique) or manual; refunded ≤ amount                                                             | 14    | kept (financial record)                                                                     |
 | `commerce_refunds`                                                     | tenant; pending/succeeded/failed, provider refund id                                                                               | 14    | kept (financial record)                                                                     |
+| `files`                                                                | tenant; pending/ready/deleted, size, SHA-256, unique storage key; attached record (contact, company or deal)                       | 16    | soft delete, object purged by the worker; cascade with organization; uploader set null      |
+| `notifications`                                                        | **owner only** (organization + user); unique per (user, type, source event); in-app link must start with `/o/<id>/`                | 16    | read ones kept 90 days, unread one year (worker); cascade with organization and user        |
+| `notification_preferences`                                             | **owner only**; one row per (organization, user, type): in-app and email switches                                                  | 16    | cascade with organization and user                                                          |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.
@@ -147,6 +150,12 @@ tstzrange(starts_at, ends_at, '[)') WITH &&)`. Needs the `btree_gist` extension 
 closed_at|completed_at|issue_date)` on deals, tasks and invoices. Built with plain
   `CREATE INDEX` because no production data exists yet; once it does, new indexes on large
   tables go in their own `CREATE INDEX CONCURRENTLY` migration.
+- Files and notifications (migrations 0030–0032): `files_status_check`, `files_name_check`
+  (1–200 characters) and a record-type check; `notifications` and `notification_preferences`
+  use the policy `app_is_system() OR (organization_id = app_current_org() AND user_id =
+app_current_user())` — a member's notifications are invisible to other members of the same
+  organization, not just to other tenants (FORCE RLS like every tenant table).
+  `notifications_created_idx` serves the retention sweep.
 - A transaction is one connection: never run queries concurrently on it (`Promise.all` over
   `tx` queries); `pg` serializes them anyway and will reject it in its next major version.
 

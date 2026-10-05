@@ -54,6 +54,11 @@ is best-effort; consumers must tolerate out-of-order events.
 
 Subscribers: `timeline` (Phase 9) projects CRM events into `activities` inside the event's
 tenant transaction; the unique `source_event_id` makes at-least-once delivery exactly-once.
+`notifications` (Phase 16) turns `task.created` (with an assignee), `conversation.assigned`,
+`deal.won`, `appointment.booked`, `quote.accepted/declined`, `invoice.paid/overdue` and
+`workflow.failed` into member notifications. It re-checks every recipient at delivery (active
+membership, the type's read permission, not the actor, their channel choices); the unique
+(user, type, event) row and deterministic email job ids make redelivery harmless.
 
 Who emits: domain services emit inside their transactions (organizations, invitations). Audit
 records are written by the API layer (or auth services) in the same transaction, because they

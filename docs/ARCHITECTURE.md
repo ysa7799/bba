@@ -54,6 +54,10 @@ packages/
                search, CSV import/export, timeline projectors
   activities/  customer timeline: type registry, recording, permission-gated reads,
                event projection subscriber
+  files/       file storage port (S3 SigV4, local, memory), type sniffing, attachments with
+               quota reservation, maintenance
+  notifications/ notification catalogue, event subscriber with delivery re-checks, member
+               inbox and channel preferences, retention
   testing/     dev-only fixtures (two-tenant world), Vitest global setup
   …            further packages are added only when code needs them (see ROADMAP)
 ```
