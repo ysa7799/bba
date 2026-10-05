@@ -35,7 +35,8 @@ beforeAll(async () => {
       });
     },
   });
-  await ctx.redis.flushdb();
+  // No FLUSHDB: test files share one Redis database and run in parallel. Every test context
+  // has its own REDIS_KEY_PREFIX, so counters never carry over between runs or files.
 });
 
 afterAll(async () => {

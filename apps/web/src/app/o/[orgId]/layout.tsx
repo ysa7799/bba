@@ -35,6 +35,18 @@ export default async function OrganizationLayout({
           <OrgSwitcher organizations={me.organizations} currentId={orgId} />
           <nav aria-label="Main" className="flex gap-1 overflow-x-auto md:flex-col">
             <NavLink href={base} label={m.app.nav.overview} exact />
+            <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
+              {m.app.nav.crmSection}
+            </p>
+            <NavLink href={`${base}/crm/contacts`} label={m.app.nav.contacts} />
+            <NavLink href={`${base}/crm/companies`} label={m.app.nav.companies} />
+            <NavLink href={`${base}/crm/deals`} label={m.app.nav.deals} />
+            <NavLink href={`${base}/crm/tasks`} label={m.app.nav.tasks} />
+            <NavLink href={`${base}/crm/data`} label={m.app.nav.importExport} />
+            <NavLink href={`${base}/crm/settings`} label={m.app.nav.crmSettings} />
+            <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
+              {m.app.nav.adminSection}
+            </p>
             <NavLink href={`${base}/members`} label={m.app.nav.members} />
             <NavLink href={`${base}/roles`} label={m.app.nav.roles} />
             <NavLink href={`${base}/settings`} label={m.app.nav.settings} />

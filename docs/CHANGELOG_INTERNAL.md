@@ -2,6 +2,23 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 8 — CRM (2026-10-05)
+
+- Schema: `crm_contacts`, `crm_companies`, `crm_contact_companies`, `crm_pipelines`,
+  `crm_pipeline_stages`, `crm_deals`, `crm_tasks`, `crm_notes`, `crm_tags`,
+  `crm_contact_tags`, `crm_company_tags`, `crm_deal_tags`, `crm_custom_fields`,
+  `crm_imports`, `crm_import_rows`, `crm_exports` (migrations 0015–0016).
+- `@businessos/crm`: services for every CRM record type, custom fields, tags, search, keyset
+  listing, CSV parser/writer, imports, exports, global CRM search, maintenance.
+- Permissions `crm.*` (21), events (`contact.*`, `company.*`, `deal.*`, `task.*`), audit
+  actions `crm.*`, `data` job queue with `crm.import`, `crm.export`, `crm.maintenance`.
+- API: `/app/orgs/:orgId/crm/*` (contacts, companies, deals, board, pipelines/stages, tasks,
+  notes, tags, custom fields, assignees, search, bulk, imports, exports).
+- Web: CRM navigation and pages, CRM components, proxy body limit raised only for CSV uploads,
+  `useMutation` can skip the refresh when navigating away.
+- Tooling: Turborepo `globalDependencies` include package sources; web unit tests stub
+  `server-only`; `*.rdb` ignored.
+
 ## Phase 7 — Payments (2026-10-05)
 
 - Schema: `payments`, `checkout_sessions`, `payment_webhook_events` (tenant read-only / system).

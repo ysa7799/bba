@@ -236,10 +236,10 @@ export async function contactFilterConditions(
     isNull(crmContacts.deletedAt),
   ];
   if (query.q) {
-    const search = searchCondition(crmContacts.searchVector, query.q, [
-      crmContacts.phone,
-      crmContacts.whatsappPhone,
-    ]);
+    const search = searchCondition(crmContacts.searchVector, query.q, {
+      phones: [crmContacts.phone, crmContacts.whatsappPhone],
+      prefixes: [crmContacts.email],
+    });
     if (search) conditions.push(search);
   }
   if (query.ownerUserId === 'none') conditions.push(isNull(crmContacts.ownerUserId));

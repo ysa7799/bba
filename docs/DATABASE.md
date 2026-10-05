@@ -23,11 +23,13 @@ against `businessos_test` as the runtime role, so RLS is exercised in every test
   plus an index leading with `organization_id`.
 - Tenant-scoped uniqueness: `unique (organization_id, …)`; case-insensitive emails use
   `lower(email)` expression indexes.
-- Every FK states `ON DELETE` explicitly (`cascade`, `restrict` or `set null`).
+- Every FK states `ON DELETE` explicitly (`cascade`, `restrict` or `set null`), except links
+  between soft-deleted CRM records, which use `NO ACTION` on purpose (ADR-027).
 - Enumerations: `text` + `CHECK` constraint (easier to evolve than PG enums).
 - Money: `<name>_minor bigint` + `currency char(3)`; never `float`/`real`.
 - JSON: `jsonb` only for genuinely schemaless data (metadata, provider payloads); never for
-  fields that need filtering/reporting.
+  fields that need filtering/reporting — tenant-defined custom field values are the documented
+  exception (ADR-028).
 
 ## Row-level security
 
@@ -86,6 +88,13 @@ Populated as phases land. See the schema files for the source of truth.
 | `payments`                                              | tenant read-only (write: system)                                            | 7     | organization RESTRICT (financial record)                                |
 | `checkout_sessions`                                     | tenant read-only (write: system)                                            | 7     | cascade with organization; payment RESTRICT                             |
 | `payment_webhook_events`                                | system only                                                                 | 7     | organization set null                                                   |
+| `crm_contacts`, `crm_companies`, `crm_deals`            | tenant; soft delete; generated `search_vector`                              | 8     | cascade with organization; links NO ACTION (ADR-027)                    |
+| `crm_contact_companies`, `crm_*_tags`                   | tenant (composite same-tenant FKs)                                          | 8     | cascade with either side                                                |
+| `crm_pipelines`, `crm_pipeline_stages`                  | tenant; stages unique per `(id, pipeline_id)` for deal FK                   | 8     | archive pipelines; stages deleted only when empty                       |
+| `crm_tasks`, `crm_notes`                                | tenant; soft delete; notes have exactly one parent                          | 8     | cascade with organization (notes cascade with parent)                   |
+| `crm_tags`, `crm_custom_fields`                         | tenant                                                                      | 8     | cascade with organization                                               |
+| `crm_imports`, `crm_import_rows`                        | tenant                                                                      | 8     | staging rows purged 30 days after completion                            |
+| `crm_exports`                                           | tenant; content readable only by the creator via the API                    | 8     | file content cleared at expiry (24 h)                                   |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.

@@ -44,12 +44,49 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 | `settings.roles.manage`   | settings     | ✓     | ✓     |         |        |            |
 | `settings.billing.manage` | settings     | ✓     | ✓     |         |        |            |
 | `audit.read`              | settings     | ✓     | ✓     |         |        |            |
+| `crm.contact.read`        | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.contact.create`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.contact.update`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.contact.delete`      | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.company.read`        | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.company.create`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.company.update`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.company.delete`      | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.deal.read`           | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.deal.create`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.deal.update`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.deal.delete`         | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.pipeline.manage`     | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.task.read`           | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.task.manage`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.note.create`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.note.manage`         | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.tag.manage`          | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.custom_field.manage` | crm          | ✓     | ✓     |         |        |            |
+| `crm.data.import`         | crm          | ✓     | ✓     | ✓       |        |            |
+| `crm.data.export`         | crm          | ✓     | ✓     | ✓       |        |            |
 
 Every member may read the organization profile, members, roles and the permission catalogue.
 
+CRM specifics:
+
+- Applying existing tags is part of editing a record; creating/renaming/deleting tags needs
+  `crm.tag.manage`. CSV import may create missing tags and companies on the importer's behalf.
+- Notes: authors edit/delete their own notes with `crm.note.create`; `crm.note.manage` covers
+  everyone's. Reading or writing a note also requires read access to its parent record.
+- Linking a record to another (deal → contact, task → deal, contact → company) requires read
+  access to the linked record type. Names of linked records the caller cannot read are
+  withheld in responses.
+- Import requires `crm.data.import` plus create and update on the imported record type.
+  Export requires `crm.data.export` plus read on the exported type, re-checked at download;
+  exports are downloadable only by the member who requested them.
+- Adding CRM permissions made the `member` and `restricted` system roles broader, so a
+  delegated member manager without CRM permissions can no longer invite as `member` (the
+  subset rule applies to invitations too).
+
 ## Planned additions (by phase)
 
-`crm.*` (8), `communications.*` (10),
+`communications.*` (10),
 `calendar.*` (11), `forms.*` (12), `automation.workflow.*` (13), `commerce.*` (14),
 `reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

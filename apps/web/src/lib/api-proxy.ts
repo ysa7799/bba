@@ -22,6 +22,16 @@ const FORWARDED_RESPONSE_HEADERS = [
 ] as const;
 
 export const MAX_PROXY_BODY_BYTES = 2 * 1024 * 1024;
+/** CSV import uploads (5 MB of CSV, JSON-encoded); the API enforces the real limit. */
+export const MAX_IMPORT_PROXY_BODY_BYTES = 12 * 1024 * 1024;
+const IMPORT_UPLOAD_PATH = /^app\/orgs\/[0-9a-f-]{36}\/crm\/imports$/;
+
+/** Request body limit for a proxied path (only the CSV import upload gets a larger one). */
+export function maxBodyBytesFor(method: string, path: readonly string[]): number {
+  return method === 'POST' && IMPORT_UPLOAD_PATH.test(path.join('/'))
+    ? MAX_IMPORT_PROXY_BODY_BYTES
+    : MAX_PROXY_BODY_BYTES;
+}
 
 export function apiInternalUrl(): string {
   return process.env.API_INTERNAL_URL ?? 'http://localhost:4000';

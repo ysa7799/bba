@@ -17,7 +17,12 @@
 - **Organization B** with Owner, Admin
 
 Each test file creates its own world with unique emails/slugs, so files run in parallel without
-truncation. Tests connect as the runtime DB role so RLS is always active.
+truncation. Tests connect as the runtime DB role so RLS is always active. Never flush or
+truncate shared stores (Postgres, Redis) from a test: files run in parallel. API test contexts
+get a unique Redis key prefix.
+
+Turborepo caches test/lint/typecheck results keyed on package sources (ADR-031); for a gate
+run before a checkpoint use `pnpm exec turbo run lint typecheck test build --force`.
 
 ## Tenant-isolation suite (required per tenant resource)
 

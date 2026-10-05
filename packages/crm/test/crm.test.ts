@@ -305,6 +305,16 @@ describe('contacts', () => {
       listContacts(tx, ctx, { limit: 10, sort: 'created_desc', q: '3655 12' }),
     );
     expect(byPhone.data.some((c) => c.phone === '+97336551234')).toBe(true);
+    const byPartialEmail = await inOrg(A(), aOwner(), async (tx, ctx) => {
+      await createContact(tx, ctx, { firstName: 'Mail', email: `ali.${tag}@riffa.example` });
+      return listContacts(tx, ctx, { limit: 10, sort: 'created_desc', q: `ALI.${tag}@riff` });
+    });
+    expect(byPartialEmail.data.map((c) => c.email)).toEqual([`ali.${tag}@riffa.example`]);
+    // LIKE wildcards in the input are literal.
+    const wildcard = await inOrg(A(), aOwner(), (tx, ctx) =>
+      listContacts(tx, ctx, { limit: 10, sort: 'created_desc', q: '%@%' }),
+    );
+    expect(wildcard.data).toHaveLength(0);
     const inB = await inOrg(B(), bOwner(), (tx, ctx) =>
       listContacts(tx, ctx, { limit: 10, sort: 'created_desc', q: `Khalid${tag}` }),
     );

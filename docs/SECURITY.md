@@ -141,6 +141,25 @@ threat model and the control catalogue; it is updated whenever a control is adde
   refused in production; Tap requires its secret key in production.
 - Provider error bodies are never returned to clients.
 
+### CRM (Phase 8)
+
+- Every CRM table is tenant-owned with forced RLS; links between CRM records use composite
+  `(id, organization_id)` foreign keys, so cross-tenant references fail at the database even
+  if a service check were missed. Services additionally verify referenced records are live.
+- Owners, assignees and `user` custom fields must be active members of the same organization.
+- Search input is reduced to letters/digits/joiners before building `tsquery`; LIKE patterns
+  escape wildcards. Global search covers only readable record types.
+- Linked-record names are withheld from callers without read access to that record type;
+  linking requires that read access.
+- CSV: parser limits (5 MB, 10,000 rows, 60 columns, 10,000 characters per value), uploads
+  accepted only on the import endpoint (the web proxy raises its body limit for that path
+  only). Exports neutralize spreadsheet formulas (`=`, `+`, `-`, `@`, tab, CR prefixed with
+  `'`), are audited on request and download, expire after 24 hours, are downloadable only by
+  their creator and are rate limited (imports 20/h, exports 30/h, bulk 300/h per
+  organization).
+- Notes are stored and rendered as plain text; website links render only normalized
+  `http(s)` URLs with `rel="noopener noreferrer nofollow"`.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -150,11 +169,14 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 ## Findings log
 
-| Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                    |
-| ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| 2026-10-05 | 3     | MEDIUM   | Web proxy forwarded client `X-Forwarded-For` unconditionally; a directly exposed web server would let clients spoof IPs to evade per-IP limits.                                                          | Fixed: opt-in `TRUST_PROXY_HEADERS`; API `TRUST_PROXY` accepts hops/CIDRs |
-| 2026-10-05 | 3     | LOW      | Authenticated API responses lacked `Cache-Control: no-store`.                                                                                                                                            | Fixed + test                                                              |
-| 2026-10-05 | 2     | HIGH     | Membership/organization RLS policies allowed a user's other-tenant rows to be visible inside a tenant context (user-scope clause applied in tenant scope). Caught by the isolation suite before release. | Fixed (migration 0003) + regression test                                  |
+| Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                         |
+| ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 2026-10-05 | 8     | MEDIUM   | Turborepo cache keys ignored internal package sources: lint/typecheck/test/build results could be replayed after a package change, so a regression could pass local gates.                               | Fixed: package sources in `globalDependencies` (ADR-031); full uncached re-run |
+| 2026-10-05 | 8     | LOW      | Test isolation: one test file flushed the shared Redis test database, intermittently erasing other files' rate-limit counters (could mask or fake limiter behaviour).                                    | Fixed: no flushes; unique key prefixes per test context                        |
+| 2026-10-05 | 8     | LOW      | A local Redis snapshot (`dump.rdb`, hashed test rate-limit counters only — no secrets or personal data) had been committed since Phase 0.                                                                | Fixed: untracked, `*.rdb` ignored                                              |
+| 2026-10-05 | 3     | MEDIUM   | Web proxy forwarded client `X-Forwarded-For` unconditionally; a directly exposed web server would let clients spoof IPs to evade per-IP limits.                                                          | Fixed: opt-in `TRUST_PROXY_HEADERS`; API `TRUST_PROXY` accepts hops/CIDRs      |
+| 2026-10-05 | 3     | LOW      | Authenticated API responses lacked `Cache-Control: no-store`.                                                                                                                                            | Fixed + test                                                                   |
+| 2026-10-05 | 2     | HIGH     | Membership/organization RLS policies allowed a user's other-tenant rows to be visible inside a tenant context (user-scope clause applied in tenant scope). Caught by the isolation suite before release. | Fixed (migration 0003) + regression test                                       |
 
 ## Reporting
 

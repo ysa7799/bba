@@ -10,12 +10,19 @@ export function useMutation() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
-  async function run(action: () => Promise<unknown>): Promise<boolean> {
+  /**
+   * `refresh: false` skips re-rendering server components, for callers that navigate away on
+   * success (a refresh followed by a navigation aborts the refresh stream).
+   */
+  async function run(
+    action: () => Promise<unknown>,
+    options: { refresh?: boolean } = {},
+  ): Promise<boolean> {
     setPending(true);
     setError(null);
     try {
       await action();
-      router.refresh();
+      if (options.refresh !== false) router.refresh();
       return true;
     } catch (caught) {
       setError(

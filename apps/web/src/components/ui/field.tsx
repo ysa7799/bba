@@ -1,4 +1,9 @@
-import { useId, type InputHTMLAttributes, type SelectHTMLAttributes } from 'react';
+import {
+  useId,
+  type InputHTMLAttributes,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react';
 import { cn } from '@/lib/cn';
 
 const controlClass =
@@ -77,3 +82,58 @@ export function SelectField({
     </div>
   );
 }
+
+export function TextAreaField({
+  label,
+  error,
+  hint,
+  className,
+  ...props
+}: FieldShellProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const id = useId();
+  return (
+    <div className={cn('space-y-1.5', className)}>
+      <label htmlFor={id} className="block text-sm font-medium text-slate-800">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        className={controlClass}
+        {...props}
+      />
+      {error ? (
+        <p id={`${id}-error`} className="text-sm text-red-600">
+          {error}
+        </p>
+      ) : hint ? (
+        <p className="text-sm text-slate-500">{hint}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function CheckboxField({
+  label,
+  className,
+  ...props
+}: { label: string } & InputHTMLAttributes<HTMLInputElement>) {
+  const id = useId();
+  return (
+    <div className={cn('flex items-center gap-2', className)}>
+      <input
+        id={id}
+        type="checkbox"
+        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-600"
+        {...props}
+      />
+      <label htmlFor={id} className="text-sm text-slate-800">
+        {label}
+      </label>
+    </div>
+  );
+}
+
+/** Shared input styling for controls rendered outside the field shells. */
+export const inputClass = controlClass;

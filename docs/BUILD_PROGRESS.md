@@ -2,9 +2,87 @@
 
 ## Current Phase
 
-Phase 8 — CRM
+Phase 9 — Activity timeline
 
-Status: IN_PROGRESS
+Status: NOT_STARTED
+
+---
+
+## Phase 8 — CRM
+
+Status: PASSED
+
+### Completed
+
+- Schema (16 tables, all with FORCE RLS and composite same-tenant foreign keys): contacts,
+  companies, contact↔company links, pipelines, stages, deals, tasks, notes, tags with
+  per-entity join tables, custom field definitions, imports (+ staged rows), exports.
+- `@businessos/crm`: contacts/companies/deals CRUD with soft delete, E.164 phone
+  normalization in the organization's country, typed custom fields (13 types, validated per
+  type, keyed by field id, JSONB containment filters), tags, contact↔company links with one
+  primary company, pipelines/stages with structural guards, deal board with fractional
+  positions and renormalization, won/lost/reopen transitions, tasks with timezone-aware due
+  filters, notes (author or moderator), bulk actions, PostgreSQL search (tsvector prefix +
+  phone digits + email/domain prefix), keyset pagination for every sort, entitlement limits
+  (`crm.contacts.max`, `crm.pipelines.max`), CSV import (staging, mapping suggestions,
+  preview, duplicate policy, resumable batches with per-row savepoints and errors) and async
+  CSV export (formula-injection escaping, 24 h expiry, creator-only download).
+- 21 `crm.*` permissions mapped to system roles; 16 CRM domain events; 15 CRM audit actions.
+- API under `/app/orgs/:orgId/crm/*`; worker `data` queue with `crm.import`, `crm.export`
+  and hourly `crm.maintenance`.
+- Web: contacts, companies, deals board (drag and drop + keyboard-accessible move), tasks,
+  record pages with notes/tasks/related records, import & export, CRM settings (pipelines,
+  stages, custom fields, tags).
+
+### Tests
+
+- crm package (38): normalization, CSV parsing/escaping round trip, search sanitization,
+  mapping suggestions; contacts (normalization, events, identity rule, per-tenant email
+  uniqueness, owner must be an active member of the same tenant, change tracking, soft delete,
+  company links, English/Arabic/phone/partial-email search with literal wildcards, keyset
+  pagination over all five sorts, bulk actions skipping foreign ids, tags incl. foreign tag
+  rejection); custom fields (all value types, required, unknown/archived keys, filters,
+  immutability, duplicate keys); tenant isolation (RLS on direct read/update/insert, guessed
+  ids, cross-tenant references rejected by services and by composite FKs, foreign pipeline
+  stages, search); linked-name redaction; contact limit under 6 concurrent creates; pipeline
+  limit; single default pipeline under concurrent first reads; deal transitions and event
+  sequence; board ordering with 60 moves forcing renormalization and per-currency totals;
+  negative values and explicit currency changes; pipeline structure guards; task due windows
+  and completion events; note ownership; import (mapping, preview, duplicates, formula
+  unescape, limit enforcement, idempotent re-run, cancellation, bad mappings, isolation);
+  export (filters, formula escaping, creator-only download, cross-tenant).
+- API (9 new, 124 total): role → capability matrix, 404 for non-members, link-read
+  enforcement and name redaction, one test touching every CRM resource from another tenant
+  (11 reads, 21 writes, bulk, references, lists, search), mass assignment, full HTTP workflow
+  with validation errors, custom field filters and audit, import and export over HTTP
+  including headers and audit.
+- E2E (Playwright): contact → note → task → deal on the board → move to Won → CSV import via
+  the worker → export download → search → other tenant gets 404.
+- Full suite (uncached): 334 unit/integration + 6 E2E passing.
+
+### Fixed during the phase
+
+- Turborepo cache keys did not include internal package sources, so lint/typecheck/test/build
+  could replay stale results after package changes (`globalDependencies` now hashes them).
+- `foundation.test.ts` flushed the shared test Redis database while other files ran in
+  parallel, intermittently erasing rate-limit counters (root cause of the earlier one-off
+  rate-limit test failure). Removed; contexts already use unique key prefixes.
+- A local Redis snapshot (`dump.rdb`, test counters only) had been committed; untracked and
+  ignored.
+
+### Risks
+
+- Phone-digit search uses `LIKE '%digits%'` (unindexed within an organization); add trigram
+  indexes in Phase 26 if needed.
+- Import staging rows and export files live in Postgres until file storage (Phase 16).
+- Contact counting for `crm.contacts.max` is O(contacts) per create; a counter can replace it
+  in Phase 26.
+- Arabic letter-variant normalization (أ/ا, ى/ي) is not applied to search yet.
+
+### Next
+
+- Phase 9: unified activity timeline across CRM records (notes, tasks, deal changes, future
+  messages/appointments/invoices) with a cross-module-ready model.
 
 ---
 

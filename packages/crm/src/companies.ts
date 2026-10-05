@@ -190,7 +190,10 @@ export async function companyFilterConditions(
     isNull(crmCompanies.deletedAt),
   ];
   if (query.q) {
-    const search = searchCondition(crmCompanies.searchVector, query.q, [crmCompanies.phone]);
+    const search = searchCondition(crmCompanies.searchVector, query.q, {
+      phones: [crmCompanies.phone],
+      prefixes: [crmCompanies.domain],
+    });
     if (search) conditions.push(search);
   }
   if (query.ownerUserId === 'none') conditions.push(isNull(crmCompanies.ownerUserId));

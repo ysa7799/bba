@@ -28,7 +28,7 @@ test('owner invites a teammate who joins with a restricted view of settings', as
   await expect(invitee.getByRole('heading', { name: 'Muharraq Logistics' })).toBeVisible();
 
   // Restricted members see read-only settings and no member management controls.
-  await invitee.getByRole('link', { name: 'Settings' }).click();
+  await invitee.getByRole('link', { name: 'Settings', exact: true }).click();
   await expect(invitee.getByText('You can view these settings but not change them.')).toBeVisible();
   await invitee.getByRole('link', { name: 'Members' }).click();
   await expect(invitee.getByRole('cell', { name: ownerEmail })).toBeVisible();
@@ -40,7 +40,7 @@ test('owner invites a teammate who joins with a restricted view of settings', as
   await row.getByLabel('Change role').selectOption({ label: 'Admin' });
   await expect(row.getByRole('cell', { name: 'Admin', exact: true })).toBeVisible();
 
-  await invitee.getByRole('link', { name: 'Settings' }).click();
+  await invitee.getByRole('link', { name: 'Settings', exact: true }).click();
   await expect(invitee.getByRole('button', { name: 'Save changes' })).toBeVisible();
 
   // Every step above is in the owner's audit log.

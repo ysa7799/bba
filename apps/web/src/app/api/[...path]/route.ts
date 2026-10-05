@@ -3,7 +3,7 @@ import {
   apiInternalUrl,
   buildForwardHeaders,
   buildResponseHeaders,
-  MAX_PROXY_BODY_BYTES,
+  maxBodyBytesFor,
 } from '@/lib/api-proxy';
 
 export const dynamic = 'force-dynamic';
@@ -27,12 +27,13 @@ async function proxy(
 
   let body: ArrayBuffer | undefined;
   if (request.method !== 'GET' && request.method !== 'HEAD') {
+    const limit = maxBodyBytesFor(request.method, path);
     const declared = Number(request.headers.get('content-length') ?? '0');
-    if (declared > MAX_PROXY_BODY_BYTES) {
+    if (declared > limit) {
       return errorResponse(413, 'payload_too_large', 'Request body is too large');
     }
     body = await request.arrayBuffer();
-    if (body.byteLength > MAX_PROXY_BODY_BYTES) {
+    if (body.byteLength > limit) {
       return errorResponse(413, 'payload_too_large', 'Request body is too large');
     }
   }

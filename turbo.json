@@ -1,7 +1,14 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "agentGuidance": false,
-  "globalDependencies": [".env.test", "tsconfig.base.json"],
+  "globalDependencies": [
+    ".env.test",
+    "pnpm-lock.yaml",
+    "packages/*/src/**",
+    "packages/*/migrations/**",
+    "packages/*/package.json",
+    "packages/config/**"
+  ],
   "globalPassThroughEnv": ["NODE_ENV", "CI"],
   "tasks": {
     "build": {

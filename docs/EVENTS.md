@@ -61,7 +61,14 @@ need request context (actor, IP, request id).
 Implemented: `organization.created`, `organization.updated`, `member.invited`, `member.joined`,
 `member.roles_changed`, `member.removed` (Phase 5); `subscription.started`,
 `subscription.changed`, `subscription.canceled` (Phase 6); `payment.succeeded`,
-`payment.failed`, `payment.refunded` (Phase 7). The rest arrive with their modules:
+`payment.failed`, `payment.refunded` (Phase 7); `contact.created`, `contact.updated`
+(`changedFields`), `contact.deleted`, `contact.tag_added`, `contact.tag_removed`,
+`company.created`, `company.updated`, `company.deleted`, `deal.created`, `deal.updated`,
+`deal.stage_changed` (from/to stage), `deal.won` (value in minor units + currency),
+`deal.lost` (reason), `deal.deleted`, `task.created`, `task.completed` (Phase 8). CRM events
+carry ids and small facts only — never contact details. Bulk actions emit one event per
+affected record; imports emit the same events as manual creation with the importer as actor
+and `import:<id>` as correlation id. The rest arrive with their modules:
 
 organization.created · organization.updated · member.invited · member.joined ·
 member.removed · contact.created · contact.updated · contact.deleted · company.created ·

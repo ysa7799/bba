@@ -46,6 +46,12 @@ packages/
   shared/      errors, ids (UUIDv7), money, pagination, time, logging redaction
   database/    Drizzle schema, migrations, db client, scopes (withTenant/withUser/withSystem)
   organizations/ organization lifecycle, membership resolution, settings registry
+  permissions/ permission catalogue, system roles, escalation guards
+  auth/        accounts, sessions, passwords, invitations
+  audit/ events/ jobs/  audit log, transactional outbox, job registry + queues
+  billing/ payments/    plans, entitlements, usage; payment providers and checkout
+  crm/         contacts, companies, pipelines, deals, tasks, notes, tags, custom fields,
+               search, CSV import/export
   testing/     dev-only fixtures (two-tenant world), Vitest global setup
   …            further packages are added only when code needs them (see ROADMAP)
 ```
@@ -62,7 +68,8 @@ primitives across more than one surface).
   compiles them (tsup bundles internal packages for api/worker; Next uses
   `transpilePackages`). This avoids a build step per package and keeps type-checking exact.
 - `moduleResolution: "Bundler"` everywhere; ESM only.
-- Each package has `typecheck`, `lint`, `test` scripts; Turborepo orchestrates and caches.
+- Each package has `typecheck`, `lint`, `test` scripts; Turborepo orchestrates and caches
+  (package sources are global cache inputs, ADR-031).
 - Dependency direction: `apps → domain packages → infrastructure packages → shared`.
   Domain packages never import from apps. Provider adapters never leak into domains.
 
@@ -130,7 +137,8 @@ Errors are `AppError` subclasses mapped to a stable JSON envelope
   Retries with exponential backoff, idempotency keys, dead-letter visibility, structured logs.
 - Durable workflow waits are stored in Postgres (`workflow_scheduled_steps`) and resumed by a
   scheduler, so Redis loss cannot drop a scheduled step _(Phase 13)_.
-- Queues: `system`, `events`, `email`. Job payloads are validated against a registry
+- Queues: `system`, `events`, `email`, `data` (CSV import/export, so bulk work never delays
+  email or event delivery). Job payloads are validated against a registry
   (`packages/jobs/src/definitions.ts`) on enqueue and again before processing; unknown jobs and
   invalid payloads fail permanently. Exhausted jobs are persisted to `job_failures`.
 - Emails (auth emails today) are `email.send` jobs rendered and delivered by the worker.
