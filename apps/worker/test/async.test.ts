@@ -13,7 +13,8 @@ import {
   type DomainEvent,
 } from '@businessos/events';
 import { BullJobQueue, QUEUE_NAMES, UnrecoverableError } from '@businessos/jobs';
-import { newId } from '@businessos/shared';
+import { createChannelProviders } from '@businessos/communications';
+import { newId, SecretBox } from '@businessos/shared';
 import {
   createTestDatabase,
   createTestWorld,
@@ -22,6 +23,7 @@ import {
 } from '@businessos/testing';
 import { Queue, QueueEvents } from 'bullmq';
 import { eq } from 'drizzle-orm';
+import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -141,6 +143,11 @@ beforeAll(async () => {
     registry,
     handlers: buildHandlers({
       db: handle.db,
+      communications: {
+        providers: createChannelProviders({ fake: true }),
+        secretBox: new SecretBox([{ id: 'test', key: randomBytes(32) }]),
+        publicApiUrl: 'http://localhost:4000',
+      },
       registry,
       email: new FileEmailTransport(emailFile),
       logger,

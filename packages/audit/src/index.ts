@@ -53,6 +53,11 @@ export const AUDIT_ACTIONS = [
   'crm.export.requested',
   'crm.export.downloaded',
   'crm.activity.deleted',
+  'communications.channel.connected',
+  'communications.channel.updated',
+  'communications.channel.disconnected',
+  'communications.channel.webhook_rotated',
+  'communications.template.registered',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

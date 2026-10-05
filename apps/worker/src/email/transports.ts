@@ -1,3 +1,5 @@
+import { MessagingProviderError, PostmarkEmailProvider } from '@businessos/communications';
+import { UnrecoverableError } from '@businessos/jobs';
 import { appendFile } from 'node:fs/promises';
 import type { Logger } from 'pino';
 import type { WorkerEnv } from '../env';
@@ -39,7 +41,58 @@ export class FileEmailTransport implements EmailTransport {
   }
 }
 
+/**
+ * Production transactional email through Postmark. Retryable provider failures rethrow so the
+ * `email.send` job retries; permanent ones are unrecoverable (dead-lettered, never retried).
+ */
+export class PostmarkEmailTransport implements EmailTransport {
+  readonly name = 'postmark';
+  private readonly provider: PostmarkEmailProvider;
+
+  constructor(
+    private readonly serverToken: string,
+    private readonly from: string,
+    options: { fetch?: typeof fetch } = {},
+  ) {
+    this.provider = new PostmarkEmailProvider(options);
+  }
+
+  async send(email: OutgoingEmail): Promise<void> {
+    try {
+      await this.provider.send(
+        {
+          id: 'platform',
+          organizationId: 'platform',
+          channel: 'email',
+          address: this.from,
+          externalAccountId: null,
+          credentials: { serverToken: this.serverToken },
+          settings: { messageStream: 'outbound' },
+          webhookUrl: null,
+        },
+        {
+          id: email.template,
+          to: email.to,
+          from: this.from,
+          subject: email.subject,
+          text: email.text,
+        },
+      );
+    } catch (error) {
+      if (error instanceof MessagingProviderError && !error.retryable) {
+        throw new UnrecoverableError(
+          `Email rejected by Postmark (${error.providerCode ?? 'unknown'})`,
+        );
+      }
+      throw error;
+    }
+  }
+}
+
 export function createEmailTransport(env: WorkerEnv, logger: Logger): EmailTransport {
+  if (env.EMAIL_TRANSPORT === 'postmark' && env.POSTMARK_SERVER_TOKEN && env.EMAIL_FROM) {
+    return new PostmarkEmailTransport(env.POSTMARK_SERVER_TOKEN, env.EMAIL_FROM);
+  }
   if (env.EMAIL_TRANSPORT === 'file' && env.EMAIL_FILE_PATH) {
     return new FileEmailTransport(env.EMAIL_FILE_PATH);
   }

@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Queues group jobs with similar latency/reliability needs so a backlog in one (e.g. bulk
  * imports) cannot starve another (e.g. transactional email).
  */
-export const QUEUE_NAMES = ['system', 'events', 'email', 'data'] as const;
+export const QUEUE_NAMES = ['system', 'events', 'email', 'data', 'messages'] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
 
 export interface JobDefinition<Schema extends z.ZodType = z.ZodType> {
@@ -54,6 +54,12 @@ export const JOBS = {
     queue: 'data',
     schema: z.object({ organizationId: z.uuid(), exportId: z.uuid() }),
     attempts: 3,
+  }),
+  /** Outbound conversation message through its channel provider. */
+  'communications.send': defineJob({
+    queue: 'messages',
+    schema: z.object({ organizationId: z.uuid(), messageId: z.uuid() }),
+    attempts: 5,
   }),
   'crm.maintenance': defineJob({
     queue: 'system',

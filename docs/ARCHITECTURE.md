@@ -146,13 +146,21 @@ Errors are `AppError` subclasses mapped to a stable JSON envelope
 - Emails (auth emails today) are `email.send` jobs rendered and delivered by the worker.
 - The worker exposes `GET /health` on `WORKER_HEALTH_PORT` for orchestration.
 
-## 7. Provider abstractions _(planned)_
+## 7. Provider abstractions
 
 Every external dependency sits behind a port with a registry of adapters and declared
-capabilities: `PaymentProvider` (Tap first), `EmailProvider`, `WhatsAppProvider`,
-`SmsProvider`, `StorageProvider` (S3-compatible), `AIProvider`, `CalendarProvider`.
-Each has a fake adapter for tests/local dev. Live adapters without credentials report
-`CONFIGURATION_REQUIRED`.
+capabilities: `PaymentProvider` (Tap, Phase 7), `ChannelProvider` (email/WhatsApp/SMS:
+Postmark, WhatsApp Cloud API, Twilio, Phase 10), and later `StorageProvider`
+(S3-compatible), `AIProvider`, `CalendarProvider`. Each has a fake adapter for tests/local
+dev. Live adapters without credentials report `CONFIGURATION_REQUIRED`.
+
+Communications (`@businessos/communications`) is tenant-configured: each organization
+connects its own provider accounts as `channel_connections` with sealed credentials. Inbound
+webhooks run route (URL token) → verify (provider signature) → normalize → dedupe → identify
+or create the contact → resolve the conversation → store → emit events (→ timeline).
+Outbound messages are stored as `queued` in the request transaction and delivered by the
+`communications.send` job (claim → send → record), so a provider outage never loses a
+message or blocks the inbox.
 
 ## 8. Frontend
 

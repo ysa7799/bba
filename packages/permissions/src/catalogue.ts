@@ -217,6 +217,34 @@ export const PERMISSION_DEFINITIONS = [
     description: 'Export CRM records to CSV files.',
     roles: ['manager'],
   },
+  {
+    key: 'communications.read',
+    module: 'communications',
+    label: 'View conversations',
+    description: 'See the shared inbox, conversations and messages.',
+    roles: ['manager', 'member', 'restricted'],
+  },
+  {
+    key: 'communications.send',
+    module: 'communications',
+    label: 'Send messages',
+    description: 'Reply, start conversations and write internal notes.',
+    roles: ['manager', 'member'],
+  },
+  {
+    key: 'communications.assign',
+    module: 'communications',
+    label: 'Assign conversations',
+    description: 'Assign, close, reopen and tag conversations.',
+    roles: ['manager', 'member'],
+  },
+  {
+    key: 'communications.manage',
+    module: 'communications',
+    label: 'Manage channels',
+    description: 'Connect email, WhatsApp and SMS channels and manage message templates.',
+    roles: [],
+  },
 ] as const satisfies readonly PermissionDefinition[];
 
 export type Permission = (typeof PERMISSION_DEFINITIONS)[number]['key'];

@@ -45,6 +45,11 @@ export default async function OrganizationLayout({
             <NavLink href={`${base}/crm/data`} label={m.app.nav.importExport} />
             <NavLink href={`${base}/crm/settings`} label={m.app.nav.crmSettings} />
             <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
+              {m.app.nav.communicationsSection}
+            </p>
+            <NavLink href={`${base}/inbox`} label={m.app.nav.inbox} exact />
+            <NavLink href={`${base}/inbox/channels`} label={m.app.nav.channels} />
+            <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
               {m.app.nav.adminSection}
             </p>
             <NavLink href={`${base}/members`} label={m.app.nav.members} />

@@ -109,6 +109,42 @@ export const ACTIVITY_TYPES = {
     metadataKeys: ['direction', 'details'],
     manual: true,
   },
+  'email.received': {
+    category: 'communication',
+    permission: 'communications.read',
+    channel: 'email',
+    metadataKeys: ['conversationId', 'preview'],
+  },
+  'email.sent': {
+    category: 'communication',
+    permission: 'communications.read',
+    channel: 'email',
+    metadataKeys: ['conversationId', 'preview'],
+  },
+  'whatsapp.received': {
+    category: 'communication',
+    permission: 'communications.read',
+    channel: 'whatsapp',
+    metadataKeys: ['conversationId', 'preview'],
+  },
+  'whatsapp.sent': {
+    category: 'communication',
+    permission: 'communications.read',
+    channel: 'whatsapp',
+    metadataKeys: ['conversationId', 'preview'],
+  },
+  'sms.received': {
+    category: 'communication',
+    permission: 'communications.read',
+    channel: 'sms',
+    metadataKeys: ['conversationId', 'preview'],
+  },
+  'sms.sent': {
+    category: 'communication',
+    permission: 'communications.read',
+    channel: 'sms',
+    metadataKeys: ['conversationId', 'preview'],
+  },
 } as const satisfies Record<string, ActivityTypeDefinition>;
 
 export type ActivityType = keyof typeof ACTIVITY_TYPES;

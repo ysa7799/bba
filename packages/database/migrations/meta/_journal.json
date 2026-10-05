@@ -134,6 +134,20 @@
       "when": 1791187564592,
       "tag": "0018_force_rls_activities",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791189157623,
+      "tag": "0019_communications",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791189158898,
+      "tag": "0020_force_rls_communications",
+      "breakpoints": true
     }
   ]
 }

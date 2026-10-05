@@ -2,6 +2,28 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 10 — Communications (2026-10-05)
+
+- Schema: `channel_connections`, `conversations`, `conversation_participants`,
+  `conversation_tags`, `messages`, `message_attachments`, `channel_templates`,
+  `communication_webhook_events` (migrations 0019–0020).
+- `@businessos/shared`: `SecretBox` (AES-256-GCM key ring), `redactUrlForLog`.
+- `@businessos/communications`: `ChannelProvider` port; Postmark, WhatsApp Cloud API, Twilio
+  and fake adapters; connections (sealed credentials, webhook tokens), conversations
+  (inbox listing, assignment, status, tags, unread), messages (queue, deliver, notes,
+  templates, 24-hour window), webhook pipeline, timeline projectors.
+- Permissions `communications.read/send/assign/manage`; events `conversation.*`,
+  `message.*`; audit actions `communications.channel.*`, `communications.template.registered`;
+  `messages` job queue with `communications.send`.
+- API: `/app/orgs/:orgId/communications/*`, `/webhooks/communications/:provider/:token`,
+  dev simulator; env `CREDENTIALS_ENCRYPTION_KEYS`, `COMMUNICATIONS_FAKE_PROVIDERS`;
+  request logs mask webhook tokens.
+- Worker: `communications.send` handler, communications timeline projectors, Postmark
+  transactional email transport.
+- Web: Inbox (filters, thread, composer with internal notes and WhatsApp templates,
+  assignment/status/tags), Channels settings (connect, write-only credentials, one-time
+  webhook URL, rotate, disconnect, templates, dev simulator), "Message" on contacts; E2E.
+
 ## Phase 9 — Activity timeline (2026-10-05)
 
 - Schema: `activities` (migrations 0017–0018).

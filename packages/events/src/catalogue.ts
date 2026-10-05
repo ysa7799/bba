@@ -165,6 +165,48 @@ export const EVENT_DEFINITIONS = {
       parentId: z.uuid(),
     }),
   },
+  'conversation.created': {
+    version: 1,
+    schema: z.object({
+      conversationId: z.uuid(),
+      channel: z.enum(['email', 'whatsapp', 'sms']),
+      contactId: z.uuid().nullable(),
+    }),
+  },
+  'conversation.assigned': {
+    version: 1,
+    schema: z.object({ conversationId: z.uuid(), assigneeUserId: z.uuid().nullable() }),
+  },
+  'conversation.status_changed': {
+    version: 1,
+    schema: z.object({ conversationId: z.uuid(), status: z.enum(['open', 'closed']) }),
+  },
+  'message.received': {
+    version: 1,
+    schema: z.object({
+      messageId: z.uuid(),
+      conversationId: z.uuid(),
+      channel: z.enum(['email', 'whatsapp', 'sms']),
+      contactId: z.uuid().nullable(),
+    }),
+  },
+  'message.sent': {
+    version: 1,
+    schema: z.object({
+      messageId: z.uuid(),
+      conversationId: z.uuid(),
+      channel: z.enum(['email', 'whatsapp', 'sms']),
+      contactId: z.uuid().nullable(),
+    }),
+  },
+  'message.failed': {
+    version: 1,
+    schema: z.object({
+      messageId: z.uuid(),
+      conversationId: z.uuid(),
+      errorCode: z.string().max(100).nullable(),
+    }),
+  },
   'activity.logged': {
     version: 1,
     schema: z.object({ activityId: z.uuid(), type: z.string().max(60) }),

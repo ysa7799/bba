@@ -1,3 +1,6 @@
+import { createChannelProviders, type ChannelProviderRegistry } from '@businessos/communications';
+import { SecretBox } from '@businessos/shared';
+import { randomBytes } from 'node:crypto';
 import { defaultAuthConfig, MemoryMailer } from '@businessos/auth';
 import { MemoryJobQueue } from '@businessos/jobs';
 import type { PaymentProviderRegistry } from '@businessos/payments';
@@ -50,8 +53,12 @@ export async function createTestContext(options?: {
   strictRateLimits?: boolean;
   /** Use the production queue-backed mailer instead of the in-memory mailer. */
   queueMailer?: boolean;
+  /** Messaging providers (defaults to the real adapters plus fakes). */
+  channelProviders?: ChannelProviderRegistry;
   /** Controllable payment providers (e.g. a FakePaymentProvider). */
   paymentProviders?: PaymentProviderRegistry;
+  /** Captures log lines (set `env.LOG_LEVEL` to see request logs). */
+  logStream?: { write(line: string): void };
   configure?: (app: FastifyInstance) => void | Promise<void>;
 }): Promise<TestContext> {
   const env = loadApiEnv({
@@ -81,7 +88,10 @@ export async function createTestContext(options?: {
     jobs,
     authConfig,
     ...(options?.paymentProviders ? { paymentProviders: options.paymentProviders } : {}),
+    channelProviders: options?.channelProviders ?? createChannelProviders({ fake: true }),
+    secretBox: new SecretBox([{ id: 'test', key: randomBytes(32) }]),
     ...(options?.strictRateLimits ? {} : { rateLimits: RELAXED_LIMITS }),
+    ...(options?.logStream ? { logStream: options.logStream } : {}),
   });
   if (options?.configure) {
     await options.configure(app);

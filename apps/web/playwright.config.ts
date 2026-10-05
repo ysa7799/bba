@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
 import path from 'node:path';
 
 /**
@@ -9,6 +10,8 @@ const WEB_PORT = 3100;
 const API_PORT = 4100;
 const WORKER_HEALTH_PORT = 4200;
 const QUEUE_PREFIX = `e2e${Date.now()}`;
+// Fresh channel-credential encryption key per run (shared by the API and the worker).
+const CREDENTIALS_ENCRYPTION_KEYS = `e2e:${randomBytes(32).toString('base64')}`;
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 export const MAIL_FILE = path.join(repoRoot, 'apps/web/test-results/e2e-mail.jsonl');
 
@@ -56,6 +59,9 @@ export default defineConfig({
         TRUST_PROXY: '127.0.0.1',
         QUEUE_PREFIX: QUEUE_PREFIX,
         PAYMENTS_PROVIDER: 'fake',
+        API_PUBLIC_URL: `http://localhost:${API_PORT}`,
+        CREDENTIALS_ENCRYPTION_KEYS,
+        COMMUNICATIONS_FAKE_PROVIDERS: 'true',
         PASSWORD_HASH_MEMORY_KIB: '4096',
         PASSWORD_HASH_TIME_COST: '1',
       },
@@ -79,6 +85,9 @@ export default defineConfig({
         EMAIL_TRANSPORT: 'file',
         EMAIL_FILE_PATH: MAIL_FILE,
         OUTBOX_POLL_MS: '200',
+        API_PUBLIC_URL: `http://localhost:${API_PORT}`,
+        CREDENTIALS_ENCRYPTION_KEYS,
+        COMMUNICATIONS_FAKE_PROVIDERS: 'true',
       },
     },
     {

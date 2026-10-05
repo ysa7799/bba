@@ -13,15 +13,13 @@
 
 ## Ports (planned)
 
-| Port               | Phase | First adapters                        | Live status            |
-| ------------------ | ----- | ------------------------------------- | ---------------------- |
-| `PaymentProvider`  | 7     | Tap Payments, Fake (implemented)      | CONFIGURATION_REQUIRED |
-| `EmailProvider`    | 10/16 | SMTP, Postmark/Resend/SES-ready, Fake | CONFIGURATION_REQUIRED |
-| `WhatsAppProvider` | 10    | WhatsApp Cloud API-compatible, Fake   | CONFIGURATION_REQUIRED |
-| `SmsProvider`      | 10    | Generic HTTP, Fake                    | CONFIGURATION_REQUIRED |
-| `StorageProvider`  | 16    | S3-compatible, local FS (dev)         | CONFIGURATION_REQUIRED |
-| `CalendarProvider` | 11/18 | Google, Microsoft                     | CONFIGURATION_REQUIRED |
-| `AIProvider`       | 20    | Anthropic-compatible, Fake            | CONFIGURATION_REQUIRED |
+| Port               | Phase | First adapters                                                          | Live status            |
+| ------------------ | ----- | ----------------------------------------------------------------------- | ---------------------- |
+| `PaymentProvider`  | 7     | Tap Payments, Fake (implemented)                                        | CONFIGURATION_REQUIRED |
+| `ChannelProvider`  | 10    | Postmark (email), WhatsApp Cloud API, Twilio (SMS), Fakes (implemented) | CONFIGURATION_REQUIRED |
+| `StorageProvider`  | 16    | S3-compatible, local FS (dev)                                           | CONFIGURATION_REQUIRED |
+| `CalendarProvider` | 11/18 | Google, Microsoft                                                       | CONFIGURATION_REQUIRED |
+| `AIProvider`       | 20    | Anthropic-compatible, Fake                                              | CONFIGURATION_REQUIRED |
 
 ## Tap Payments (Phase 7)
 
@@ -38,6 +36,55 @@
   `API_PUBLIC_URL` (webhook host). Live status: **CONFIGURATION_REQUIRED** — field names and the
   hash recipe follow Tap's public documentation and must be validated in the Tap sandbox.
 - Refund notifications are acknowledged but not yet processed (refund status is read on sync).
+
+## Messaging channels (Phase 10)
+
+One port, `ChannelProvider` (`packages/communications/src/types.ts`), for email, WhatsApp and
+SMS: `send(connection, message)` → `{providerMessageId, status}`, `parseWebhook(connection,
+request)` → normalized `message` / `status` events (throws `WebhookSignatureError` when the
+request is not authentic), optional `verifySubscription` for GET handshakes. Each provider
+declares its `credentialFields` (secret or not) and whether it needs an external account id.
+
+Tenants connect their own provider accounts under **Inbox → Channels** (`communications.manage`).
+Credentials are sealed with the platform `SecretBox` (AES-256-GCM, key id in the ciphertext,
+associated data `channel_connection:<org>:<id>`) and are write-only: the API returns which fields
+are configured and the values of non-secret fields only. A channel without credentials is
+`configuration_required` and cannot send.
+
+Each connection gets an unguessable webhook URL
+`{API_PUBLIC_URL}/webhooks/communications/<provider>/<token>` (32 random bytes; only a SHA-256
+hash is stored, and the token is masked in logs). It is shown once when the channel is created
+and whenever it is rotated (rotation invalidates the old URL immediately). The token selects the
+connection, then the provider's own signature check runs with that connection's credentials;
+events are deduplicated by provider id and processed in the connection's tenant.
+
+| Provider                                          | Credentials (secret ✱)                                   | Account id        | Webhook authenticity                                                                                                                                                                                                             |
+| ------------------------------------------------- | -------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Postmark (`postmark`, email)                      | Server API token ✱, webhook username, webhook password ✱ | —                 | HTTP Basic credentials embedded in the webhook URL (`https://user:pass@…`) for the inbound and delivery webhooks                                                                                                                 |
+| WhatsApp Cloud API (`whatsapp_cloud`)             | Access token ✱, app secret ✱, webhook verify token ✱     | `phone_number_id` | `X-Hub-Signature-256` = HMAC-SHA256(app secret, raw body); GET `hub.challenge` handshake checks the verify token                                                                                                                 |
+| Twilio SMS (`twilio`)                             | Account SID, auth token ✱                                | —                 | `X-Twilio-Signature` = Base64 HMAC-SHA1(auth token, full URL + sorted POST params). The URL must equal the one configured in Twilio, so `API_PUBLIC_URL` must be the exact public origin (no proxy rewriting of scheme or host). |
+| Fakes (`fake_email`, `fake_whatsapp`, `fake_sms`) | optional webhook secret (generated)                      | —                 | `x-fake-signature` HMAC-SHA256; development and tests only (`COMMUNICATIONS_FAKE_PROVIDERS=true`, refused in production)                                                                                                         |
+
+### Setup
+
+- **Postmark:** create a server, verify the sending domain/signature for the channel address,
+  copy the Server API token. Set the inbound webhook (and delivery/bounce webhooks) to the
+  channel's webhook URL with `username:password@` added to the host, using the webhook username
+  and password saved on the channel. Transactional platform email (verification, invitations)
+  uses `EMAIL_TRANSPORT=postmark` with `POSTMARK_SERVER_TOKEN` and `EMAIL_FROM` in the worker.
+- **WhatsApp Cloud API:** in the Meta app, add WhatsApp, note the phone number id (account id)
+  and a permanent system-user access token; copy the app secret. Configure the webhook callback
+  URL with the channel's verify token and subscribe to `messages`. Outside the 24-hour customer
+  service window only approved templates can be sent: register each approved template on the
+  channel (name, language, category, body with `{{1}}` variables).
+- **Twilio:** use the account SID and auth token, set the number's (or Messaging Service's)
+  incoming message webhook and status callback to the channel's webhook URL (HTTP POST). The
+  channel address is the sending number (E.164), alphanumeric sender id or `MG…` service SID.
+
+Live status: **CONFIGURATION_REQUIRED** for all three. Request/response field names follow each
+provider's public documentation and are covered by contract tests with recorded payloads; they
+must be validated against a sandbox account before go-live. Attachments are recorded as
+metadata only (download/storage arrives with the files service, Phase 16).
 
 ## Connection state machine (Phase 18)
 

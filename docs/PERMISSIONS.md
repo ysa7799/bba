@@ -37,36 +37,40 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 
 ## Catalogue (current)
 
-| Permission                | Module       | Owner | Admin | Manager | Member | Restricted |
-| ------------------------- | ------------ | ----- | ----- | ------- | ------ | ---------- |
-| `organization.update`     | organization | ✓     | ✓     |         |        |            |
-| `settings.users.manage`   | settings     | ✓     | ✓     |         |        |            |
-| `settings.roles.manage`   | settings     | ✓     | ✓     |         |        |            |
-| `settings.billing.manage` | settings     | ✓     | ✓     |         |        |            |
-| `audit.read`              | settings     | ✓     | ✓     |         |        |            |
-| `crm.contact.read`        | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
-| `crm.contact.create`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.contact.update`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.contact.delete`      | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.company.read`        | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
-| `crm.company.create`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.company.update`      | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.company.delete`      | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.deal.read`           | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
-| `crm.deal.create`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.deal.update`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.deal.delete`         | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.pipeline.manage`     | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.task.read`           | crm          | ✓     | ✓     | ✓       | ✓      | ✓          |
-| `crm.task.manage`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.note.create`         | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.note.manage`         | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.activity.log`        | crm          | ✓     | ✓     | ✓       | ✓      |            |
-| `crm.activity.manage`     | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.tag.manage`          | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.custom_field.manage` | crm          | ✓     | ✓     |         |        |            |
-| `crm.data.import`         | crm          | ✓     | ✓     | ✓       |        |            |
-| `crm.data.export`         | crm          | ✓     | ✓     | ✓       |        |            |
+| Permission                | Module         | Owner | Admin | Manager | Member | Restricted |
+| ------------------------- | -------------- | ----- | ----- | ------- | ------ | ---------- |
+| `organization.update`     | organization   | ✓     | ✓     |         |        |            |
+| `settings.users.manage`   | settings       | ✓     | ✓     |         |        |            |
+| `settings.roles.manage`   | settings       | ✓     | ✓     |         |        |            |
+| `settings.billing.manage` | settings       | ✓     | ✓     |         |        |            |
+| `audit.read`              | settings       | ✓     | ✓     |         |        |            |
+| `crm.contact.read`        | crm            | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.contact.create`      | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.contact.update`      | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.contact.delete`      | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.company.read`        | crm            | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.company.create`      | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.company.update`      | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.company.delete`      | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.deal.read`           | crm            | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.deal.create`         | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.deal.update`         | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.deal.delete`         | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.pipeline.manage`     | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.task.read`           | crm            | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `crm.task.manage`         | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.note.create`         | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.note.manage`         | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.activity.log`        | crm            | ✓     | ✓     | ✓       | ✓      |            |
+| `crm.activity.manage`     | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.tag.manage`          | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.custom_field.manage` | crm            | ✓     | ✓     |         |        |            |
+| `crm.data.import`         | crm            | ✓     | ✓     | ✓       |        |            |
+| `crm.data.export`         | crm            | ✓     | ✓     | ✓       |        |            |
+| `communications.read`     | communications | ✓     | ✓     | ✓       | ✓      | ✓          |
+| `communications.send`     | communications | ✓     | ✓     | ✓       | ✓      |            |
+| `communications.assign`   | communications | ✓     | ✓     | ✓       | ✓      |            |
+| `communications.manage`   | communications | ✓     | ✓     |         |        |            |
 
 Every member may read the organization profile, members, roles and the permission catalogue.
 
@@ -91,9 +95,20 @@ CRM specifics:
   delegated member manager without CRM permissions can no longer invite as `member` (the
   subset rule applies to invitations too).
 
+Communications specifics:
+
+- `communications.read` opens the shared inbox and message history; the linked contact's name
+  is shown only with `crm.contact.read`. Messages appear on contact timelines for members with
+  `communications.read`.
+- `communications.send` covers replies and internal notes; starting a conversation from a
+  contact also needs `crm.contact.read`. `communications.assign` covers assignment, open/close
+  and conversation tags (assignees must be active members).
+- `communications.manage` (admins) connects channels, sets credentials (write-only), rotates
+  webhook URLs, disconnects and registers templates; other members see only a channel's name,
+  provider, address and status.
+
 ## Planned additions (by phase)
 
-`communications.*` (10),
 `calendar.*` (11), `forms.*` (12), `automation.workflow.*` (13), `commerce.*` (14),
 `reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

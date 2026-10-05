@@ -1,4 +1,6 @@
+import { createChannelProviders } from '@businessos/communications';
 import { createDatabase } from '@businessos/database';
+import { SecretBox } from '@businessos/shared';
 import { BullJobQueue } from '@businessos/jobs';
 import { createEmailTransport } from './email/transports';
 import { loadWorkerEnv } from './env';
@@ -28,6 +30,13 @@ function main(): void {
     registry,
     handlers: buildHandlers({
       db: db.db,
+      communications: {
+        providers: createChannelProviders({ fake: env.COMMUNICATIONS_FAKE_PROVIDERS }),
+        secretBox: env.CREDENTIALS_ENCRYPTION_KEYS
+          ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
+          : null,
+        publicApiUrl: env.API_PUBLIC_URL,
+      },
       registry,
       email: createEmailTransport(env, logger),
       logger,

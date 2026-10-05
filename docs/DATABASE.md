@@ -96,6 +96,12 @@ Populated as phases land. See the schema files for the source of truth.
 | `crm_imports`, `crm_import_rows`                        | tenant                                                                      | 8     | staging rows purged 30 days after completion                            |
 | `crm_exports`                                           | tenant; content readable only by the creator via the API                    | 8     | file content cleared at expiry (24 h)                                   |
 | `activities`                                            | tenant; per-row `required_permission`; unique `source_event_id`             | 9     | cascade with organization; record links NO ACTION (ADR-027)             |
+| `channel_connections`                                   | tenant; sealed credentials; webhook token stored as SHA-256 hash            | 10    | disconnect (status) keeps history; cascade with organization            |
+| `conversations`                                         | tenant; unique per connection + counterpart address                         | 10    | cascade with organization; contact link NO ACTION; assignee set null    |
+| `conversation_participants`, `conversation_tags`        | tenant (composite same-tenant FKs)                                          | 10    | cascade with conversation (tags also with tag)                          |
+| `messages`, `message_attachments`                       | tenant; unique provider message id per connection                           | 10    | cascade with conversation; author set null                              |
+| `channel_templates`                                     | tenant; WhatsApp templates per connection                                   | 10    | cascade with connection                                                 |
+| `communication_webhook_events`                          | system only (dedupe + audit of provider callbacks)                          | 10    | organization set null                                                   |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.

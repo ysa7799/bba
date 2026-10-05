@@ -58,14 +58,33 @@ describe('API environment validation', () => {
         PASSWORD_HASH_MEMORY_KIB: '4096',
       }),
     ).toThrow(/OWASP/);
+    const secure = {
+      ...base,
+      NODE_ENV: 'production',
+      APP_URL: 'https://app.example.com',
+      CORS_ORIGINS: 'https://app.example.com',
+      API_PUBLIC_URL: 'https://api.example.com',
+    };
+    expect(() => loadApiEnv(secure)).toThrow(/CREDENTIALS_ENCRYPTION_KEYS/);
+    const keys = `k1:${Buffer.alloc(32, 3).toString('base64')}`;
+    expect(() => loadApiEnv({ ...secure, CREDENTIALS_ENCRYPTION_KEYS: keys })).not.toThrow();
     expect(() =>
       loadApiEnv({
-        ...base,
-        NODE_ENV: 'production',
-        APP_URL: 'https://app.example.com',
-        CORS_ORIGINS: 'https://app.example.com',
-        API_PUBLIC_URL: 'https://api.example.com',
+        ...secure,
+        CREDENTIALS_ENCRYPTION_KEYS: keys,
+        COMMUNICATIONS_FAKE_PROVIDERS: 'true',
       }),
-    ).not.toThrow();
+    ).toThrow(/COMMUNICATIONS_FAKE_PROVIDERS/);
+  });
+
+  it('validates credential encryption keys without echoing them', () => {
+    expect(() => loadApiEnv({ ...base, CREDENTIALS_ENCRYPTION_KEYS: 'k1:dG9vLXNob3J0' })).toThrow(
+      /CREDENTIALS_ENCRYPTION_KEYS/,
+    );
+    try {
+      loadApiEnv({ ...base, CREDENTIALS_ENCRYPTION_KEYS: 'k1:dG9vLXNob3J0' });
+    } catch (error) {
+      expect(String(error)).not.toContain('dG9vLXNob3J0');
+    }
   });
 });

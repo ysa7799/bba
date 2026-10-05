@@ -21,7 +21,7 @@ no assumptions about region.
 
 `local` → `test` (CI) → `staging` → `production`, each with separate credentials, databases,
 Redis instances and provider accounts. Production env validation refuses development
-defaults (e.g. missing `ENCRYPTION_KEY`, `COOKIE_SECURE=false`).
+defaults (e.g. missing `CREDENTIALS_ENCRYPTION_KEYS`, `COOKIE_SECURE=false`).
 
 ## Local development
 
@@ -39,10 +39,28 @@ Without Docker, point `DATABASE_URL`/`REDIS_URL` at locally installed services.
 ## Proxies and client IPs
 
 - `apps/web` proxies `/api/*` to `API_INTERNAL_URL` at runtime. Keep the API private (only
-  reachable from the web tier and trusted load balancers).
+  reachable from the web tier and trusted load balancers) except for provider callbacks:
+  route `/webhooks/*` from the public load balancer straight to the API and set
+  `API_PUBLIC_URL` to that public origin. The web proxy forwards only an allow-list of headers
+  (no provider signature headers), so webhooks must not go through it. Twilio signs the exact
+  URL it calls: the scheme and host the API derives from `API_PUBLIC_URL` must match.
 - Set `TRUST_PROXY` on the API to the web tier's address range (or hop count) so per-IP rate
   limits use real client IPs; set `TRUST_PROXY_HEADERS=true` on the web app only when its own
   load balancer overwrites `X-Forwarded-For`.
+
+## Communications configuration (Phase 10)
+
+| Variable                        | Service      | Notes                                                                                            |
+| ------------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| `CREDENTIALS_ENCRYPTION_KEYS`   | API + worker | `id:base64(32 bytes)[,id:key…]`; first key encrypts. Required in production. Same value on both. |
+| `API_PUBLIC_URL`                | API + worker | Public HTTPS origin for webhook URLs (`https://` required in production).                        |
+| `COMMUNICATIONS_FAKE_PROVIDERS` | API + worker | Development/test only; refused in production.                                                    |
+| `EMAIL_TRANSPORT=postmark`      | worker       | Platform transactional email; with `POSTMARK_SERVER_TOKEN` and `EMAIL_FROM`.                     |
+
+Generate a key with `node -e "console.log('k1:'+require('crypto').randomBytes(32).toString('base64'))"`.
+To rotate, prepend a new key (`k2:…,k1:…`), deploy, then re-save channel credentials before
+removing the old key. Losing every key makes stored channel credentials unrecoverable (tenants
+re-enter them); keys belong in the secrets manager, never in the repository.
 
 ## Migrations in deployment
 

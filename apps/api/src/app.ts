@@ -1,9 +1,14 @@
+import {
+  createChannelProviders,
+  type ChannelProviderRegistry,
+  type CommunicationsServices,
+} from '@businessos/communications';
 import type { AuthConfig, AuthMailer } from '@businessos/auth';
 import type { JobQueue } from '@businessos/jobs';
 import type { PaymentProviderRegistry, PaymentServices } from '@businessos/payments';
 import { type DatabaseHandle } from '@businessos/database';
-import { LOG_REDACT_PATHS, newId } from '@businessos/shared';
-import Fastify, { type FastifyInstance } from 'fastify';
+import { LOG_REDACT_PATHS, newId, redactUrlForLog, SecretBox } from '@businessos/shared';
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import type { Redis } from 'ioredis';
 import type { ApiEnv } from './env';
 import { QueueMailer } from './lib/mailer';
@@ -13,6 +18,11 @@ import { auditRoutes } from './modules/audit/routes';
 import { authRoutes } from './modules/auth/routes';
 import { billingCatalogRoutes, organizationBillingRoutes } from './modules/billing/routes';
 import { crmRoutes } from './modules/crm/routes';
+import {
+  communicationsRoutes,
+  communicationWebhookRoutes,
+  devCommunicationRoutes,
+} from './modules/communications/routes';
 import { healthRoutes } from './modules/health/routes';
 import { invitationRoutes } from './modules/invitations/routes';
 import { meRoutes } from './modules/me/routes';
@@ -39,8 +49,14 @@ export interface AppDependencies {
   authConfig: AuthConfig;
   /** Payment providers (defaults to the configured ones; tests inject controllable fakes). */
   paymentProviders?: PaymentProviderRegistry;
+  /** Messaging channel providers (defaults to the configured ones; tests inject fakes). */
+  channelProviders?: ChannelProviderRegistry;
+  /** Credential encryption (defaults to CREDENTIALS_ENCRYPTION_KEYS; tests inject a key). */
+  secretBox?: SecretBox | null;
   /** Overrides for named rate-limit policies (tests use relaxed limits). */
   rateLimits?: Partial<RateLimitPolicies>;
+  /** Log destination (defaults to stdout; tests capture log lines). */
+  logStream?: { write(line: string): void };
 }
 
 export type ResolvedDependencies = AppDependencies & { mailer: AuthMailer };
@@ -50,6 +66,7 @@ declare module 'fastify' {
     deps: ResolvedDependencies;
     rateLimiter: RateLimiter;
     payments: PaymentServices;
+    communications: CommunicationsServices;
   }
 }
 
@@ -61,7 +78,18 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     logger: {
       level: env.LOG_LEVEL,
       redact: { paths: [...LOG_REDACT_PATHS], censor: '[REDACTED]' },
-      ...(env.NODE_ENV === 'development'
+      // Webhook URLs carry routing secrets (path token, verify_token query): masked in logs.
+      serializers: {
+        req: (request: FastifyRequest) => ({
+          method: request.method,
+          url: redactUrlForLog(request.url),
+          host: request.host,
+          remoteAddress: request.ip,
+          remotePort: request.socket.remotePort,
+        }),
+      },
+      ...(deps.logStream ? { stream: deps.logStream } : {}),
+      ...(env.NODE_ENV === 'development' && !deps.logStream
         ? { transport: { target: 'pino-pretty', options: { singleLine: true } } }
         : {}),
     },
@@ -95,6 +123,17 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
     'payments',
     paymentServices(env, deps.paymentProviders ?? createPaymentProviders(env), deps.db.db, app.log),
   );
+  app.decorate('communications', {
+    providers:
+      deps.channelProviders ?? createChannelProviders({ fake: env.COMMUNICATIONS_FAKE_PROVIDERS }),
+    secretBox:
+      deps.secretBox !== undefined
+        ? deps.secretBox
+        : env.CREDENTIALS_ENCRYPTION_KEYS
+          ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
+          : null,
+    publicApiUrl: env.API_PUBLIC_URL,
+  } satisfies CommunicationsServices);
   app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
@@ -124,6 +163,11 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   }
   await app.register(invitationRoutes, { prefix: '/app/invitations' });
   await app.register(crmRoutes, { prefix: '/app/orgs/:orgId/crm' });
+  await app.register(communicationsRoutes, { prefix: '/app/orgs/:orgId/communications' });
+  await app.register(communicationWebhookRoutes, { prefix: '/webhooks/communications' });
+  if (env.NODE_ENV !== 'production' && env.COMMUNICATIONS_FAKE_PROVIDERS) {
+    await app.register(devCommunicationRoutes, { prefix: '/app/dev/communications/:orgId' });
+  }
 
   return app;
 }

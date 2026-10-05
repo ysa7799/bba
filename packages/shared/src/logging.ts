@@ -48,3 +48,33 @@ export function redactSensitive(value: unknown, depth = 0): unknown {
   }
   return value;
 }
+
+/** Webhook paths whose last segment is a routing secret (`/webhooks/<area>/<provider>/<token>`). */
+const SECRET_PATH_SEGMENT = /^(\/webhooks\/communications\/[^/?#]+\/)[^/?#]+/;
+
+/**
+ * Request URL as it may appear in logs: secret path segments (per-connection webhook tokens)
+ * and the values of sensitive query parameters (e.g. `hub.verify_token`, `token`) are masked.
+ */
+export function redactUrlForLog(url: string): string {
+  const queryStart = url.indexOf('?');
+  const path = queryStart === -1 ? url : url.slice(0, queryStart);
+  const maskedPath = path.replace(SECRET_PATH_SEGMENT, '$1[REDACTED]');
+  if (queryStart === -1) return maskedPath;
+  const query = url
+    .slice(queryStart + 1)
+    .split('&')
+    .map((pair) => {
+      const separator = pair.indexOf('=');
+      const rawKey = separator === -1 ? pair : pair.slice(0, separator);
+      let key = rawKey;
+      try {
+        key = decodeURIComponent(rawKey.replace(/\+/g, ' '));
+      } catch {
+        // Malformed escapes: judge the raw key.
+      }
+      return SENSITIVE_KEY_PATTERN.test(key) ? `${rawKey}=[REDACTED]` : pair;
+    })
+    .join('&');
+  return `${maskedPath}?${query}`;
+}

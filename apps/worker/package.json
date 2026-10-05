@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@businessos/activities": "workspace:*",
+    "@businessos/communications": "workspace:*",
     "@businessos/config": "workspace:*",
     "@businessos/crm": "workspace:*",
     "@businessos/database": "workspace:*",

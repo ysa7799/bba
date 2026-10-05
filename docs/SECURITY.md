@@ -76,10 +76,14 @@ threat model and the control catalogue; it is updated whenever a control is adde
 
 - No secrets in the repo; `.env*` ignored except `.env.example`.
 - Env validated at startup; production refuses insecure defaults.
-- Integration credentials encrypted (AES-256-GCM, key from `ENCRYPTION_KEY`, key id stored
-  for rotation).
+- Integration credentials encrypted with `SecretBox` (AES-256-GCM, keys from
+  `CREDENTIALS_ENCRYPTION_KEYS` = `id:base64key[,…]`, first key encrypts, all decrypt; the key
+  id is stored in each ciphertext for rotation; associated data binds a ciphertext to its
+  organization and record). Required in production for the API and the worker.
 - API keys: shown once, stored as SHA-256 hash with prefix for lookup.
 - Log redaction for `password`, `token`, `authorization`, `cookie`, `secret`, `apiKey`, etc.
+  Request URLs are logged through `redactUrlForLog`: webhook routing tokens in paths and
+  sensitive query values (`token`, `hub.verify_token`, …) are masked.
 
 ### Rate limiting
 
@@ -164,6 +168,24 @@ threat model and the control catalogue; it is updated whenever a control is adde
 - Notes are stored and rendered as plain text; website links render only normalized
   `http(s)` URLs with `rel="noopener noreferrer nofollow"`.
 
+### Communications (Phase 10)
+
+- Channel credentials are write-only (sealed, never returned, audited by field name only);
+  members without `communications.manage` see only a channel's name, provider, address and
+  status. Without credentials a channel is `configuration_required` and cannot send.
+- Webhooks: an unguessable per-connection URL token (32 random bytes, stored as SHA-256,
+  masked in logs, rotatable) selects the connection; the provider signature is then verified
+  with that connection's own secret (constant-time comparison) before anything is parsed or
+  stored. Unknown tokens → 404, bad signatures → 401. Events are deduplicated by provider id
+  and processed in the connection's tenant (system scope only for the token lookup and the
+  webhook event log). Status updates move forward only.
+- Inbound content is stored and rendered as plain text; attachments are metadata only.
+- Outbound: quota consumed once per message (idempotency key), WhatsApp's 24-hour rule
+  enforced server-side, delivery via the `communications.send` job with retries for
+  retryable provider errors only; provider error bodies are reduced to a code and a short
+  message.
+- The development simulator and fake providers are refused in production.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -175,6 +197,7 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 | Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                         |
 | ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| 2026-10-05 | 10    | HIGH     | Request logs included full URLs, so per-connection webhook tokens (path) and WhatsApp `hub.verify_token` (query) would have been written to logs. Found in phase review before release.                  | Fixed: redacting `req` serializer (`redactUrlForLog`) + regression tests       |
 | 2026-10-05 | 8     | MEDIUM   | Turborepo cache keys ignored internal package sources: lint/typecheck/test/build results could be replayed after a package change, so a regression could pass local gates.                               | Fixed: package sources in `globalDependencies` (ADR-031); full uncached re-run |
 | 2026-10-05 | 8     | LOW      | Test isolation: one test file flushed the shared Redis test database, intermittently erasing other files' rate-limit counters (could mask or fake limiter behaviour).                                    | Fixed: no flushes; unique key prefixes per test context                        |
 | 2026-10-05 | 8     | LOW      | A local Redis snapshot (`dump.rdb`, hashed test rate-limit counters only — no secrets or personal data) had been committed since Phase 0.                                                                | Fixed: untracked, `*.rdb` ignored                                              |

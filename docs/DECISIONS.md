@@ -224,3 +224,36 @@ idempotent by source event. Each row stores the permission required to see it an
 returns only the metadata keys its type declares, so a shared timeline never shows more than
 the viewer could open elsewhere. Summaries are snapshots written at projection time, keeping
 history readable after renames and deletions.
+
+## ADR-033 — Tenants bring their own messaging provider accounts
+
+Each organization connects its own Postmark server, WhatsApp Business number or Twilio account
+as a `channel_connection`. There is no shared platform sender for tenant conversations: the
+tenant owns the sender identity, the provider relationship (approvals, templates, costs) and
+its deliverability. Credentials are sealed with a platform key ring (`SecretBox`, AES-256-GCM,
+versioned key ids, associated data binding each ciphertext to its organization and
+connection) and are write-only through the API. The platform's own transactional email
+(verification, invitations) stays separate (`EMAIL_TRANSPORT`). Usage is still metered per
+channel through entitlements (`email/whatsapp/sms.monthly_limit`).
+
+## ADR-034 — Webhooks are routed by a per-connection URL token, then verified per provider
+
+Providers sign callbacks with a secret that belongs to the tenant's account (app secret, auth
+token, basic-auth pair), so the connection must be known before the signature can be checked,
+and many payloads do not carry a reliable account identifier. Each connection therefore gets
+a random 256-bit token in its webhook path; only its SHA-256 hash is stored (lookup without
+keeping the secret), it is masked in logs and can be rotated. The token only selects the
+connection — authenticity always comes from the provider signature verified with that
+connection's credentials. Unknown tokens and bad signatures are rejected before any parsing
+or storage; accepted payloads are deduplicated by provider id and processed in the
+connection's tenant.
+
+## ADR-035 — Outbound messages are queued, then delivered by a job
+
+Sending a reply stores the message as `queued` (with quota consumption and WhatsApp-window
+checks) in the request transaction and enqueues `communications.send` with a deterministic
+job id. The job claims the message, calls the provider and records the result; retryable
+provider failures retry with backoff and only the final attempt marks the message failed.
+Agents never wait on a provider, a provider outage never loses a message, and a retried
+request or job cannot send twice (claim + idempotent quota key). Status receipts from
+webhooks only move a message forward.

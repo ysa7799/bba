@@ -173,6 +173,42 @@ the sort); single records return `{ contact }`, `{ company }`, `{ deal }`, … D
 Every row is filtered by the permission it requires; `metadata` contains only the keys its type
 declares.
 
+### Communications (Phase 10)
+
+All under `/app/orgs/:orgId/communications`.
+
+| Method | Path                           | Permission                                 | Notes                                                                                                                                     |
+| ------ | ------------------------------ | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/conversations`               | `communications.read`                      | `status (open/closed/all), assignee (uuid/me/none/all), channel, unread, q, contactId, tagId, limit, cursor`; newest activity first       |
+| GET    | `/conversations/unread-count`  | `communications.read`                      | `{unread}` open conversations with unread messages                                                                                        |
+| POST   | `/conversations`               | `communications.send` + `crm.contact.read` | `{connectionId, contactId, subject?}` → 201 new / 200 existing; address taken from the contact for the channel                            |
+| GET    | `/conversations/:id`           | `communications.read`                      | contact shown only with `crm.contact.read`; `canReplyFreely` (WhatsApp 24-hour window)                                                    |
+| GET    | `/conversations/:id/messages`  | `communications.read`                      | newest first, keyset paged; internal notes included                                                                                       |
+| POST   | `/conversations/:id/messages`  | `communications.send`                      | `{text, subject?}` or `{template: {name, language, parameters}}` → 202, queued for `communications.send`; 409 outside the WhatsApp window |
+| POST   | `/conversations/:id/notes`     | `communications.send`                      | `{text}` internal note (never sent)                                                                                                       |
+| POST   | `/conversations/:id/read`      | `communications.read`                      | resets the unread count → 204                                                                                                             |
+| PATCH  | `/conversations/:id`           | `communications.assign`                    | `{assigneeUserId?, status?, tagIds?}`; assignee must be an active member                                                                  |
+| GET    | `/templates`                   | `communications.read`                      | approved WhatsApp templates, `?connectionId`                                                                                              |
+| GET    | `/channels`                    | `communications.read`                      | public fields; with `communications.manage` also configured fields, non-secret credential values, settings and errors (never secrets)     |
+| GET    | `/channels/providers`          | `communications.manage`                    | providers with credential fields; `encryptionConfigured`                                                                                  |
+| POST   | `/channels`                    | `communications.manage`                    | `{provider, name, address, externalAccountId?, credentials?, settings?}` → 201 `{connection, webhookUrl}` (URL shown once; audited)       |
+| PATCH  | `/channels/:id`                | `communications.manage`                    | `{name?, credentials? (replaces given fields), settings?}` (audited, field names only)                                                    |
+| POST   | `/channels/:id/rotate-webhook` | `communications.manage`                    | new `{webhookUrl}`; the old one stops working (audited)                                                                                   |
+| DELETE | `/channels/:id`                | `communications.manage`                    | disconnect: credentials wiped, conversations kept (audited)                                                                               |
+| POST   | `/channels/:id/templates`      | `communications.manage`                    | `{name, language, category, body}` register an approved WhatsApp template (audited)                                                       |
+
+Provider callbacks (no session; authenticity per provider, see `INTEGRATIONS.md`):
+
+| Method | Path                                        | Notes                                                                               |
+| ------ | ------------------------------------------- | ----------------------------------------------------------------------------------- |
+| POST   | `/webhooks/communications/:provider/:token` | raw body; 404 unknown token, 401 bad signature, 200 `{received: true}` (idempotent) |
+| GET    | `/webhooks/communications/:provider/:token` | subscription handshake (WhatsApp `hub.challenge`); 404 otherwise                    |
+
+Development only (`COMMUNICATIONS_FAKE_PROVIDERS=true`, never in production; `communications.manage`):
+`POST /app/dev/communications/:orgId/channels/:id/inbound` `{from, fromName?, subject?, text}`
+and `/status` `{messageId, status}` sign a fake-provider payload and run it through the real
+webhook pipeline.
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

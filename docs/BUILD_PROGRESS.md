@@ -2,9 +2,77 @@
 
 ## Current Phase
 
-Phase 10 — Communications
+Phase 11 — Calendar
 
 Status: NOT_STARTED
+
+---
+
+## Phase 10 — Communications
+
+Status: PASSED
+
+### Completed
+
+- Schema (8 tables, FORCE RLS, composite same-tenant FKs): channel connections, conversations
+  (one per connection + counterpart), participants, conversation tags, messages (internal
+  notes included), attachment metadata, WhatsApp templates, webhook event log (system only).
+- `SecretBox` key ring (AES-256-GCM, versioned keys, associated data per record) for channel
+  credentials; `CREDENTIALS_ENCRYPTION_KEYS` required in production for API and worker.
+- `@businessos/communications`: `ChannelProvider` port with Postmark (email), WhatsApp Cloud
+  API and Twilio (SMS) adapters plus fakes; connections with write-only credentials,
+  `configuration_required` state, per-connection webhook token (hash stored, rotatable);
+  inbound pipeline (route → verify → normalize → dedupe → contact match/create →
+  conversation → message → events → timeline); outbound queue/deliver with WhatsApp
+  24-hour window and approved templates, monthly channel quotas (idempotent), retry
+  semantics and forward-only delivery statuses; shared inbox (filters, unread, assignment,
+  open/closed, tags, internal notes, start from a contact).
+- Permissions `communications.read/send/assign/manage`; events `conversation.*`,
+  `message.*`; audited channel and template changes; `communications.send` job.
+- API routes, provider webhook endpoints (raw body, 404/401 before parsing), development
+  simulator (fake providers only, refused in production). Worker delivery handler, timeline
+  projectors and Postmark transport for platform email.
+- Web: Inbox (list + thread + details, polling refresh, mark-read), Channels settings
+  (connect, credentials, webhook URL shown once, rotate, disconnect, templates, simulator),
+  "Message" action on contacts.
+
+### Tests
+
+- shared: SecretBox (tamper, wrong record, key rotation), URL log redaction.
+- communications (20): provider contracts (Postmark, WhatsApp Cloud, Twilio signatures and
+  payload mapping, error classification), sealed credentials and token hashing,
+  configuration-required channels, inbound routing/verification/dedupe/unread, contact
+  matching, numbers outside known ranges kept, sending + forward-only statuses, 24-hour
+  window and templates, retries and final failure, quota without partial messages, tenant
+  isolation of conversations/messages/webhooks, timeline projection.
+- API (5): channel admin vs member views and cross-tenant 404s, write-only secrets (response
+  and audit), signed webhooks only, inbox flow with restricted/member/admin roles, outbound
+  start and window refusal, simulator gating, webhook tokens never logged.
+- Worker: Postmark transport, `communications.send` handler.
+- E2E: connect a channel, simulated inbound, reply delivered by the worker, internal note,
+  assign, close, message on the contact timeline.
+- Full suite (uncached): 382 unit/integration + 8 E2E passing.
+
+### Fixed during the phase
+
+- HIGH: request logs would have contained webhook routing tokens and WhatsApp verify tokens;
+  the API's request serializer now masks them (regression tests).
+- Inbound messages from well-formed numbers that phone metadata does not know (≈1% of
+  random Bahrain test numbers, and genuinely new ranges) were dropped; they are now kept
+  (conversation without a contact). Found as an intermittent test failure; regression test.
+
+### Risks
+
+- Live providers are CONFIGURATION_REQUIRED: payload field names follow public docs and
+  must be validated against sandbox accounts.
+- Attachments are metadata only until the files service (Phase 16); rich email (HTML) is
+  reduced to text.
+- The inbox refreshes by polling (15 s); real-time push comes with notifications (Phase 16).
+- Conversations without a matching contact cannot yet be linked to a contact from the UI.
+
+### Next
+
+- Phase 11: calendar (availability, booking with double-booking protection, reminders).
 
 ---
 

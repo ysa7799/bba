@@ -10,6 +10,7 @@ import { DetailList, Section, whatsappHref } from '@/components/crm/detail';
 import { NotesPanel } from '@/components/crm/notes-panel';
 import { TagList } from '@/components/crm/tag-badge';
 import { TimelinePanel } from '@/components/crm/timeline-panel';
+import { StartConversationButton } from '@/components/inbox/start-conversation-button';
 import { NewTaskButton, TaskList } from '@/components/crm/task-list';
 import { PageHeader } from '@/components/ui/card';
 import { format, getMessages } from '@/i18n';
@@ -69,6 +70,9 @@ export default async function ContactPage({
         title={c.displayName}
         actions={
           <div className="flex gap-2">
+            {can('communications.send') && (c.email || c.phone || c.whatsappPhone) ? (
+              <StartConversationButton contactId={c.id} />
+            ) : null}
             {can('crm.contact.update') ? (
               <ContactFormDialog
                 contact={c}

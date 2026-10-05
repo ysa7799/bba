@@ -1,7 +1,8 @@
+import { deliverMessage, type CommunicationsServices } from '@businessos/communications';
 import { processExport, processImport, runCrmMaintenance } from '@businessos/crm';
 import type { Database } from '@businessos/database';
 import { loadEvent, type SubscriberRegistry } from '@businessos/events';
-import { UnrecoverableError, type JobHandlers } from '@businessos/jobs';
+import { JOBS, UnrecoverableError, type JobHandlers } from '@businessos/jobs';
 import { runSubscriptionMaintenance } from '@businessos/payments';
 import type { Logger } from 'pino';
 import { renderEmail } from './email/templates';
@@ -9,6 +10,7 @@ import type { EmailTransport } from './email/transports';
 
 export interface HandlerDeps {
   db: Database;
+  communications: CommunicationsServices;
   registry: SubscriberRegistry;
   email: EmailTransport;
   logger: Logger;
@@ -34,6 +36,23 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
       const result = await runSubscriptionMaintenance(deps.db);
       deps.logger.info(result, 'subscription maintenance completed');
       return result;
+    },
+
+    'communications.send': async (payload, context) => {
+      const outcome = await deliverMessage(
+        deps.db,
+        deps.communications,
+        payload.organizationId,
+        payload.messageId,
+        {
+          finalAttempt: context.attempt >= JOBS['communications.send'].attempts,
+        },
+      );
+      deps.logger.info(
+        { messageId: payload.messageId, outcome, attempt: context.attempt },
+        'message delivery',
+      );
+      return { outcome };
     },
 
     'crm.import': async (payload) => {

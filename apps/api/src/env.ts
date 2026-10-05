@@ -1,3 +1,4 @@
+import { SecretBox } from '@businessos/shared';
 import { z } from 'zod';
 import {
   booleanFromEnv,
@@ -55,6 +56,24 @@ export const apiEnvSchema = z
     TAP_SECRET_KEY: z.string().min(10).optional(),
     TAP_API_BASE_URL: z.url().optional(),
     FAKE_PAYMENTS_WEBHOOK_SECRET: z.string().min(16).default('dev-fake-payments-webhook-secret'),
+    /**
+     * Keys sealing stored provider credentials (`keyId:base64-32-bytes`, comma separated; the
+     * first encrypts, all decrypt). Without it channels can be created but not configured.
+     */
+    CREDENTIALS_ENCRYPTION_KEYS: z
+      .string()
+      .optional()
+      .refine((value) => {
+        if (value === undefined || value === '') return true;
+        try {
+          SecretBox.fromConfig(value);
+          return true;
+        } catch {
+          return false;
+        }
+      }, 'expected keyId:base64 pairs with 32-byte keys'),
+    /** Development/test fake channel providers. */
+    COMMUNICATIONS_FAKE_PROVIDERS: booleanFromEnv.default(false),
     PASSWORD_HASH_MEMORY_KIB: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
     PASSWORD_HASH_TIME_COST: z.coerce.number().int().min(1).max(10).default(2),
   })
@@ -72,6 +91,20 @@ export const apiEnvSchema = z
         code: 'custom',
         path: ['PAYMENTS_PROVIDER'],
         message: 'the fake payment provider is not allowed in production',
+      });
+    }
+    if (env.COMMUNICATIONS_FAKE_PROVIDERS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['COMMUNICATIONS_FAKE_PROVIDERS'],
+        message: 'fake channel providers are not allowed in production',
+      });
+    }
+    if (!env.CREDENTIALS_ENCRYPTION_KEYS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CREDENTIALS_ENCRYPTION_KEYS'],
+        message: 'required in production (provider credentials are encrypted at rest)',
       });
     }
     if (!env.API_PUBLIC_URL.startsWith('https://')) {
