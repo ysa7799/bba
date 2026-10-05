@@ -7,6 +7,8 @@ export type ErrorCode =
   | 'bad_request'
   | 'validation_error'
   | 'unauthenticated'
+  | 'email_not_verified'
+  | 'invalid_token'
   | 'forbidden'
   | 'not_found'
   | 'conflict'
@@ -54,6 +56,26 @@ export class UnauthenticatedError extends AppError {
   readonly status = 401;
 
   constructor(message = 'Authentication required') {
+    super(message);
+  }
+}
+
+/** Correct credentials, but the account's email address has not been verified yet. */
+export class EmailNotVerifiedError extends AppError {
+  readonly code = 'email_not_verified';
+  readonly status = 403;
+
+  constructor(message = 'Please verify your email address before signing in') {
+    super(message);
+  }
+}
+
+/** A single-use token (verification, reset, invitation) that is unknown, used or expired. */
+export class InvalidTokenError extends AppError {
+  readonly code = 'invalid_token';
+  readonly status = 400;
+
+  constructor(message = 'This link is invalid or has expired') {
     super(message);
   }
 }

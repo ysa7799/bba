@@ -43,7 +43,7 @@ export async function registerSecurity(
     max: env.RATE_LIMIT_GLOBAL_PER_MINUTE,
     timeWindow: '1 minute',
     redis,
-    nameSpace: 'bos:rl:global:',
+    nameSpace: `${env.REDIS_KEY_PREFIX}rl:global:`,
     // Availability over strictness when Redis is briefly unavailable; readiness reports it.
     skipOnError: true,
     errorResponseBuilder: (_request, context) =>

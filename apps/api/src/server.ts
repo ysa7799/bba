@@ -1,3 +1,4 @@
+import { defaultAuthConfig } from '@businessos/auth';
 import { createDatabase } from '@businessos/database';
 import { buildApp } from './app';
 import { loadApiEnv } from './env';
@@ -11,7 +12,16 @@ async function main(): Promise<void> {
     applicationName: 'businessos-api',
   });
   const redis = createRedis(env.REDIS_URL, 'businessos-api');
-  const app = await buildApp({ env, db, redis });
+  const authConfig = {
+    ...defaultAuthConfig(env.APP_URL),
+    password: {
+      memoryCostKib: env.PASSWORD_HASH_MEMORY_KIB,
+      timeCost: env.PASSWORD_HASH_TIME_COST,
+      parallelism: 1,
+    },
+  };
+
+  const app = await buildApp({ env, db, redis, authConfig });
 
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {

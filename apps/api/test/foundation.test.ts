@@ -197,3 +197,10 @@ describe('security middleware', () => {
     expect(Number(last?.headers['retry-after'])).toBeGreaterThan(0);
   });
 });
+
+describe('caching', () => {
+  it('marks first-party app responses as non-cacheable', async () => {
+    const response = await ctx.app.inject({ method: 'GET', url: '/app/me' });
+    expect(response.headers['cache-control']).toBe('no-store');
+  });
+});

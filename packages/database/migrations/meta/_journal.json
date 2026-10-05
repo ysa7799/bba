@@ -29,6 +29,20 @@
       "when": 1791177745255,
       "tag": "0003_tenant_scope_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791177946809,
+      "tag": "0004_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791177947718,
+      "tag": "0005_force_rls_auth",
+      "breakpoints": true
     }
   ]
 }

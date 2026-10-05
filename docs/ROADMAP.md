@@ -9,7 +9,7 @@ Phases execute in order. A phase is complete only when its quality gate passes (
 | 0   | Repository audit & documentation                        | Architecture internally consistent                 | PASSED      |
 | 1   | Monorepo foundation                                     | lint, typecheck, tests, build                      | PASSED      |
 | 2   | Database + tenancy                                      | Org A cannot access Org B                          | PASSED      |
-| 3   | Authentication                                          | Protected-route and API tests                      | NOT_STARTED |
+| 3   | Authentication                                          | Protected-route and API tests                      | PASSED      |
 | 4   | RBAC                                                    | Privilege-escalation tests                         | NOT_STARTED |
 | 5   | Audit + events + jobs                                   | Reliable async execution tests                     | NOT_STARTED |
 | 6   | Billing + entitlements                                  | Limits cannot be bypassed from the frontend        | NOT_STARTED |

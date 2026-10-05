@@ -12,19 +12,22 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@businessos/auth": "workspace:*",
     "@businessos/config": "workspace:*",
     "@businessos/database": "workspace:*",
+    "@businessos/organizations": "workspace:*",
     "@businessos/shared": "workspace:*",
+    "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",
     "@fastify/rate-limit": "^11.2.0",
+    "@node-rs/argon2": "^2.2.1",
     "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
     "fastify-plugin": "^6.0.0",
     "ioredis": "^5.11.1",
-    "zod": "^4.6.5",
     "pg": "^8.23.1",
-    "@businessos/organizations": "workspace:*"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "eslint": "^9.39.5",

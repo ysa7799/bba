@@ -17,6 +17,14 @@ describe('API environment validation', () => {
     expect(env.TRUST_PROXY).toBe(false);
   });
 
+  it('parses proxy trust settings', () => {
+    expect(loadApiEnv({ ...base, TRUST_PROXY: 'true' }).TRUST_PROXY).toBe(true);
+    expect(loadApiEnv({ ...base, TRUST_PROXY: '2' }).TRUST_PROXY).toBe(2);
+    expect(loadApiEnv({ ...base, TRUST_PROXY: '10.0.0.0/8, 127.0.0.1' }).TRUST_PROXY).toBe(
+      '10.0.0.0/8, 127.0.0.1',
+    );
+  });
+
   it('fails fast without leaking values', () => {
     expect(() => loadApiEnv({ ...base, DATABASE_URL: 'mysql://secret-pass@host/db' })).toThrow(
       /DATABASE_URL/,
@@ -36,7 +44,34 @@ describe('API environment validation', () => {
         NODE_ENV: 'production',
         APP_URL: 'https://app.example.com',
         CORS_ORIGINS: 'https://app.example.com',
+        COOKIE_SECURE: 'false',
       }),
-    ).not.toThrow();
+    ).toThrow(/COOKIE_SECURE/);
+    expect(() =>
+      loadApiEnv({
+        ...base,
+        NODE_ENV: 'production',
+        APP_URL: 'https://app.example.com',
+        CORS_ORIGINS: 'https://app.example.com',
+        PASSWORD_HASH_MEMORY_KIB: '4096',
+      }),
+    ).toThrow(/OWASP/);
+  });
+
+  it('requires a real email provider in production (CONFIGURATION_REQUIRED)', () => {
+    let message = '';
+    try {
+      loadApiEnv({
+        ...base,
+        NODE_ENV: 'production',
+        APP_URL: 'https://app.example.com',
+        CORS_ORIGINS: 'https://app.example.com',
+      });
+    } catch (error) {
+      message = String(error);
+    }
+    expect(message).toContain('MAIL_TRANSPORT');
+    expect(message).toContain('CONFIGURATION_REQUIRED');
+    expect(message).not.toContain('APP_URL');
   });
 });

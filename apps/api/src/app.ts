@@ -1,21 +1,38 @@
+import type { AuthConfig, AuthMailer } from '@businessos/auth';
 import { type DatabaseHandle } from '@businessos/database';
 import { LOG_REDACT_PATHS, newId } from '@businessos/shared';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Redis } from 'ioredis';
 import type { ApiEnv } from './env';
+import { createDevMailer } from './lib/mailer';
+import { DEFAULT_RATE_LIMITS, RateLimiter, type RateLimitPolicies } from './lib/rate-limiter';
+import { authRoutes } from './modules/auth/routes';
 import { healthRoutes } from './modules/health/routes';
+import { invitationRoutes } from './modules/invitations/routes';
+import { meRoutes } from './modules/me/routes';
+import { organizationRoutes } from './modules/organizations/routes';
+import { registerCsrfProtection } from './plugins/csrf';
 import { registerErrorHandling } from './plugins/errors';
 import { registerSecurity } from './plugins/security';
+import { registerSession } from './plugins/session';
 
 export interface AppDependencies {
   env: ApiEnv;
   db: DatabaseHandle;
   redis: Redis;
+  /** Auth email transport. Defaults to the development log mailer (refused in production). */
+  mailer?: AuthMailer;
+  authConfig: AuthConfig;
+  /** Overrides for named rate-limit policies (tests use relaxed limits). */
+  rateLimits?: Partial<RateLimitPolicies>;
 }
+
+export type ResolvedDependencies = AppDependencies & { mailer: AuthMailer };
 
 declare module 'fastify' {
   interface FastifyInstance {
-    deps: AppDependencies;
+    deps: ResolvedDependencies;
+    rateLimiter: RateLimiter;
   }
 }
 
@@ -39,22 +56,43 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
         ? incoming
         : newId();
     },
-    trustProxy: env.TRUST_PROXY,
+    trustProxy:
+      typeof env.TRUST_PROXY === 'number'
+        ? (_address: string, hop: number) => hop < (env.TRUST_PROXY as number)
+        : env.TRUST_PROXY,
     bodyLimit: 1_048_576,
     routerOptions: { maxParamLength: 200 },
   });
 
-  app.decorate('deps', deps);
+  app.decorate('deps', { ...deps, mailer: deps.mailer ?? createDevMailer(env, app.log) });
+  app.decorate(
+    'rateLimiter',
+    new RateLimiter(
+      deps.redis,
+      env.REDIS_KEY_PREFIX,
+      { ...DEFAULT_RATE_LIMITS, ...deps.rateLimits },
+      app.log,
+    ),
+  );
+  app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
     void reply.header('x-request-id', request.id);
+    // Personal/tenant data must never be stored by browsers or shared caches.
+    if (request.url.startsWith('/app/')) void reply.header('cache-control', 'no-store');
     done();
   });
 
   registerErrorHandling(app);
   await registerSecurity(app, env, deps.redis);
+  registerCsrfProtection(app);
+  await registerSession(app);
 
   await app.register(healthRoutes, { prefix: '/health' });
+  await app.register(authRoutes, { prefix: '/app/auth' });
+  await app.register(meRoutes, { prefix: '/app/me' });
+  await app.register(organizationRoutes, { prefix: '/app/orgs' });
+  await app.register(invitationRoutes, { prefix: '/app/invitations' });
 
   return app;
 }

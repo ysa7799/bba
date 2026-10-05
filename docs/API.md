@@ -49,4 +49,43 @@ Cursor-based for lists: `?limit=50&cursor=<opaque>` → `{ data: [...], nextCurs
 
 ## Endpoints
 
-Documented per module as they land.
+### Authentication (`/app/auth`, Phase 3)
+
+| Method | Path                            | Notes                                                                                    |
+| ------ | ------------------------------- | ---------------------------------------------------------------------------------------- |
+| POST   | `/app/auth/register`            | `{name,email,password,locale?}` → 202 always (no enumeration)                            |
+| POST   | `/app/auth/verify-email`        | `{token}` → `{user}`                                                                     |
+| POST   | `/app/auth/resend-verification` | `{email}` → 202 always                                                                   |
+| POST   | `/app/auth/login`               | `{email,password}` → sets session cookie, `{user}`; 401 / 403 `email_not_verified` / 429 |
+| POST   | `/app/auth/logout`              | revokes session, clears cookie → 204                                                     |
+| POST   | `/app/auth/forgot-password`     | `{email}` → 202 always                                                                   |
+| POST   | `/app/auth/reset-password`      | `{token,password}` → `{user}`; revokes all sessions                                      |
+
+### Current user (`/app/me`)
+
+| Method | Path                          | Notes                                                         |
+| ------ | ----------------------------- | ------------------------------------------------------------- |
+| GET    | `/app/me`                     | `{user, organizations[], activeOrganizationId}`               |
+| POST   | `/app/me/active-organization` | `{organizationId}` → 204 (membership re-verified)             |
+| POST   | `/app/me/password`            | `{currentPassword,newPassword}` → 204; revokes other sessions |
+
+### Organizations
+
+| Method | Path                       | Notes                                                                |
+| ------ | -------------------------- | -------------------------------------------------------------------- |
+| GET    | `/app/orgs`                | organizations the user belongs to                                    |
+| POST   | `/app/orgs`                | `{name,slug?,countryCode?,defaultCurrency?,timezone?,locale?}` → 201 |
+| GET    | `/app/orgs/:orgId`         | `{organization, settings}` (members only, else 404)                  |
+| GET    | `/app/orgs/:orgId/members` | `?limit&cursor&search`                                               |
+
+### Invitations
+
+| Method | Path                        | Notes                                                        |
+| ------ | --------------------------- | ------------------------------------------------------------ |
+| POST   | `/app/invitations/preview`  | `{token}` → invitation summary                               |
+| POST   | `/app/invitations/accept`   | `{token}` (signed in; email must match) → `{organizationId}` |
+| POST   | `/app/invitations/register` | `{token,name,password}` → new verified account + session     |
+
+Session cookie: `__Host-bos_session` (production; `bos_session` in development), HttpOnly,
+Secure, SameSite=Lax, absolute 30-day lifetime, 7-day idle timeout. All `/app/*` responses are
+`Cache-Control: no-store`.

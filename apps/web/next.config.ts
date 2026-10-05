@@ -1,7 +1,5 @@
 import type { NextConfig } from 'next';
 
-const apiInternalUrl = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
-
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
@@ -13,9 +11,7 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: [],
-  // Same-origin access to the API keeps session cookies first-party (ADR-009).
-  rewrites: () =>
-    Promise.resolve([{ source: '/api/:path*', destination: `${apiInternalUrl}/:path*` }]),
+  // `/api/*` is proxied to the API at runtime by `src/app/api/[...path]/route.ts` (ADR-009).
   headers: () => Promise.resolve([{ source: '/:path*', headers: securityHeaders }]),
 };
 
