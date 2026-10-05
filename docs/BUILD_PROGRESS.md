@@ -2,9 +2,45 @@
 
 ## Current Phase
 
-Phase 2 — Database + Tenancy
+Phase 3 — Authentication
 
 Status: IN_PROGRESS
+
+---
+
+## Phase 2 — Database + Tenancy
+
+Status: PASSED
+
+### Completed
+
+- Tables: users (global), organizations (tenant root), memberships, organization_settings.
+- RLS on every table, `FORCE ROW LEVEL SECURITY`, policies driven by transaction-local
+  settings; runtime role sees nothing outside a scope.
+- Scoped transaction helpers with branded types; Postgres error helpers.
+- Organizations domain package (create/list/resolve/update/members/settings).
+- Decision: no workspace/location tier yet (ADR-011).
+
+### Tests
+
+- 24 tenancy tests: RLS coverage guard (every public table must have RLS enabled, forced and
+  policies), no access outside scope, Org A cannot read/list/search/update/delete/insert/move
+  rows into Org B, guessed IDs return nothing/404, no context leakage across pooled
+  connections, malformed scope ids rejected, multi-org users isolated per tenant, suspended
+  members and inactive organizations denied, settings isolation and validation, slug
+  allocation (incl. Arabic names), regional validation.
+- Full suite: 73 passing.
+
+### Risks
+
+- RLS subqueries on `memberships` for `users`/`organizations` visibility; indexed, revisit in
+  Phase 26 with real query plans.
+- HTTP-level tenant resolution arrives with authentication in Phase 3.
+
+### Next
+
+- Phase 3: registration, verification, login/logout, sessions, password reset, invitations,
+  organization creation and switching over HTTP.
 
 ---
 

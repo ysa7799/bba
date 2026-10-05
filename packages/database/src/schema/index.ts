@@ -1,2 +1,3 @@
-// Drizzle schema entry point. Tables are added per phase; see docs/DATABASE.md.
-export {};
+// Drizzle schema entry point. See docs/DATABASE.md for conventions.
+export * from './users';
+export * from './organizations';

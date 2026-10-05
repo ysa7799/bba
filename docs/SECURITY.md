@@ -97,9 +97,9 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 ## Findings log
 
-| Date | Phase | Severity | Finding | Status |
-| ---- | ----- | -------- | ------- | ------ |
-| —    | —     | —        | —       | —      |
+| Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                   |
+| ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| 2026-10-05 | 2     | HIGH     | Membership/organization RLS policies allowed a user's other-tenant rows to be visible inside a tenant context (user-scope clause applied in tenant scope). Caught by the isolation suite before release. | Fixed (migration 0003) + regression test |
 
 ## Reporting
 

@@ -65,3 +65,27 @@ API also supports a configured allow-list of origins for direct access.
 
 Domain events are written in the same transaction as the state change and dispatched by the
 worker. Guarantees at-least-once delivery without dual-write races; consumers are idempotent.
+
+## ADR-011 — No workspace/location tier yet
+
+Workspaces/locations/branches are not created until a module needs them (likely calendar
+availability per branch or white-label sub-accounts). When added they live inside an
+organization and never replace `organization_id` as the isolation key.
+
+## ADR-012 — Typed settings registry
+
+Organization settings are key/value rows validated against a code registry (Zod schema +
+default per key). Unknown keys are rejected; invalid stored values fall back to defaults.
+Settings that need relational queries get dedicated tables.
+
+## ADR-013 — Three DB scopes with branded transaction types
+
+`withTenant`, `withUser` and `withSystem` set transaction-local settings consumed by RLS
+policies. User-scope clauses (own memberships/organizations) only apply when no organization is
+set, so tenant queries can never return another tenant's rows even for multi-org users.
+
+## ADR-014 — Shared test fixtures package
+
+`@businessos/testing` builds the standard two-tenant world through real domain code paths. It is
+a dev-only dependency; Turborepo tasks do not declare `^task` dependencies (internal packages
+are source-only, ADR-004), so the dev-only package cycle is harmless.

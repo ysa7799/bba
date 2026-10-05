@@ -8,6 +8,27 @@
       "when": 1791177232411,
       "tag": "0000_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791177538514,
+      "tag": "0001_tenancy",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791177549195,
+      "tag": "0002_force_rls_tenancy",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791177745255,
+      "tag": "0003_tenant_scope_policies",
+      "breakpoints": true
     }
   ]
 }

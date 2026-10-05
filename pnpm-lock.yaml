@@ -35,6 +35,9 @@ importers:
       '@businessos/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../../packages/organizations
       '@businessos/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -66,6 +69,9 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../../packages/testing
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)
@@ -206,11 +212,58 @@ importers:
         specifier: ^4.23.15
         version: 4.23.15
 
+  packages/organizations:
+    dependencies:
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
   packages/shared:
     dependencies:
       zod:
         specifier: ^4.6.5
         version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/testing:
+    dependencies:
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../organizations
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
     devDependencies:
       '@businessos/config':
         specifier: workspace:*

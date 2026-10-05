@@ -5,12 +5,10 @@
   "globalPassThroughEnv": ["NODE_ENV", "CI"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"],
       "env": ["NEXT_PUBLIC_*", "API_INTERNAL_URL"]
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
       "outputs": []
     },
     "lint": {

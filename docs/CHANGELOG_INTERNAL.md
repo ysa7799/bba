@@ -2,6 +2,17 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 2 — Database + tenancy (2026-10-05)
+
+- Schema: `users`, `organizations`, `memberships`, `organization_settings` with check
+  constraints, explicit FK delete rules, and RLS policies (forced) on every table.
+- `withTenant` / `withUser` / `withSystem` scoped transactions with branded types.
+- `@businessos/organizations`: create organization (unique slug allocation, owner membership,
+  extension hooks), list user organizations, resolve membership (404 semantics), update
+  organization (allow-listed fields), list members (keyset pagination + search), typed settings.
+- `@businessos/testing`: two-tenant world fixture; shared Vitest global setup.
+- Fixed an RLS leak found by the new isolation suite (migration 0003).
+
 ## Phase 1 — Monorepo foundation (2026-10-05)
 
 - Replaced the Express sample with a pnpm/Turborepo monorepo: `apps/{web,api,worker}`,

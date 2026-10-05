@@ -44,7 +44,9 @@ apps/
 packages/
   config/      shared tsconfig + eslint config, env-schema helpers
   shared/      errors, ids (UUIDv7), money, pagination, time, logging redaction
-  database/    Drizzle schema, migrations, db client, tenant context (withTenant/withSystem)
+  database/    Drizzle schema, migrations, db client, scopes (withTenant/withUser/withSystem)
+  organizations/ organization lifecycle, membership resolution, settings registry
+  testing/     dev-only fixtures (two-tenant world), Vitest global setup
   …            further packages are added only when code needs them (see ROADMAP)
 ```
 
@@ -82,6 +84,9 @@ permissions }` from the session and the `:orgId` route param. The param is only 
    non-owner role (`businessos_app`) without `BYPASSRLS`. `withTenant(orgId, fn)` runs `fn` in a
    transaction after `set_config('app.org_id', orgId, true)`. A forgotten `WHERE` therefore
    returns zero rows instead of another tenant's data.
+
+`withUser(userId, fn)` sets only `app.user_id`: the user may read their own memberships and
+the organizations they belong to (organization switcher), nothing tenant-internal.
 
 `withSystem(fn)` sets `app.system = 'on'` for the transaction, which the policies honour. It is
 used only for: authentication (global user/session tables), routing inbound webhooks to a

@@ -57,6 +57,24 @@ CREATE POLICY tenant_isolation ON <t>
 
 Populated as phases land. See the schema files for the source of truth.
 
-| Table      | Scope | Phase | Delete behaviour |
-| ---------- | ----- | ----- | ---------------- |
-| _none yet_ |       |       |                  |
+| Table                   | Scope                                    | Phase | Delete behaviour                                                        |
+| ----------------------- | ---------------------------------------- | ----- | ----------------------------------------------------------------------- |
+| `users`                 | global (RLS: self, co-members, system)   | 2     | hard delete cascades memberships (privacy flow later)                   |
+| `organizations`         | tenant root (RLS: own tenant, members\*) | 2     | soft delete (`deleted_at`); hard delete cascades all tenant rows        |
+| `memberships`           | tenant                                   | 2     | cascade with organization or user                                       |
+| `organization_settings` | tenant                                   | 2     | cascade with organization; `updated_by_user_id` set null on user delete |
+
+\* Members see their organizations only in user scope (no organization selected); inside a
+tenant context only that tenant is visible.
+
+### Scopes
+
+| Helper                        | Settings                    | Sees                                                        |
+| ----------------------------- | --------------------------- | ----------------------------------------------------------- |
+| `withTenant(db, {org, user})` | `app.org_id`, `app.user_id` | that organization's rows; member users                      |
+| `withUser(db, userId)`        | `app.user_id`               | own user row, own memberships, organizations they belong to |
+| `withSystem(db)`              | `app.system = on`           | everything — justified call sites only                      |
+| none                          | —                           | nothing (all tables return zero rows)                       |
+
+Transaction handles are branded (`TenantTx`, `UserTx`, `SystemTx`) so a function that requires
+tenant scope cannot be handed an unscoped or system transaction by mistake.
