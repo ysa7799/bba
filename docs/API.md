@@ -78,6 +78,23 @@ Cursor-based for lists: `?limit=50&cursor=<opaque>` → `{ data: [...], nextCurs
 | GET    | `/app/orgs/:orgId`         | `{organization, settings}` (members only, else 404)                  |
 | GET    | `/app/orgs/:orgId/members` | `?limit&cursor&search`                                               |
 
+### Organization administration (Phase 4)
+
+| Method            | Path                                           | Permission              | Notes                                            |
+| ----------------- | ---------------------------------------------- | ----------------------- | ------------------------------------------------ |
+| PATCH             | `/app/orgs/:orgId`                             | `organization.update`   | name, country, currency, timezone, locale        |
+| PATCH             | `/app/orgs/:orgId/settings`                    | `organization.update`   | registry keys only                               |
+| GET               | `/app/orgs/:orgId/access`                      | member                  | own roles + effective permissions                |
+| GET               | `/app/orgs/:orgId/permissions`                 | member                  | catalogue for the role editor                    |
+| POST              | `/app/orgs/:orgId/leave`                       | member                  | 409 for the last owner                           |
+| PUT               | `/app/orgs/:orgId/members/:membershipId/roles` | `settings.users.manage` | `{roleIds}`; escalation guards                   |
+| PATCH             | `/app/orgs/:orgId/members/:membershipId`       | `settings.users.manage` | `{status}` suspend/reactivate                    |
+| DELETE            | `/app/orgs/:orgId/members/:membershipId`       | `settings.users.manage` | remove member                                    |
+| GET               | `/app/orgs/:orgId/roles`                       | member                  | roles with effective permissions + member counts |
+| POST/PATCH/DELETE | `/app/orgs/:orgId/roles[/:roleId]`             | `settings.roles.manage` | custom roles only                                |
+| GET/POST          | `/app/orgs/:orgId/invitations`                 | `settings.users.manage` | `{email, roleId}`                                |
+| DELETE            | `/app/orgs/:orgId/invitations/:id`             | `settings.users.manage` | revoke                                           |
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

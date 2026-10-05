@@ -105,3 +105,23 @@ provider (`CONFIGURATION_REQUIRED`).
 `sessions.auth_method` and `sessions.mfa_verified_at` exist so OAuth (Google/Microsoft), MFA,
 passkeys and SAML can be added without reshaping sessions. External identities will live in a
 separate `user_identities` table; `users.password_hash` is nullable for passwordless accounts.
+
+## ADR-017 — System roles resolve from code; permissions ship with features
+
+System roles are rows (so they can be assigned and referenced by FKs) but their permissions are
+derived from the catalogue at evaluation time, so a release that adds a permission updates every
+organization's system roles without data migrations. Custom roles store explicit lists and only
+gain new permissions when an admin adds them. Permissions enter the catalogue in the phase that
+implements the guarded feature.
+
+## ADR-018 — Same-tenant integrity with composite foreign keys
+
+Join tables that reference two tenant-owned rows carry `organization_id` and use composite
+foreign keys `(id, organization_id)` to both parents. Cross-tenant links are impossible even for
+code running in system scope. This pattern applies to all future tenant join tables.
+
+## ADR-019 — Tenant access data is fetched per page, not per layout
+
+Next.js App Router layouts are not re-rendered on client navigation, so permission data fetched
+in a layout goes stale after a role change. Tenant pages fetch access themselves (deduplicated
+per request with React `cache`) and provide it to client components.

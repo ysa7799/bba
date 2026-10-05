@@ -2,6 +2,19 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 4 — RBAC (2026-10-05)
+
+- `@businessos/permissions`: catalogue, code-defined system roles, effective permission
+  evaluation, escalation guards (`canGrantRole`, `canManageMember`).
+- Schema: `roles`, `membership_roles` (composite same-tenant FKs, RESTRICT on assigned roles),
+  `invitations.role_id`; backfill migration for existing organizations.
+- Organizations: system role seeding on creation, membership resolution with access, custom
+  role CRUD, member role/status changes, removal, leave, last-owner invariant with row locking.
+- API: permission-aware tenant context, `requirePermission`, organization/settings updates,
+  members, roles, invitations management, access + catalogue endpoints.
+- Web: members management (invite, roles, suspend/remove, pending invitations), roles editor,
+  organization settings; per-page access data.
+
 ## Phase 3 — Authentication (2026-10-05)
 
 - `@businessos/auth`: argon2id passwords (policy, rehash-on-login, timing-safe unknown users),

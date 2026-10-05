@@ -2,9 +2,45 @@
 
 ## Current Phase
 
-Phase 4 — RBAC
+Phase 5 — Audit + Events + Jobs
 
 Status: IN_PROGRESS
+
+---
+
+## Phase 4 — RBAC
+
+Status: PASSED
+
+### Completed
+
+- Permission catalogue (organization.update, settings.users.manage, settings.roles.manage),
+  five system roles derived from code, custom roles, multi-role assignments.
+- Escalation guards: subset rule for granting/defining/inviting, no managing more powerful
+  members, owner-only owner grants, at-least-one-owner invariant with organization row lock.
+- Member management, role management, invitation management, organization settings — API + UI.
+
+### Tests
+
+- permissions: 10 unit tests (catalogue integrity, derivation, filtering, guards).
+- API RBAC suite: 37 tests — permission matrix (403 for members, 404 for non-members on every
+  guarded endpoint), owner-grant attempts, managing owners, delegated manager escalation
+  attempts (assign, self-assign, define role, invite), system role immutability, unknown
+  permissions, immediate effect of role changes, cross-tenant role/member/invitation/role-edit
+  references, DB-level rejection of cross-tenant assignments, last-owner rules, ownership
+  transfer, concurrent demotion race, suspension/removal effects, invited role assignment.
+- E2E: invite → accept → restricted UI → promotion takes effect.
+- Full suite: 186 unit/integration + 4 E2E passing.
+
+### Risks
+
+- Permission resolution adds one query per tenant request (inside the same tenant transaction
+  as membership resolution). Revisit with caching in Phase 26 if needed.
+
+### Next
+
+- Phase 5: audit log, domain events with transactional outbox, job abstraction with retries,
+  idempotency and dead-letter visibility; audit existing sensitive actions.
 
 ---
 
