@@ -65,7 +65,9 @@ Populated as phases land. See the schema files for the source of truth.
 | `organization_settings` | tenant                                   | 2     | cascade with organization; `updated_by_user_id` set null on user delete |
 | `sessions`              | global (RLS: own user, system)           | 3     | cascade with user; `active_organization_id` set null                    |
 | `auth_tokens`           | global (RLS: system only)                | 3     | cascade with user                                                       |
-| `invitations`           | tenant                                   | 3     | cascade with organization; inviter/acceptor set null                    |
+| `invitations`           | tenant                                   | 3     | cascade with organization; inviter/acceptor set null; role RESTRICT     |
+| `roles`                 | tenant                                   | 4     | cascade with organization                                               |
+| `membership_roles`      | tenant (composite same-tenant FKs)       | 4     | cascade with membership; role RESTRICT                                  |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.
