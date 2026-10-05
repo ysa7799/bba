@@ -85,6 +85,7 @@ Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
 | `commerce.catalog.manage`     | commerce       | ✓     | ✓     | ✓       |        |            |
 | `commerce.payment.refund`     | commerce       | ✓     | ✓     |         |        |            |
 | `commerce.settings.manage`    | commerce       | ✓     | ✓     |         |        |            |
+| `reports.read`                | reports        | ✓     | ✓     | ✓       | ✓      |            |
 
 Every member may read the organization profile, members, roles and the permission catalogue.
 
@@ -162,7 +163,15 @@ Commerce specifics:
 - Customers act only through their document link (a bearer token for one quote or invoice):
   view, pay what is due, accept or decline.
 
+Reports specifics:
+
+- `reports.read` opens dashboards and reports; each report additionally needs read access to
+  its data (e.g. revenue needs `commerce.invoice.read`), so a report never shows what the
+  member could not open elsewhere. Names inside reports follow the same rule (customer names
+  need `crm.contact.read`). Restricted members have no reports by default.
+- Downloading a report as CSV needs the same permissions and is audited.
+
 ## Planned additions (by phase)
 
-`reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
+`api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

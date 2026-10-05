@@ -287,6 +287,18 @@ threat model and the control catalogue; it is updated whenever a control is adde
   counter, so they are unique and gapless; issued invoices cannot be edited or deleted (void
   keeps the number).
 
+### Reports (Phase 15)
+
+- Permission-aware by construction: a report runs only with `reports.read` plus its module's
+  read permission (route and service both check); the dashboard omits reports the member
+  cannot open instead of showing them empty; names are withheld without read access to the
+  named record type.
+- Tenant isolation: queries run in the tenant's RLS scope **and** filter every table and join by
+  `organization_id` (tested with another organization's data present).
+- Bounded: periods ≤ 366 days, at most one bucket per day, breakdown tables ≤ 200 rows (top
+  customers 10); reports are rate limited per user; supporting indexes (migration 0029).
+- CSV exports escape spreadsheet formulas (`= + - @`, tab, CR) and are audited.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·

@@ -2,9 +2,71 @@
 
 ## Current Phase
 
-Phase 15 — Dashboards + reporting
+Phase 16 — Files + notifications
 
 Status: NOT_STARTED
+
+---
+
+## Phase 15 — Dashboards + reporting
+
+Status: PASSED
+
+### Completed
+
+- `@businessos/reporting`: report periods resolved by PostgreSQL in the organization's time zone
+  (day, ISO week, month; ≤ 366 days; sensible defaults); results as exact decimal strings
+  (counts, per-currency money never converted, percentages from integers) with series bar
+  scales computed on the server; eight reports — sales pipeline (open/weighted/won value per
+  currency, win rate, deals by stage), revenue (invoiced, collected, refunded, net,
+  outstanding, overdue, top customers), contacts (new, by source, by lifecycle stage), tasks
+  (open, overdue, mine, completed, by assignee), conversations (open, unassigned, messages in
+  and out, by channel), appointments (booked, held, no-shows, cancellations, next 7 days, by
+  type), forms (submissions, spam, by form) and automation (runs, failures, success rate, by
+  workflow); this-month dashboard; CSV export.
+- Permission `reports.read`; every report also requires its module's read permission (API,
+  service and dashboard); names withheld without the matching read permission; audit action
+  `reports.exported`.
+- Migration 0029: per-period reporting indexes on messages, conversations, form submissions,
+  runs, invoice payments, refunds, deals, tasks and invoices.
+- API: `/app/orgs/:orgId/reports` (list, dashboard, report, CSV), rate limited per user.
+- Web: dashboard on the overview (headline tiles and a chart per permitted report), Reports page
+  (report tabs, period form that works without JavaScript, stat tiles, single-hue bar charts
+  with per-bar hover/focus tooltips and data tables, breakdown tables, CSV download). Chart color
+  validated against the card surface (dataviz six checks: pass). Fixed the content column not
+  filling wide screens.
+
+### Tests
+
+- reporting (8): UTC boundaries of local days; defaults and bounds; Monday weeks and months;
+  records counted on their **local day** around midnight; **other tenants excluded**; per-currency
+  pipeline sums and probability weighting; win rate; revenue invoiced/collected/refunded/net/
+  outstanding/overdue exact to the fils; customer names **withheld without contact access**;
+  available reports, forbidden reports and dashboard widgets per permission set; every report on
+  an empty organization; **CSV formula escaping**.
+- API (3): reports per role (owner, member without automation, restricted with none);
+  organization-only counts, cross-tenant 404, period validation, weekly buckets; CSV download
+  headers, BOM and audit entry; 403 for forbidden exports.
+- E2E: dashboard on the overview, contacts report with chart and tables, CSV download, an
+  invalid period explained.
+- Full suite (uncached): 539 unit/integration + 13 E2E passing.
+
+### Risks
+
+- Reports read operational tables directly; very large organizations may need rollups or a
+  read replica (measure in Phase 26).
+- No saved or scheduled reports yet, and no comparison with the previous period.
+- Reports are English-only until the Arabic catalogue lands (labels are already in i18n).
+
+### Fixed during the phase
+
+- The app's content column did not fill wide screens (layout).
+- An existing E2E assertion matched any "BHD" on the overview; it is now scoped to the
+  organization details (the dashboard shows BHD amounts too).
+
+### Next
+
+- Phase 16: files and notifications.
 
 ---
 

@@ -201,6 +201,8 @@ export const automationRuns = pgTable(
       .on(t.resumeAt)
       .where(sql`${t.status} in ('running', 'waiting')`),
     index('automation_runs_contact_idx').on(t.workflowId, t.contactId, t.startedAt),
+    /** Reports: runs per period across workflows. */
+    index('automation_runs_org_started_idx').on(t.organizationId, t.startedAt),
     foreignKey({
       name: 'automation_runs_workflow_fk',
       columns: [t.workflowId, t.organizationId],

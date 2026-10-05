@@ -61,6 +61,7 @@ packages/
 Planned packages, created in the phase that needs them: `auth` (P3), `permissions` (P4),
 `events`, `jobs`, `audit` (P5), `billing` (P6), `payments` (P7), `crm` (P8),
 `communications` (P10), `calendar` (P11), `forms` (P12), `automation` (P13), `commerce` (P14),
+`reporting` (P15),
 `files`, `notifications` (P16), `integrations` (P18), `ui` (when the web app needs shared
 primitives across more than one surface).
 
@@ -184,6 +185,12 @@ gapless invoice numbering, customer links, and invoice payments: online through 
 organization's own provider connection (verified server-side, applied once) or recorded by
 staff, plus refunds. It reuses the payments port and adapters but never the platform billing
 flow. It is not a ledger: accounting arrives as a separate design phase.
+
+Reporting (`@businessos/reporting`) answers dashboards and reports with bounded aggregate
+queries over the live tables in the caller's tenant scope (no warehouse yet): periods are
+resolved in the organization's time zone by PostgreSQL, money stays per currency, and every
+report declares the read permission it needs. Results are plain data (metrics, series with
+server-computed bar scales, tables) that the web app renders and the API can export as CSV.
 
 Automation (`@businessos/automation`) stores workflows as versions with a trigger and a tree of
 steps. The `automation` event subscriber starts runs for matching published workflows (unique

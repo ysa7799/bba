@@ -373,6 +373,30 @@ with that connection's credentials; recorded once per provider event; the paymen
 re-fetched from the provider) → `{received, outcome: processed|ignored|duplicate}`; 401 for
 bad signatures, 404 for unknown or disconnected connections.
 
+### Reports (Phase 15)
+
+All under `/app/orgs/:orgId/reports`. Every report needs `reports.read` **and** read access to
+the data it summarizes (checked again by the reporting service). Periods are calendar dates in
+the organization's time zone: `?from&to` (inclusive, ≤ 366 days; default the last 30 days)
+and `granularity` (`day|week|month`, weeks start on Monday; default by length). Counts and
+money are exact decimal strings; money is grouped per currency (never converted) and shows
+zero in the organization's currency when there was no activity. Series points carry `scale`
+(0–1000, relative to the series maximum) for charts.
+
+| Method | Path               | Permission              | Notes                                                                                         |
+| ------ | ------------------ | ----------------------- | --------------------------------------------------------------------------------------------- |
+| GET    | `/`                | member                  | `{reports}`: the report keys this member may open (empty without `reports.read`)              |
+| GET    | `/dashboard`       | `reports.read`          | this month so far: `{range, widgets: [{report, metrics, series}]}` for permitted reports only |
+| GET    | `/:key`            | `reports.read` + module | `{report: {key, range, metrics, series, tables}}`; 403 without the module permission          |
+| GET    | `/:key/export.csv` | `reports.read` + module | the same report as CSV (UTF-8 BOM, formula-escaped) (audited `reports.exported`)              |
+
+Reports and their module permission: `sales_pipeline` (`crm.deal.read`), `revenue`
+(`commerce.invoice.read`; customer names only with `crm.contact.read`/`crm.company.read`),
+`contacts` (`crm.contact.read`), `tasks` (`crm.task.read`), `conversations`
+(`communications.read`), `appointments` (`calendar.appointment.read`), `forms`
+(`forms.submission.read`), `automation` (`automation.workflow.read`). Rate limited per user
+(`reportRunUser`, `reportExportUser`).
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

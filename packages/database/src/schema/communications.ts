@@ -126,6 +126,7 @@ export const conversations = pgTable(
     ),
     index('conversations_assignee_idx').on(t.organizationId, t.assigneeUserId, t.status),
     index('conversations_contact_idx').on(t.contactId),
+    index('conversations_org_created_idx').on(t.organizationId, t.createdAt),
     foreignKey({
       name: 'conversations_connection_fk',
       columns: [t.connectionId, t.organizationId],
@@ -257,6 +258,8 @@ export const messages = pgTable(
       .on(t.connectionId, t.providerMessageId)
       .where(sql`${t.providerMessageId} is not null`),
     index('messages_conversation_idx').on(t.conversationId, t.createdAt, t.id),
+    /** Reports: messages per period. */
+    index('messages_org_created_idx').on(t.organizationId, t.createdAt),
     foreignKey({
       name: 'messages_conversation_fk',
       columns: [t.conversationId, t.organizationId],

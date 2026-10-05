@@ -29,6 +29,7 @@
     "@businessos/organizations": "workspace:*",
     "@businessos/payments": "workspace:*",
     "@businessos/permissions": "workspace:*",
+    "@businessos/reporting": "workspace:*",
     "@businessos/shared": "workspace:*",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",

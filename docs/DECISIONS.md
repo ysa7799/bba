@@ -402,3 +402,22 @@ money is applied or refunded; status is `paid` when it covers the total, otherwi
 duplicate online payments (recorded as overpaid for staff to refund) all follow from the same
 rule. Manual payments are capped at the amount due; refunds at what remains of the payment, and
 online refunds reserve the amount before calling the provider. No general ledger yet.
+
+## ADR-050 — Reports query the live tables, bounded, in the organization's time zone
+
+Reports aggregate the operational tables directly (in tenant scope, with explicit organization
+filters) instead of a separate warehouse or pre-aggregated tables: volumes per organization
+are small, results are always current and tenancy is enforced by the same RLS. Each query is
+bounded (≤ 366 days, ≤ 200 rows per table) and served by per-period indexes. Day, week (ISO,
+Monday) and month buckets are computed by PostgreSQL in the organization's IANA time zone, so a
+sale at 00:30 in Manama counts on that local day. Money is summed per currency and never
+converted; empty money shows zero in the organization's currency. Bar sizes are computed on the
+server with integer math so the browser never does arithmetic on money. Revisit (rollups or a
+read replica) when a report exceeds its latency budget (Phase 26).
+
+## ADR-051 — A report needs `reports.read` and read access to its data
+
+`reports.read` alone would let a member see aggregates of records they cannot open (e.g.
+revenue without `commerce.invoice.read`). Each report therefore declares its module read
+permission; the API, the service and the dashboard all apply both. Names inside reports
+follow the record-type read permissions. Restricted members get no reports by default.

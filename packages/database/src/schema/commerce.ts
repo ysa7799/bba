@@ -233,6 +233,10 @@ export const commerceInvoices = pgTable(
     uniqueIndex('commerce_invoices_token_unique').on(t.publicTokenHash),
     index('commerce_invoices_org_idx').on(t.organizationId, t.createdAt.desc(), t.id.desc()),
     index('commerce_invoices_contact_idx').on(t.contactId),
+    /** Reports: invoiced per period. */
+    index('commerce_invoices_org_issued_idx')
+      .on(t.organizationId, t.issueDate)
+      .where(sql`${t.issueDate} is not null`),
     index('commerce_invoices_due_idx')
       .on(t.dueDate)
       .where(sql`${t.status} = 'open' and ${t.overdueAt} is null`),
@@ -481,6 +485,8 @@ export const commerceInvoicePayments = pgTable(
       .on(t.paymentId)
       .where(sql`${t.paymentId} is not null`),
     index('commerce_invoice_payments_invoice_idx').on(t.invoiceId, t.receivedAt),
+    /** Reports: money collected per period. */
+    index('commerce_invoice_payments_org_received_idx').on(t.organizationId, t.receivedAt),
     foreignKey({
       name: 'commerce_invoice_payments_invoice_fk',
       columns: [t.invoiceId, t.organizationId],
@@ -525,6 +531,7 @@ export const commerceRefunds = pgTable(
   },
   (t) => [
     index('commerce_refunds_invoice_idx').on(t.invoiceId),
+    index('commerce_refunds_org_created_idx').on(t.organizationId, t.createdAt),
     foreignKey({
       name: 'commerce_refunds_invoice_fk',
       columns: [t.invoiceId, t.organizationId],

@@ -48,6 +48,9 @@ export const DEFAULT_RATE_LIMITS = {
   /** Staff: provider calls (payment re-verification, refunds) per organization. */
   commerceVerifyOrg: { limit: 300, windowSeconds: 3600 },
   commerceRefundOrg: { limit: 100, windowSeconds: 3600 },
+  /** Reports and dashboards (bounded aggregate queries) and their CSV downloads, per user. */
+  reportRunUser: { limit: 300, windowSeconds: 600 },
+  reportExportUser: { limit: 30, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

@@ -44,6 +44,7 @@ import { commerceRoutes } from './modules/commerce/routes';
 import { publicBookingRoutes } from './modules/calendar/public-routes';
 import { crmRoutes } from './modules/crm/routes';
 import { publicFormRoutes } from './modules/forms/public-routes';
+import { reportRoutes } from './modules/reports/routes';
 import { RenderTokenStore } from './modules/forms/render-tokens';
 import { formRoutes } from './modules/forms/routes';
 import {
@@ -250,6 +251,7 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(automationRoutes, { prefix: '/app/orgs/:orgId/automation' });
   await app.register(automationWebhookRoutes, { prefix: '/webhooks/automation' });
   await app.register(commerceRoutes, { prefix: '/app/orgs/:orgId/commerce' });
+  await app.register(reportRoutes, { prefix: '/app/orgs/:orgId/reports' });
   await app.register(publicCommerceRoutes, { prefix: '/public/commerce' });
   await app.register(commerceWebhookRoutes, { prefix: '/webhooks/commerce' });
   if (env.NODE_ENV !== 'production' && app.commerce.providers.has('fake')) {

@@ -35,6 +35,7 @@ export default async function OrganizationLayout({
           <OrgSwitcher organizations={me.organizations} currentId={orgId} />
           <nav aria-label="Main" className="flex gap-1 overflow-x-auto md:flex-col">
             <NavLink href={base} label={m.app.nav.overview} exact />
+            <NavLink href={`${base}/reports`} label={m.app.nav.reports} />
             <p className="hidden px-3 pt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 md:block">
               {m.app.nav.crmSection}
             </p>
@@ -77,7 +78,7 @@ export default async function OrganizationLayout({
           </nav>
         </div>
       </aside>
-      <div className="md:ps-60 print:ps-0">
+      <div className="min-w-0 md:flex-1 md:ps-60 print:ps-0">
         <header className="flex h-14 items-center justify-end gap-4 border-b border-slate-200 bg-white px-4 sm:px-6 print:hidden">
           <span className="truncate text-sm text-slate-700">{me.user.name}</span>
           <SignOutButton />

@@ -175,6 +175,8 @@ export const formSubmissions = pgTable(
     uniqueIndex('form_submissions_form_key_unique').on(t.formId, t.idempotencyKey),
     index('form_submissions_form_idx').on(t.formId, t.submittedAt.desc(), t.id.desc()),
     index('form_submissions_contact_idx').on(t.contactId),
+    /** Reports: submissions per period across forms. */
+    index('form_submissions_org_submitted_idx').on(t.organizationId, t.submittedAt),
     foreignKey({
       name: 'form_submissions_form_fk',
       columns: [t.formId, t.organizationId],

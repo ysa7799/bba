@@ -298,6 +298,10 @@ export const crmDeals = pgTable(
     index('crm_deals_contact_idx').on(t.contactId),
     index('crm_deals_company_idx').on(t.companyId),
     index('crm_deals_org_status_idx').on(t.organizationId, t.status),
+    /** Reports: deals won/lost per period. */
+    index('crm_deals_org_closed_idx')
+      .on(t.organizationId, t.closedAt)
+      .where(sql`${t.closedAt} is not null`),
     index('crm_deals_search_idx').using('gin', t.searchVector),
     index('crm_deals_custom_fields_idx').using('gin', sql`${t.customFields} jsonb_path_ops`),
     foreignKey({
@@ -359,6 +363,9 @@ export const crmTasks = pgTable(
     index('crm_tasks_assignee_idx').on(t.organizationId, t.assigneeUserId, t.status),
     index('crm_tasks_contact_idx').on(t.contactId),
     index('crm_tasks_deal_idx').on(t.dealId),
+    index('crm_tasks_org_completed_idx')
+      .on(t.organizationId, t.completedAt)
+      .where(sql`${t.completedAt} is not null`),
     foreignKey({
       name: 'crm_tasks_contact_fk',
       columns: [t.contactId, t.organizationId],

@@ -344,6 +344,14 @@ export const PERMISSION_DEFINITIONS = [
     description: 'Read submitted answers (may contain personal data).',
     roles: ['manager', 'member'],
   },
+  {
+    key: 'reports.read',
+    module: 'reports',
+    label: 'View dashboards and reports',
+    description:
+      'See dashboards and reports, and download them as CSV. Each report also needs read access to its data (deals, invoices, contacts…).',
+    roles: ['manager', 'member'],
+  },
 ] as const satisfies readonly PermissionDefinition[];
 
 export type Permission = (typeof PERMISSION_DEFINITIONS)[number]['key'];

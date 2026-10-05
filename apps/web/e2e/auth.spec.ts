@@ -26,8 +26,9 @@ test('register → verify → sign in → create organization → members → si
   await page.getByRole('button', { name: 'Create organization' }).click();
 
   await expect(page.getByRole('heading', { name: 'Seef Trading Co' })).toBeVisible();
-  await expect(page.getByText('BHD')).toBeVisible();
-  await expect(page.getByText('Asia/Bahrain')).toBeVisible();
+  const details = page.getByTestId('organization-details');
+  await expect(details.getByText('BHD', { exact: true })).toBeVisible();
+  await expect(details.getByText('Asia/Bahrain', { exact: true })).toBeVisible();
 
   // Billing shows the baseline plan limits for an organization without a subscription.
   await page.getByRole('link', { name: 'Billing' }).click();

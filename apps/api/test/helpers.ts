@@ -59,6 +59,8 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
     'commerceWebhookConnection',
     'commerceVerifyOrg',
     'commerceRefundOrg',
+    'reportRunUser',
+    'reportExportUser',
   ].map((name) => [name, { limit: 10_000, windowSeconds: 60 }]),
 );
 

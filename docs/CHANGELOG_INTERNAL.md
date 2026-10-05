@@ -2,6 +2,21 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 15 — Dashboards + reporting (2026-10-05)
+
+- `@businessos/reporting`: periods in the organization time zone (day / ISO week / month,
+  ≤ 366 days), exact per-currency money, server-computed bar scales; reports
+  `sales_pipeline`, `revenue`, `contacts`, `tasks`, `conversations`, `appointments`, `forms`,
+  `automation`; dashboard (this month); CSV with formula escaping.
+- Permission `reports.read` (owner, admin, manager, member); each report also needs its
+  module's read permission. Audit action `reports.exported`.
+- Migration 0029: per-period reporting indexes.
+- API: `/app/orgs/:orgId/reports` (list, dashboard, report, CSV export); rate limits
+  `reportRunUser`, `reportExportUser`.
+- Web: dashboard on the overview, Reports page (tabs, period form, stat tiles, accessible bar
+  charts with tooltips and data tables, breakdown tables, CSV download), "Reports" nav link;
+  the app's content column now fills wide screens; E2E.
+
 ## Phase 14 — Commerce (2026-10-05)
 
 - Schema: `commerce_settings`, `commerce_tax_rates`, `commerce_products`,

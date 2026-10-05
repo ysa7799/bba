@@ -81,6 +81,7 @@ export const AUDIT_ACTIONS = [
   'commerce.payment.recorded',
   'commerce.refund.created',
   'commerce.refund.failed',
+  'reports.exported',
   'automation.workflow.created',
   'automation.workflow.updated',
   'automation.workflow.published',

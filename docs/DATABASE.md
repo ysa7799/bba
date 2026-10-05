@@ -140,6 +140,13 @@ tstzrange(starts_at, ends_at, '[)') WITH &&)`. Needs the `btree_gist` extension 
   document, line, payment and refund (checks: amounts ≥ 0, payments > 0, refunded ≤ amount,
   online ⇔ payment id). `payments.purpose` is `subscription` or `invoice`; invoice payments
   are verified through the organization's own connection, never the platform's.
+- Reporting indexes (migration 0029) cover per-period aggregates: `(organization_id, created_at)`
+  on messages and conversations, `(organization_id, submitted_at)` on form submissions,
+  `(organization_id, started_at)` on workflow runs, `(organization_id, received_at)` on invoice
+  payments, `(organization_id, created_at)` on refunds, and partial `(organization_id,
+closed_at|completed_at|issue_date)` on deals, tasks and invoices. Built with plain
+  `CREATE INDEX` because no production data exists yet; once it does, new indexes on large
+  tables go in their own `CREATE INDEX CONCURRENTLY` migration.
 - A transaction is one connection: never run queries concurrently on it (`Promise.all` over
   `tx` queries); `pg` serializes them anyway and will reject it in its next major version.
 
