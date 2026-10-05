@@ -1,5 +1,6 @@
 import {
   authTokens,
+  membershipRoles,
   memberships,
   sessions,
   users,
@@ -16,8 +17,10 @@ import {
   ValidationError,
 } from '@businessos/shared';
 import {
+  actorFor,
   createTestDatabase,
   createTestWorld,
+  systemRoleId,
   uniqueSuffix,
   type TestWorld,
 } from '@businessos/testing';
@@ -353,17 +356,11 @@ describe('password reset', () => {
 
 describe('invitations', () => {
   async function invite(address: string, organizationId = world.orgA.organization.id) {
-    const created = await withTenant(
-      handle.db,
-      { organizationId, userId: world.orgA.users.owner.id },
-      (tx) =>
-        createInvitation(tx, config, {
-          organizationId,
-          email: address,
-          invitedByUserId: world.orgA.users.owner.id,
-        }),
+    const invitedBy = await actorFor(handle.db, organizationId, world.orgA.users.owner.id);
+    const roleId = await systemRoleId(handle.db, organizationId, 'member');
+    return withTenant(handle.db, { organizationId, userId: world.orgA.users.owner.id }, (tx) =>
+      createInvitation(tx, config, { organizationId, email: address, roleId, invitedBy }),
     );
-    return created;
   }
 
   it('lets a new person accept, creating a verified account and membership', async () => {
@@ -434,6 +431,12 @@ describe('invitations', () => {
   });
 
   it('cannot create invitations for another organization from tenant A scope', async () => {
+    const invitedBy = await actorFor(
+      handle.db,
+      world.orgA.organization.id,
+      world.orgA.users.owner.id,
+    );
+    const foreignRole = await systemRoleId(handle.db, world.orgB.organization.id, 'member');
     await expect(
       withTenant(
         handle.db,
@@ -442,9 +445,29 @@ describe('invitations', () => {
           createInvitation(tx, config, {
             organizationId: world.orgB.organization.id,
             email: email('cross'),
-            invitedByUserId: world.orgA.users.owner.id,
+            roleId: foreignRole,
+            invitedBy,
           }),
       ),
     ).rejects.toMatchObject({ code: 'not_found' });
+  });
+
+  it('assigns the invited role on acceptance', async () => {
+    const address = email('roled');
+    const { token } = await invite(address);
+    const result = await acceptInvitationAsNewUser(services, token, {
+      name: 'Roled',
+      password: PASSWORD,
+    });
+    const actor = await actorFor(handle.db, world.orgA.organization.id, result.user.id);
+    expect(actor.isOwner).toBe(false);
+    const memberRoleId = await systemRoleId(handle.db, world.orgA.organization.id, 'member');
+    const assigned = await withSystem(handle.db, (tx) =>
+      tx
+        .select({ roleId: membershipRoles.roleId })
+        .from(membershipRoles)
+        .where(eq(membershipRoles.membershipId, actor.membershipId)),
+    );
+    expect(assigned.map((row) => row.roleId)).toEqual([memberRoleId]);
   });
 });

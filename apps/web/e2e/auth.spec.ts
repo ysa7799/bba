@@ -1,11 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { PASSWORD, uniqueEmail } from './helpers';
 import { waitForLink } from './mail';
-
-const PASSWORD = 'correct horse battery staple';
-
-function uniqueEmail(label: string): string {
-  return `${label}.${Date.now()}.${Math.random().toString(16).slice(2, 8)}@example.com`;
-}
 
 test('register → verify → sign in → create organization → members → sign out', async ({ page }) => {
   const email = uniqueEmail('owner');

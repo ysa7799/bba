@@ -1,0 +1,1 @@
+ALTER TABLE "invitations" ALTER COLUMN "role_id" SET NOT NULL;

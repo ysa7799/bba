@@ -15,6 +15,7 @@
   "dependencies": {
     "@businessos/database": "workspace:*",
     "@businessos/organizations": "workspace:*",
+    "@businessos/permissions": "workspace:*",
     "@businessos/shared": "workspace:*",
     "drizzle-orm": "^0.45.3"
   },

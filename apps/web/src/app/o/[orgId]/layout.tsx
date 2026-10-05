@@ -36,6 +36,8 @@ export default async function OrganizationLayout({
           <nav aria-label="Main" className="flex gap-1 overflow-x-auto md:flex-col">
             <NavLink href={base} label={m.app.nav.overview} exact />
             <NavLink href={`${base}/members`} label={m.app.nav.members} />
+            <NavLink href={`${base}/roles`} label={m.app.nav.roles} />
+            <NavLink href={`${base}/settings`} label={m.app.nav.settings} />
           </nav>
         </div>
       </aside>

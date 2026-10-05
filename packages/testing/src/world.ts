@@ -1,6 +1,8 @@
 import {
   createDatabase,
+  membershipRoles,
   memberships,
+  roles,
   users,
   withSystem,
   type Database,
@@ -9,7 +11,9 @@ import {
   type User,
 } from '@businessos/database';
 import { requireEnv } from '@businessos/database/testing';
-import { createOrganization } from '@businessos/organizations';
+import { createOrganization, resolveMembership, type MemberActor } from '@businessos/organizations';
+import type { SystemRoleKey } from '@businessos/permissions';
+import { and, eq } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 
 /** Connects as the runtime role so RLS is enforced in tests. */
@@ -52,15 +56,28 @@ export async function addTestMember(
   db: Database,
   organizationId: string,
   userId: string,
-  status: 'active' | 'suspended' = 'active',
+  options: { status?: 'active' | 'suspended'; role?: SystemRoleKey } = {},
 ): Promise<string> {
   // System scope: fixture setup outside any request.
   return withSystem(db, async (tx) => {
     const [row] = await tx
       .insert(memberships)
-      .values({ organizationId, userId, status })
+      .values({ organizationId, userId, status: options.status ?? 'active' })
       .returning({ id: memberships.id });
     if (!row) throw new Error('failed to add member');
+    const [role] = await tx
+      .select({ id: roles.id })
+      .from(roles)
+      .where(
+        and(
+          eq(roles.organizationId, organizationId),
+          eq(roles.systemKey, options.role ?? 'member'),
+        ),
+      );
+    if (!role) throw new Error('system role missing');
+    await tx
+      .insert(membershipRoles)
+      .values({ organizationId, membershipId: row.id, roleId: role.id });
     return row.id;
   });
 }
@@ -98,14 +115,52 @@ export async function createTestWorld(db: Database): Promise<TestWorld> {
     sales: await createTestUser(db, { name: `A Sales ${suffix}` }),
     restricted: await createTestUser(db, { name: `A Restricted ${suffix}` }),
   };
-  for (const user of Object.values(aUsers)) {
-    await addTestMember(db, orgA.id, user.id);
+  const aRoles: Record<keyof typeof aUsers, SystemRoleKey> = {
+    admin: 'admin',
+    manager: 'manager',
+    sales: 'member',
+    restricted: 'restricted',
+  };
+  for (const [key, user] of Object.entries(aUsers) as [keyof typeof aUsers, User][]) {
+    await addTestMember(db, orgA.id, user.id, { role: aRoles[key] });
   }
   const bAdmin = await createTestUser(db, { name: `B Admin ${suffix}` });
-  await addTestMember(db, orgB.id, bAdmin.id);
+  await addTestMember(db, orgB.id, bAdmin.id, { role: 'admin' });
 
   return {
     orgA: { organization: orgA, users: { owner: aOwner, ...aUsers } },
     orgB: { organization: orgB, users: { owner: bOwner, admin: bAdmin } },
   };
+}
+
+/** Resolves a fixture member into the actor shape used by authorization-aware services. */
+export async function actorFor(
+  db: Database,
+  organizationId: string,
+  userId: string,
+): Promise<MemberActor> {
+  const resolved = await resolveMembership(db, userId, organizationId);
+  if (!resolved) throw new Error('user is not an active member');
+  return {
+    userId,
+    membershipId: resolved.membership.id,
+    permissions: resolved.access.permissions,
+    isOwner: resolved.access.isOwner,
+  };
+}
+
+export async function systemRoleId(
+  db: Database,
+  organizationId: string,
+  key: SystemRoleKey,
+): Promise<string> {
+  // System scope: fixture lookup.
+  return withSystem(db, async (tx) => {
+    const [role] = await tx
+      .select({ id: roles.id })
+      .from(roles)
+      .where(and(eq(roles.organizationId, organizationId), eq(roles.systemKey, key)));
+    if (!role) throw new Error(`system role ${key} missing`);
+    return role.id;
+  });
 }

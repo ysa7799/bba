@@ -16,6 +16,7 @@
     "@businessos/config": "workspace:*",
     "@businessos/database": "workspace:*",
     "@businessos/organizations": "workspace:*",
+    "@businessos/permissions": "workspace:*",
     "@businessos/shared": "workspace:*",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",

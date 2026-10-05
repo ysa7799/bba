@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import {
   check,
+  foreignKey,
   index,
   inet,
   jsonb,
@@ -13,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { primaryId, tenantIsolationPolicy, timestamps } from './_helpers';
 import { organizations } from './organizations';
+import { roles } from './rbac';
 import { users } from './users';
 
 export const AUTH_METHODS = ['password', 'invitation', 'email_verification'] as const;
@@ -111,6 +113,8 @@ export const invitations = pgTable(
     /** Normalized email the invitation is bound to. */
     email: text().notNull(),
     tokenHash: text().notNull(),
+    /** Role granted on acceptance (same-tenant composite FK). */
+    roleId: uuid().notNull(),
     status: text({ enum: INVITATION_STATUSES }).notNull().default('pending'),
     invitedByUserId: uuid().references(() => users.id, { onDelete: 'set null' }),
     expiresAt: timestamp({ withTimezone: true }).notNull(),
@@ -128,6 +132,11 @@ export const invitations = pgTable(
     check('invitations_status_check', sql`${t.status} in ('pending', 'accepted', 'revoked')`),
     check('invitations_email_normalized_check', sql`${t.email} = lower(btrim(${t.email}))`),
     check('invitations_token_hash_format_check', sql`${t.tokenHash} ~ '^[0-9a-f]{64}$'`),
+    foreignKey({
+      name: 'invitations_role_fk',
+      columns: [t.roleId, t.organizationId],
+      foreignColumns: [roles.id, roles.organizationId],
+    }).onDelete('restrict'),
     tenantIsolationPolicy(),
   ],
 );

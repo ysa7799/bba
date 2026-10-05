@@ -89,6 +89,8 @@ export const memberships = pgTable(
   },
   (t) => [
     uniqueIndex('memberships_org_user_unique').on(t.organizationId, t.userId),
+    // Target for composite foreign keys that guarantee same-tenant references.
+    uniqueIndex('memberships_id_org_unique').on(t.id, t.organizationId),
     index('memberships_user_idx').on(t.userId),
     check('memberships_status_check', sql`${t.status} in ('active', 'suspended')`),
     // Members are visible inside the tenant. In user scope (no organization set) a user may

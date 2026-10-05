@@ -1,10 +1,15 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { InviteMemberDialog } from '@/components/app/invite-member-dialog';
+import { MemberActions } from '@/components/app/member-actions';
+import { OrgAccessBoundary } from '@/components/app/org-access-boundary';
+import { PendingInvitations } from '@/components/app/pending-invitations';
 import { Card, EmptyState, PageHeader } from '@/components/ui/card';
 import { getMessages } from '@/i18n';
-import type { MemberSummary, Page } from '@/lib/api-types';
+import type { MemberSummary, Page, PendingInvitation, RoleSummary } from '@/lib/api-types';
 import { pickString } from '@/lib/navigation';
-import { serverApiAsUser } from '@/lib/server-api';
+import { getOrgAccess } from '@/lib/org-data';
+import { serverGetJson } from '@/lib/server-api';
 
 export default async function MembersPage({
   params,
@@ -21,20 +26,30 @@ export default async function MembersPage({
   if (search) qs.set('search', search);
   if (cursor) qs.set('cursor', cursor);
 
-  const response = await serverApiAsUser(`/app/orgs/${orgId}/members?${qs.toString()}`);
-  if (response.status === 404 || response.status === 401) notFound();
-  if (!response.ok) throw new Error(`Failed to load members (${response.status})`);
-  const page = (await response.json()) as Page<MemberSummary>;
+  const [page, access, roles] = await Promise.all([
+    serverGetJson<Page<MemberSummary>>(`/app/orgs/${orgId}/members?${qs.toString()}`),
+    getOrgAccess(orgId),
+    serverGetJson<{ data: RoleSummary[] }>(`/app/orgs/${orgId}/roles`),
+  ]);
+  if (!page || !access || !roles) notFound();
+  const canManage = access.permissions.includes('settings.users.manage');
+  const invitations = canManage
+    ? ((await serverGetJson<{ data: PendingInvitation[] }>(`/app/orgs/${orgId}/invitations`))
+        ?.data ?? [])
+    : [];
+
   const m = getMessages('en');
   const dateFormat = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' });
-
   const nextHref = page.nextCursor
     ? `?${new URLSearchParams({ ...(search ? { search } : {}), cursor: page.nextCursor }).toString()}`
     : null;
 
   return (
-    <>
-      <PageHeader title={m.app.members.title} />
+    <OrgAccessBoundary orgId={orgId}>
+      <PageHeader
+        title={m.app.members.title}
+        actions={canManage ? <InviteMemberDialog roles={roles.data} /> : null}
+      />
       <form className="mb-4 max-w-sm" role="search">
         <label htmlFor="member-search" className="sr-only">
           {m.app.members.search}
@@ -52,7 +67,7 @@ export default async function MembersPage({
       ) : (
         <Card className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-start text-xs font-medium uppercase text-slate-500">
+            <thead className="bg-slate-50 text-xs font-medium uppercase text-slate-500">
               <tr>
                 <th scope="col" className="px-4 py-2 text-start">
                   {m.app.members.name}
@@ -61,22 +76,45 @@ export default async function MembersPage({
                   {m.app.members.email}
                 </th>
                 <th scope="col" className="px-4 py-2 text-start">
+                  {m.app.members.roles}
+                </th>
+                <th scope="col" className="px-4 py-2 text-start">
                   {m.app.members.status}
                 </th>
                 <th scope="col" className="px-4 py-2 text-start">
                   {m.app.members.joined}
                 </th>
+                {canManage ? (
+                  <th scope="col" className="px-4 py-2 text-start">
+                    {m.app.members.actions}
+                  </th>
+                ) : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {page.data.map((member) => (
                 <tr key={member.membershipId}>
-                  <td className="px-4 py-2 font-medium text-slate-900">{member.name}</td>
+                  <td className="px-4 py-2 font-medium text-slate-900">
+                    {member.name}
+                    {member.membershipId === access.membershipId ? (
+                      <span className="ms-1 text-xs font-normal text-slate-500">
+                        ({m.app.members.you})
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-2 text-slate-600">{member.email}</td>
+                  <td className="px-4 py-2 text-slate-600">
+                    {member.roles.map((role) => role.name).join(', ') || '—'}
+                  </td>
                   <td className="px-4 py-2 capitalize text-slate-600">{member.status}</td>
                   <td className="px-4 py-2 text-slate-600">
                     {dateFormat.format(new Date(member.joinedAt))}
                   </td>
+                  {canManage ? (
+                    <td className="px-4 py-2">
+                      <MemberActions member={member} roles={roles.data} />
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
@@ -90,6 +128,7 @@ export default async function MembersPage({
           </Link>
         </div>
       ) : null}
-    </>
+      {canManage ? <PendingInvitations invitations={invitations} /> : null}
+    </OrgAccessBoundary>
   );
 }

@@ -1,7 +1,13 @@
 import { createInvitation, tokenFromLink } from '@businessos/auth';
 import { sessions, withSystem, withTenant } from '@businessos/database';
 import { newId } from '@businessos/shared';
-import { createTestWorld, uniqueSuffix, type TestWorld } from '@businessos/testing';
+import {
+  actorFor,
+  createTestWorld,
+  systemRoleId,
+  uniqueSuffix,
+  type TestWorld,
+} from '@businessos/testing';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -319,15 +325,11 @@ describe('organizations over HTTP', () => {
 
 describe('invitations over HTTP', () => {
   async function invite(email: string) {
-    return withTenant(
-      ctx.db.db,
-      { organizationId: world.orgA.organization.id, userId: world.orgA.users.owner.id },
-      (tx) =>
-        createInvitation(tx, ctx.app.deps.authConfig, {
-          organizationId: world.orgA.organization.id,
-          email,
-          invitedByUserId: world.orgA.users.owner.id,
-        }),
+    const organizationId = world.orgA.organization.id;
+    const invitedBy = await actorFor(ctx.db.db, organizationId, world.orgA.users.owner.id);
+    const roleId = await systemRoleId(ctx.db.db, organizationId, 'member');
+    return withTenant(ctx.db.db, { organizationId, userId: world.orgA.users.owner.id }, (tx) =>
+      createInvitation(tx, ctx.app.deps.authConfig, { organizationId, email, roleId, invitedBy }),
     );
   }
 

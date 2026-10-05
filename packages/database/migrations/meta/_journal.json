@@ -43,6 +43,27 @@
       "when": 1791177947718,
       "tag": "0005_force_rls_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791179269231,
+      "tag": "0006_rbac",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791179277010,
+      "tag": "0007_rbac_backfill",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791179289243,
+      "tag": "0008_invitation_role_required",
+      "breakpoints": true
     }
   ]
 }

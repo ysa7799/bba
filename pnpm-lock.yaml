@@ -41,6 +41,9 @@ importers:
       '@businessos/organizations':
         specifier: workspace:*
         version: link:../../packages/organizations
+      '@businessos/permissions':
+        specifier: workspace:*
+        version: link:../../packages/permissions
       '@businessos/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -260,6 +263,9 @@ importers:
       '@businessos/database':
         specifier: workspace:*
         version: link:../database
+      '@businessos/permissions':
+        specifier: workspace:*
+        version: link:../permissions
       '@businessos/shared':
         specifier: workspace:*
         version: link:../shared
@@ -276,6 +282,15 @@ importers:
       '@businessos/testing':
         specifier: workspace:*
         version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/permissions:
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)
@@ -301,6 +316,9 @@ importers:
       '@businessos/organizations':
         specifier: workspace:*
         version: link:../organizations
+      '@businessos/permissions':
+        specifier: workspace:*
+        version: link:../permissions
       '@businessos/shared':
         specifier: workspace:*
         version: link:../shared

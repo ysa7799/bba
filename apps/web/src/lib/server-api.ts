@@ -35,3 +35,14 @@ export async function getMe(): Promise<Me | null> {
   if (!response.ok) throw new Error(`Failed to load session (${response.status})`);
   return (await response.json()) as Me;
 }
+
+/**
+ * GET helper for server components on tenant pages. Returns null for 401/404 (caller renders
+ * not-found); throws for other failures so the route error boundary shows.
+ */
+export async function serverGetJson<T>(path: string): Promise<T | null> {
+  const response = await serverApiAsUser(path);
+  if (response.status === 401 || response.status === 404) return null;
+  if (!response.ok) throw new Error(`Request failed (${response.status})`);
+  return (await response.json()) as T;
+}

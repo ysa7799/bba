@@ -1,40 +1,53 @@
 # Permissions (RBAC)
 
-_Implemented in Phase 4. This document defines the model._
+Implemented in Phase 4. Code: `packages/permissions` (catalogue + evaluation),
+`packages/organizations/src/access.ts` (roles, assignments, guards), API checks in
+`apps/api/src/plugins/tenant.ts` (`requirePermission`).
 
 ## Model
 
-- **Permission**: a string `module.resource.action` from a code-defined catalogue
-  (`packages/permissions`). Unknown permissions are rejected.
-- **Role**: a named set of permissions within an organization. _System roles_ (Owner, Admin,
-  Manager, Member, Restricted) are seeded per organization and cannot be edited; _custom roles_
-  are organization-defined.
-- **Assignment**: a membership holds one or more roles. Effective permissions = union.
-- **Workspace restrictions** (later): an assignment may be limited to specific workspaces.
+- **Permission**: `module.resource.action` string from the code catalogue
+  (`PERMISSION_DEFINITIONS`). Unknown strings are rejected on write and ignored on read.
+- **Role** (`roles` table, per organization):
+  - _System roles_ — `owner`, `admin`, `manager`, `member`, `restricted` — are seeded for every
+    organization, cannot be edited or deleted, and resolve their permissions **from code**: owners
+    hold everything, admins everything not marked `ownerOnly`, lower roles what each catalogue
+    entry lists. New permissions therefore reach system roles automatically.
+  - _Custom roles_ store an explicit permission list.
+- **Assignment** (`membership_roles`): a membership holds one or more roles; effective
+  permissions are the union. Composite foreign keys guarantee the membership, role and
+  assignment share one organization; assigned roles cannot be deleted (RESTRICT).
+- Permissions are re-evaluated on every request, so changes apply immediately.
+- **Workspace restrictions**: not yet (no workspace tier, ADR-011).
 
-## Rules
+## Rules (enforced server-side)
 
-1. Checks are server-side (`requirePermission`), evaluated against the membership resolved for
-   the request. The UI receives the effective permission list only to hide controls.
-2. A user can only grant roles whose permissions are a subset of their own (no escalation).
-3. Only Owners can grant Owner or transfer ownership; an organization always keeps ≥ 1 Owner.
-4. Role and permission changes are audited and invalidate cached permission sets.
-5. Permissions ≠ entitlements ≠ feature flags. A permitted user may still be blocked by the
-   plan (entitlement) or a disabled feature flag.
+1. Endpoints check permissions with `requirePermission`. Members lacking a permission get 403;
+   non-members never get past tenant resolution (404).
+2. **No escalation**: an actor can only grant (assign, invite with, or define) a role whose
+   permissions are a subset of their own. Only owners grant or revoke `owner`.
+3. **No managing up**: an actor may change roles of, suspend or remove a member only if that
+   member's permissions are a subset of the actor's, and owners can only be managed by owners.
+4. An organization always keeps **at least one active owner**; membership/role changes lock the
+   organization row so concurrent demotions cannot both succeed.
+5. Users cannot suspend or remove themselves through member management (use "leave").
+6. Permissions ≠ entitlements ≠ feature flags.
+7. Permissions are added to the catalogue in the phase that ships the guarded feature, so custom
+   roles never silently gain access to new features.
 
-## Catalogue (initial)
+## Catalogue (current)
 
-```
-organization.read  organization.update  organization.delete
-settings.users.manage  settings.roles.manage  settings.billing.manage
-crm.contact.{read,create,update,delete}  crm.company.{read,create,update,delete}
-crm.deal.{read,create,update,delete}  crm.pipeline.manage  crm.task.{read,manage}
-calendar.appointment.{read,manage}
-communications.{read,send,assign}
-automation.workflow.{read,manage}
-commerce.invoice.{read,create,update}  commerce.payment.{read,refund}
-projects.{read,manage}  support.ticket.{read,manage}
-api.manage  integrations.manage  white_label.manage  audit.read
-```
+| Permission              | Module       | Owner | Admin | Manager | Member | Restricted |
+| ----------------------- | ------------ | ----- | ----- | ------- | ------ | ---------- |
+| `organization.update`   | organization | ✓     | ✓     |         |        |            |
+| `settings.users.manage` | settings     | ✓     | ✓     |         |        |            |
+| `settings.roles.manage` | settings     | ✓     | ✓     |         |        |            |
 
-The authoritative list lives in code; this table is updated with it.
+Every member may read the organization profile, members, roles and the permission catalogue.
+
+## Planned additions (by phase)
+
+`audit.read` (5), `settings.billing.manage` (6), `crm.*` (8), `communications.*` (10),
+`calendar.*` (11), `forms.*` (12), `automation.workflow.*` (13), `commerce.*` (14),
+`reports.read` (15), `api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
+`ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

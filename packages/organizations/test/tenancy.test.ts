@@ -332,7 +332,7 @@ describe('membership resolution and organization switching', () => {
 
   it('denies suspended members and inactive organizations', async () => {
     const user = await createTestUser(handle.db, { name: 'Suspended' });
-    await addTestMember(handle.db, world.orgA.organization.id, user.id, 'suspended');
+    await addTestMember(handle.db, world.orgA.organization.id, user.id, { status: 'suspended' });
     expect(await resolveMembership(handle.db, user.id, world.orgA.organization.id)).toBeNull();
     expect(await listOrganizationsForUser(handle.db, user.id)).toEqual([]);
 

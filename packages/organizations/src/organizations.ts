@@ -1,8 +1,10 @@
 import {
+  membershipRoles,
   memberships,
   organizations,
   users,
   withSystem,
+  withTenant,
   withUser,
   type Database,
   type Membership,
@@ -14,6 +16,12 @@ import { ConflictError, decodeCursor, NotFoundError, toPage, type Page } from '@
 import { randomBytes } from 'node:crypto';
 import { and, asc, eq, gt, isNull, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
+import {
+  loadMembershipAccess,
+  rolesByMembership,
+  seedSystemRoles,
+  type MembershipAccess,
+} from './access';
 import {
   createOrganizationInputSchema,
   slugBaseFromName,
@@ -80,6 +88,8 @@ async function insertOrganizationWithUniqueSlug(
 export interface CreatedOrganization {
   organization: Organization;
   ownerMembership: Membership;
+  /** System role ids by key. */
+  roleIds: Awaited<ReturnType<typeof seedSystemRoles>>;
 }
 
 /**
@@ -123,7 +133,14 @@ export async function createOrganization(
       .returning();
     if (!ownerMembership) throw new Error('membership insert returned no row');
 
-    const created = { organization, ownerMembership };
+    const roleIds = await seedSystemRoles(tx, organization.id);
+    await tx.insert(membershipRoles).values({
+      organizationId: organization.id,
+      membershipId: ownerMembership.id,
+      roleId: roleIds.owner,
+    });
+
+    const created = { organization, ownerMembership, roleIds };
     for (const hook of hooks) {
       await hook(tx, created);
     }
@@ -166,19 +183,25 @@ export async function listOrganizationsForUser(
 export interface ResolvedMembership {
   organization: Organization;
   membership: Membership;
+  access: MembershipAccess;
 }
 
 /**
- * Resolves the user's active membership in an organization. Returns null when the user is not
- * an active member, or the organization is inactive/deleted — callers must respond 404 so that
- * organization IDs cannot be probed.
+ * Resolves the user's active membership in an organization together with their roles and
+ * effective permissions. Returns null when the user is not an active member, or the
+ * organization is inactive/deleted — callers must respond 404 so that organization IDs cannot
+ * be probed.
+ *
+ * The lookup runs inside the requested organization's tenant scope: the scope only narrows
+ * what the query can see; access is granted solely by finding an active membership row for
+ * this user.
  */
 export async function resolveMembership(
   db: Database,
   userId: string,
   organizationId: string,
 ): Promise<ResolvedMembership | null> {
-  return withUser(db, userId, async (tx) => {
+  return withTenant(db, { organizationId, userId }, async (tx) => {
     const [row] = await tx
       .select({ organization: organizations, membership: memberships })
       .from(memberships)
@@ -192,7 +215,9 @@ export async function resolveMembership(
           isNull(organizations.deletedAt),
         ),
       );
-    return row ?? null;
+    if (!row) return null;
+    const access = await loadMembershipAccess(tx, row.membership.id);
+    return { ...row, access };
   });
 }
 
@@ -229,6 +254,7 @@ export interface MemberSummary {
   email: string;
   status: Membership['status'];
   joinedAt: Date;
+  roles: { id: string; name: string; systemKey: string | null }[];
 }
 
 const memberCursorSchema = z.object({ name: z.string(), id: z.uuid() });
@@ -269,10 +295,19 @@ export async function listMembers(
     .where(and(...conditions))
     .orderBy(asc(users.name), asc(memberships.id))
     .limit(query.limit + 1);
-  return toPage(
+  const page = toPage(
     rows,
     query.limit,
     (row) => ({ name: row.name, id: row.membershipId }),
     (row) => row,
   );
+  const roleMap = await rolesByMembership(
+    tx,
+    organizationId,
+    page.data.map((row) => row.membershipId),
+  );
+  return {
+    nextCursor: page.nextCursor,
+    data: page.data.map((row) => ({ ...row, roles: roleMap.get(row.membershipId) ?? [] })),
+  };
 }

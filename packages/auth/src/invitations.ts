@@ -10,6 +10,11 @@ import {
   type TenantTx,
 } from '@businessos/database';
 import {
+  assertCanInviteWithRole,
+  assignRoleOnJoin,
+  type MemberActor,
+} from '@businessos/organizations';
+import {
   ConflictError,
   ForbiddenError,
   InvalidTokenError,
@@ -33,14 +38,16 @@ export interface CreatedInvitation {
 
 /**
  * Creates (or re-issues) an invitation inside the inviting organization's tenant scope.
- * The caller is responsible for authorization and for sending `email` after commit.
+ * The caller checks `settings.users.manage`; this function enforces that the inviter may grant
+ * the invited role. The caller sends `email` after commit.
  */
 export async function createInvitation(
   tx: TenantTx,
   config: AuthConfig,
-  input: { organizationId: string; email: string; invitedByUserId: string | null },
+  input: { organizationId: string; email: string; roleId: string; invitedBy: MemberActor },
 ): Promise<CreatedInvitation> {
   const email = emailSchema.parse(input.email);
+  await assertCanInviteWithRole(tx, input.organizationId, input.invitedBy, input.roleId);
 
   const [organization] = await tx
     .select({ id: organizations.id, name: organizations.name })
@@ -77,20 +84,18 @@ export async function createInvitation(
       organizationId: organization.id,
       email,
       tokenHash: hashToken(token),
-      invitedByUserId: input.invitedByUserId,
+      roleId: input.roleId,
+      invitedByUserId: input.invitedBy.userId,
       expiresAt: new Date(Date.now() + config.invitationTtlSeconds * 1000),
     })
     .returning();
   if (!invitation) throw new Error('invitation insert returned no row');
 
-  let inviterName: string | null = null;
-  if (input.invitedByUserId) {
-    const [inviter] = await tx
-      .select({ name: users.name })
-      .from(users)
-      .where(eq(users.id, input.invitedByUserId));
-    inviterName = inviter?.name ?? null;
-  }
+  const [inviter] = await tx
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, input.invitedBy.userId));
+  const inviterName = inviter?.name ?? null;
 
   const url = new URL('/invite', `${config.appUrl}/`);
   url.searchParams.set('token', token);
@@ -182,14 +187,22 @@ async function joinOrganization(
       ),
     )
     .for('update');
+  let membershipId: string;
   if (!existing) {
-    await tx
+    const [created] = await tx
       .insert(memberships)
-      .values({ organizationId: invitation.organizationId, userId, status: 'active' });
-  } else if (existing.status !== 'active') {
-    // An administrator re-invited a suspended member: the invitation reactivates them.
-    await tx.update(memberships).set({ status: 'active' }).where(eq(memberships.id, existing.id));
+      .values({ organizationId: invitation.organizationId, userId, status: 'active' })
+      .returning({ id: memberships.id });
+    if (!created) throw new Error('membership insert returned no row');
+    membershipId = created.id;
+  } else {
+    membershipId = existing.id;
+    if (existing.status !== 'active') {
+      // An administrator re-invited a suspended member: the invitation reactivates them.
+      await tx.update(memberships).set({ status: 'active' }).where(eq(memberships.id, existing.id));
+    }
   }
+  await assignRoleOnJoin(tx, invitation.organizationId, membershipId, invitation.roleId);
   await tx
     .update(invitations)
     .set({ status: 'accepted', acceptedByUserId: userId, acceptedAt: new Date() })

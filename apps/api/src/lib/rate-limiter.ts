@@ -18,6 +18,7 @@ export const DEFAULT_RATE_LIMITS = {
   verifyEmailIp: { limit: 30, windowSeconds: 3600 },
   resendVerificationAccount: { limit: 3, windowSeconds: 3600 },
   invitationIp: { limit: 30, windowSeconds: 3600 },
+  invitationCreateOrg: { limit: 100, windowSeconds: 3600 },
   createOrganizationUser: { limit: 10, windowSeconds: 3600 },
   changePasswordUser: { limit: 10, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
