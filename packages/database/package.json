@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "db:generate": "drizzle-kit generate && node ../../scripts/db/order-migration.mjs migrations",
+    "db:generate": "node ../../scripts/db/generate.mjs",
     "db:migrate": "tsx --env-file-if-exists=../../.env src/migrate.ts",
     "db:migrate:test": "tsx --env-file=../../.env.test src/migrate.ts"
   },

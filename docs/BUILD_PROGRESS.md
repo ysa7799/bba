@@ -2,9 +2,51 @@
 
 ## Current Phase
 
-Phase 7 — Payments
+Phase 8 — CRM
 
 Status: IN_PROGRESS
+
+---
+
+## Phase 7 — Payments
+
+Status: PASSED
+
+### Completed
+
+- Provider abstraction, Tap adapter (CONFIGURATION_REQUIRED), fake provider, payment service,
+  webhooks with replay protection, subscription checkout/activation/maintenance, UI.
+
+### Tests
+
+- payments unit (11): Tap request shape (BHD decimals, BENEFIT source, callbacks, auth,
+  idempotency), retrieval mapping, float-safe amount conversion, status mapping, forward-only
+  transitions, configuration-required without network calls, error wrapping without leaking
+  bodies, suspicious ids, hashstring computation, valid/missing/wrong/tampered signatures.
+- payments integration (16): server-side pricing, private/free price refusal, pending sync is a
+  no-op, 3 concurrent syncs fulfil once (items, billing event, payment event, entitlements),
+  amount and currency tampering refused, no regression on stale responses, failed payments,
+  early renewal extension, forged/unsigned webhooks rejected and recorded, signed webhook
+  claiming success verified against the provider, replay deduplication, unknown
+  payment/provider handling, tenant read-only RLS, past_due → paused lifecycle with
+  entitlements, checkout expiry, month-end interval clamping.
+- API (9): config, server pricing ignoring client amounts, permission + isolation, forged
+  return-page hints ignored until provider confirms, no status write routes, raw-body
+  signatures (tampered and re-serialized bodies rejected), replay, unknown provider, dev route
+  creator guard, production env refusal.
+- E2E: hosted checkout subscription flow (forged return visit first, then real payment).
+- Full suite: 285 unit/integration + 5 E2E passing.
+
+### Risks
+
+- Tap integration unverified against a live sandbox (no credentials): CONFIGURATION_REQUIRED.
+- Refund notifications are not processed yet (Phase 14 commerce refunds).
+- Recurring card charging not implemented (ADR-026).
+
+### Next
+
+- Phase 8: CRM — contacts, companies, pipelines, stages, deals, tasks, notes, tags, custom
+  fields with tenant isolation and E2E.
 
 ---
 

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { BillingProfileForm } from '@/components/app/billing-profile-form';
+import { SubscribeButton } from '@/components/app/subscribe-button';
 import { OrgAccessBoundary } from '@/components/app/org-access-boundary';
 import { Card, PageHeader } from '@/components/ui/card';
 import { getMessages } from '@/i18n';
@@ -7,6 +8,7 @@ import type {
   BillingCustomer,
   CatalogPlan,
   EntitlementsResponse,
+  PaymentsConfig,
   SubscriptionResponse,
 } from '@/lib/api-types';
 import { getOrgAccess } from '@/lib/org-data';
@@ -44,7 +46,7 @@ export default async function BillingPage({ params }: { params: Promise<{ orgId:
   const access = await getOrgAccess(orgId);
   if (!access) notFound();
   const canManage = access.permissions.includes('settings.billing.manage');
-  const [entitlements, catalog, subscription, customer] = await Promise.all([
+  const [entitlements, catalog, subscription, customer, payments] = await Promise.all([
     serverGetJson<EntitlementsResponse>(`/app/orgs/${orgId}/billing/entitlements`),
     serverGetJson<{ data: CatalogPlan[] }>('/app/billing/plans'),
     canManage
@@ -53,7 +55,10 @@ export default async function BillingPage({ params }: { params: Promise<{ orgId:
     canManage
       ? serverGetJson<{ customer: BillingCustomer | null }>(`/app/orgs/${orgId}/billing/customer`)
       : null,
+    serverGetJson<PaymentsConfig>('/app/billing/payments-config'),
   ]);
+  const checkoutReady = canManage && payments?.status === 'ready';
+  const currentPlanId = subscription?.plan?.id ?? null;
   if (!entitlements || !catalog) notFound();
 
   return (
@@ -126,7 +131,9 @@ export default async function BillingPage({ params }: { params: Promise<{ orgId:
         {catalog.data.length > 0 ? (
           <section>
             <h2 className="mb-1 text-sm font-semibold">{m.app.billing.plans}</h2>
-            <p className="mb-3 text-xs text-slate-500">{m.app.billing.changesNote}</p>
+            {checkoutReady ? null : (
+              <p className="mb-3 text-xs text-slate-500">{m.app.billing.changesNote}</p>
+            )}
             <div className="grid gap-4 md:grid-cols-3">
               {catalog.data.map((plan) => {
                 const monthly = plan.prices.find((price) => price.interval === 'month');
@@ -143,6 +150,13 @@ export default async function BillingPage({ params }: { params: Promise<{ orgId:
                         </span>
                       ) : null}
                     </p>
+                    {plan.id === currentPlanId ? (
+                      <p className="mt-4 text-sm font-medium text-emerald-700">
+                        {m.app.billing.currentBadge}
+                      </p>
+                    ) : checkoutReady && monthly ? (
+                      <SubscribeButton priceId={monthly.id} />
+                    ) : null}
                   </Card>
                 );
               })}

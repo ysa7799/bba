@@ -16,6 +16,7 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 
 export default defineConfig({
   testDir: './e2e',
+  globalSetup: './e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1,
   retries: 0,
@@ -54,6 +55,7 @@ export default defineConfig({
         CORS_ORIGINS: `http://localhost:${WEB_PORT}`,
         TRUST_PROXY: '127.0.0.1',
         QUEUE_PREFIX: QUEUE_PREFIX,
+        PAYMENTS_PROVIDER: 'fake',
         PASSWORD_HASH_MEMORY_KIB: '4096',
         PASSWORD_HASH_TIME_COST: '1',
       },
@@ -85,7 +87,11 @@ export default defineConfig({
       url: `http://localhost:${WEB_PORT}/login`,
       reuseExistingServer: false,
       timeout: 60_000,
-      env: { API_INTERNAL_URL: `http://127.0.0.1:${API_PORT}`, TRUST_PROXY_HEADERS: 'false' },
+      env: {
+        API_INTERNAL_URL: `http://127.0.0.1:${API_PORT}`,
+        TRUST_PROXY_HEADERS: 'false',
+        ENABLE_DEV_PAYMENTS: 'true',
+      },
     },
   ],
 });

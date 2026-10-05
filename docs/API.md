@@ -114,6 +114,18 @@ There is intentionally no tenant endpoint that changes a subscription; plan chan
 verified payments (Phase 7) or platform administration (Phase 24). Limit violations return
 `402 entitlement_exceeded`.
 
+### Payments (Phase 7)
+
+| Method | Path                                           | Permission                | Notes                                                                       |
+| ------ | ---------------------------------------------- | ------------------------- | --------------------------------------------------------------------------- |
+| GET    | `/app/billing/payments-config`                 | signed in                 | provider, status (`ready` / `configuration_required` / `disabled`), methods |
+| POST   | `/app/orgs/:orgId/billing/checkout`            | `settings.billing.manage` | `{priceId, method?}` → `{checkoutId, paymentId, redirectUrl}`               |
+| GET    | `/app/orgs/:orgId/billing/checkout/:id`        | `settings.billing.manage` | checkout + payment status                                                   |
+| POST   | `/app/orgs/:orgId/billing/checkout/:id/verify` | `settings.billing.manage` | server re-fetches from the provider; client parameters ignored              |
+| GET    | `/app/orgs/:orgId/billing/payments`            | `settings.billing.manage` | payment history                                                             |
+| POST   | `/webhooks/payments/:provider`                 | provider signature        | raw body; 401 invalid signature; `{received, outcome}`                      |
+| POST   | `/app/dev/payments/fake/:id/complete`          | creator of the payment    | development only (fake provider, non-production)                            |
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

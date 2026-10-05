@@ -1,11 +1,13 @@
 import type { AuthConfig, AuthMailer } from '@businessos/auth';
 import type { JobQueue } from '@businessos/jobs';
+import type { PaymentProviderRegistry, PaymentServices } from '@businessos/payments';
 import { type DatabaseHandle } from '@businessos/database';
 import { LOG_REDACT_PATHS, newId } from '@businessos/shared';
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Redis } from 'ioredis';
 import type { ApiEnv } from './env';
 import { QueueMailer } from './lib/mailer';
+import { createPaymentProviders, paymentServices } from './lib/payments';
 import { DEFAULT_RATE_LIMITS, RateLimiter, type RateLimitPolicies } from './lib/rate-limiter';
 import { auditRoutes } from './modules/audit/routes';
 import { authRoutes } from './modules/auth/routes';
@@ -14,6 +16,12 @@ import { healthRoutes } from './modules/health/routes';
 import { invitationRoutes } from './modules/invitations/routes';
 import { meRoutes } from './modules/me/routes';
 import { organizationRoutes } from './modules/organizations/routes';
+import {
+  devPaymentRoutes,
+  organizationPaymentRoutes,
+  paymentConfigRoutes,
+  paymentWebhookRoutes,
+} from './modules/payments/routes';
 import { registerCsrfProtection } from './plugins/csrf';
 import { registerErrorHandling } from './plugins/errors';
 import { registerSecurity } from './plugins/security';
@@ -28,6 +36,8 @@ export interface AppDependencies {
   /** Auth email transport. Defaults to queueing `email.send` jobs for the worker. */
   mailer?: AuthMailer;
   authConfig: AuthConfig;
+  /** Payment providers (defaults to the configured ones; tests inject controllable fakes). */
+  paymentProviders?: PaymentProviderRegistry;
   /** Overrides for named rate-limit policies (tests use relaxed limits). */
   rateLimits?: Partial<RateLimitPolicies>;
 }
@@ -38,6 +48,7 @@ declare module 'fastify' {
   interface FastifyInstance {
     deps: ResolvedDependencies;
     rateLimiter: RateLimiter;
+    payments: PaymentServices;
   }
 }
 
@@ -79,6 +90,10 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
       app.log,
     ),
   );
+  app.decorate(
+    'payments',
+    paymentServices(env, deps.paymentProviders ?? createPaymentProviders(env), deps.db.db, app.log),
+  );
   app.decorateRequest('tenant', null);
 
   app.addHook('onRequest', (request, reply, done) => {
@@ -100,6 +115,12 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(auditRoutes, { prefix: '/app/orgs/:orgId/audit-logs' });
   await app.register(billingCatalogRoutes, { prefix: '/app/billing' });
   await app.register(organizationBillingRoutes, { prefix: '/app/orgs/:orgId/billing' });
+  await app.register(paymentConfigRoutes, { prefix: '/app/billing' });
+  await app.register(organizationPaymentRoutes, { prefix: '/app/orgs/:orgId/billing' });
+  await app.register(paymentWebhookRoutes, { prefix: '/webhooks' });
+  if (env.NODE_ENV !== 'production' && app.payments.providers.has('fake')) {
+    await app.register(devPaymentRoutes, { prefix: '/app/dev' });
+  }
   await app.register(invitationRoutes, { prefix: '/app/invitations' });
 
   return app;

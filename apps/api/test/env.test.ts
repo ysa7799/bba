@@ -44,6 +44,7 @@ describe('API environment validation', () => {
         NODE_ENV: 'production',
         APP_URL: 'https://app.example.com',
         CORS_ORIGINS: 'https://app.example.com',
+        API_PUBLIC_URL: 'https://api.example.com',
         COOKIE_SECURE: 'false',
       }),
     ).toThrow(/COOKIE_SECURE/);
@@ -53,6 +54,7 @@ describe('API environment validation', () => {
         NODE_ENV: 'production',
         APP_URL: 'https://app.example.com',
         CORS_ORIGINS: 'https://app.example.com',
+        API_PUBLIC_URL: 'https://api.example.com',
         PASSWORD_HASH_MEMORY_KIB: '4096',
       }),
     ).toThrow(/OWASP/);
@@ -62,6 +64,7 @@ describe('API environment validation', () => {
         NODE_ENV: 'production',
         APP_URL: 'https://app.example.com',
         CORS_ORIGINS: 'https://app.example.com',
+        API_PUBLIC_URL: 'https://api.example.com',
       }),
     ).not.toThrow();
   });

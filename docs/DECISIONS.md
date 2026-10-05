@@ -157,3 +157,16 @@ subscription state (RLS), so a tenant-side bug cannot upgrade an organization.
 Quota periods are calendar months in the organization's IANA timezone (stored as the local
 `YYYY-MM-01`), matching how GCC businesses think about monthly allowances. Subscription-period
 aligned quotas can be added later per key if needed.
+
+## ADR-025 — Provider-agnostic payments with server-side verification
+
+Payments go through a `PaymentProvider` port with declared capabilities; Tap is the first
+adapter and the commerce/billing domains never see Tap-specific data. Webhooks and return URLs
+are treated as hints that trigger `syncPayment`, which re-fetches the authoritative state. This
+also limits the blast radius if a provider's webhook signature scheme changes.
+
+## ADR-026 — Renewals by checkout until recurring charging lands
+
+BENEFIT and Apple Pay do not support merchant-initiated recurring charges. Until saved-card
+recurring billing is implemented for card payments, every period is paid through a checkout;
+lapsed paid periods go `past_due` (grace, still entitled) and then `paused`.

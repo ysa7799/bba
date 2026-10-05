@@ -145,6 +145,12 @@ export interface SubscriptionResponse {
   plan: CatalogPlan | null;
 }
 
+export interface PaymentsConfig {
+  provider: string | null;
+  status: 'ready' | 'configuration_required' | 'disabled';
+  methods: string[];
+}
+
 export interface OrganizationSettings {
   'general.week_start_day': number;
   'general.fiscal_year_start_month': number;

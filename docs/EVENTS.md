@@ -58,8 +58,10 @@ need request context (actor, IP, request id).
 
 ## Catalogue
 
-Implemented (Phase 5): `organization.created`, `organization.updated`, `member.invited`,
-`member.joined`, `member.roles_changed`, `member.removed`. The rest arrive with their modules:
+Implemented: `organization.created`, `organization.updated`, `member.invited`, `member.joined`,
+`member.roles_changed`, `member.removed` (Phase 5); `subscription.started`,
+`subscription.changed`, `subscription.canceled` (Phase 6); `payment.succeeded`,
+`payment.failed`, `payment.refunded` (Phase 7). The rest arrive with their modules:
 
 organization.created · organization.updated · member.invited · member.joined ·
 member.removed · contact.created · contact.updated · contact.deleted · company.created ·

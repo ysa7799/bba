@@ -1,5 +1,6 @@
 import { defaultAuthConfig, MemoryMailer } from '@businessos/auth';
 import { MemoryJobQueue } from '@businessos/jobs';
+import type { PaymentProviderRegistry } from '@businessos/payments';
 import { createDatabase, type DatabaseHandle } from '@businessos/database';
 import { uniqueSuffix } from '@businessos/testing';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
@@ -32,6 +33,8 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
     'passwordResetAccount',
     'resendVerificationAccount',
     'changePasswordUser',
+    'checkoutOrg',
+    'checkoutVerifyOrg',
   ].map((name) => [name, { limit: 10_000, windowSeconds: 60 }]),
 );
 
@@ -44,6 +47,8 @@ export async function createTestContext(options?: {
   strictRateLimits?: boolean;
   /** Use the production queue-backed mailer instead of the in-memory mailer. */
   queueMailer?: boolean;
+  /** Controllable payment providers (e.g. a FakePaymentProvider). */
+  paymentProviders?: PaymentProviderRegistry;
   configure?: (app: FastifyInstance) => void | Promise<void>;
 }): Promise<TestContext> {
   const env = loadApiEnv({
@@ -72,6 +77,7 @@ export async function createTestContext(options?: {
     ...(options?.queueMailer ? {} : { mailer }),
     jobs,
     authConfig,
+    ...(options?.paymentProviders ? { paymentProviders: options.paymentProviders } : {}),
     ...(options?.strictRateLimits ? {} : { rateLimits: RELAXED_LIMITS }),
   });
   if (options?.configure) {

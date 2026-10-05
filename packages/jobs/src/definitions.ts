@@ -39,6 +39,11 @@ export const JOBS = {
     attempts: 8,
   }),
   'email.send': defineJob({ queue: 'email', schema: emailJobSchema, attempts: 6 }),
+  'billing.maintenance': defineJob({
+    queue: 'system',
+    schema: z.object({}),
+    attempts: 3,
+  }),
 } as const;
 
 export type JobName = keyof typeof JOBS;

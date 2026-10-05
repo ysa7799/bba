@@ -21,6 +21,8 @@ export const DEFAULT_RATE_LIMITS = {
   invitationCreateOrg: { limit: 100, windowSeconds: 3600 },
   createOrganizationUser: { limit: 10, windowSeconds: 3600 },
   changePasswordUser: { limit: 10, windowSeconds: 3600 },
+  checkoutOrg: { limit: 30, windowSeconds: 3600 },
+  checkoutVerifyOrg: { limit: 300, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

@@ -83,6 +83,22 @@ export class BullJobQueue implements JobQueue {
     });
   }
 
+  /** Registers (or updates) a repeating job; one scheduler per id across all workers. */
+  async schedule<N extends JobName>(
+    schedulerId: string,
+    name: N,
+    payload: JobPayload<N>,
+    everyMs: number,
+  ): Promise<void> {
+    const definition = JOBS[name];
+    const envelope: JobEnvelope = { payload: validate(name, payload), meta: {} };
+    await this.queue(definition.queue).upsertJobScheduler(
+      schedulerId,
+      { every: everyMs },
+      { name, data: envelope, opts: { attempts: definition.attempts } },
+    );
+  }
+
   async close(): Promise<void> {
     await Promise.all([...this.queues.values()].map((queue) => queue.close()));
     this.queues.clear();

@@ -103,6 +103,23 @@ export const en = {
       save: 'Save billing profile',
       saved: 'Billing profile saved.',
       changesNote: 'Plan changes become available when online payments are enabled.',
+      subscribe: 'Subscribe',
+      currentBadge: 'Current plan',
+      redirecting: 'Redirecting to secure payment…',
+      returnTitle: 'Payment status',
+      verifying: 'Confirming your payment with the payment provider…',
+      completed: 'Payment confirmed. Your plan is now active.',
+      failed: 'The payment was not completed. You have not been charged for this attempt.',
+      expired: 'This checkout expired. Start a new one from the billing page.',
+      stillPending:
+        'Still waiting for confirmation from the payment provider. This page updates automatically.',
+      backToBilling: 'Back to billing',
+    },
+    devCheckout: {
+      title: 'Development payment page',
+      body: "This simulates the provider's hosted payment page. No real money moves.",
+      pay: 'Simulate successful payment',
+      decline: 'Simulate declined payment',
     },
     audit: {
       title: 'Audit log',

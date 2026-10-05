@@ -130,6 +130,17 @@ threat model and the control catalogue; it is updated whenever a control is adde
 - Limits are enforced server-side at the point of use; quota consumption is atomic and
   idempotent; seat checks lock the organization row.
 
+### Payments (Phase 7)
+
+- Payment success is never taken from the client or a redirect: only from `retrievePayment`
+  (provider API) triggered by verified webhooks, return-page verification or reconciliation.
+- Amount/currency/reference must match the stored payment; mismatches are refused and logged.
+- Webhook signatures are checked over the raw body with constant-time comparison; replays are
+  deduplicated; invalid attempts are recorded.
+- Tenants cannot write payments or checkouts (RLS). The fake provider and its dev routes are
+  refused in production; Tap requires its secret key in production.
+- Provider error bodies are never returned to clients.
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·

@@ -1,6 +1,7 @@
 import type { Database } from '@businessos/database';
 import { loadEvent, type SubscriberRegistry } from '@businessos/events';
 import { UnrecoverableError, type JobHandlers } from '@businessos/jobs';
+import { runSubscriptionMaintenance } from '@businessos/payments';
 import type { Logger } from 'pino';
 import { renderEmail } from './email/templates';
 import type { EmailTransport } from './email/transports';
@@ -26,6 +27,12 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
       if (!event) throw new UnrecoverableError(`Event not found: ${payload.eventId}`);
       await subscriber.handle(event, { attempt: context.attempt });
       return { delivered: true };
+    },
+
+    'billing.maintenance': async () => {
+      const result = await runSubscriptionMaintenance(deps.db);
+      deps.logger.info(result, 'subscription maintenance completed');
+      return result;
     },
 
     'email.send': async (payload, context) => {

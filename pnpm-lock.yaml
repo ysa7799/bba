@@ -53,6 +53,9 @@ importers:
       '@businessos/organizations':
         specifier: workspace:*
         version: link:../../packages/organizations
+      '@businessos/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       '@businessos/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
@@ -136,6 +139,9 @@ importers:
       '@tailwindcss/postcss':
         specifier: ^4.3.3
         version: 4.3.3
+      '@types/pg':
+        specifier: ^8.15.5
+        version: 8.23.1
       '@types/react':
         specifier: ^19.2.0
         version: 19.3.0
@@ -145,6 +151,9 @@ importers:
       eslint:
         specifier: ^9.39.5
         version: 9.39.5(jiti@2.7.0)
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
       tailwindcss:
         specifier: ^4.3.3
         version: 4.3.3
@@ -163,6 +172,9 @@ importers:
       '@businessos/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
+      '@businessos/payments':
+        specifier: workspace:*
+        version: link:../../packages/payments
       '@businessos/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -430,6 +442,43 @@ importers:
       '@businessos/config':
         specifier: workspace:*
         version: link:../config
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/payments:
+    dependencies:
+      '@businessos/audit':
+        specifier: workspace:*
+        version: link:../audit
+      '@businessos/billing':
+        specifier: workspace:*
+        version: link:../billing
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/events':
+        specifier: workspace:*
+        version: link:../events
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../organizations
       '@businessos/testing':
         specifier: workspace:*
         version: link:../testing

@@ -74,3 +74,43 @@ automation.monthly_executions · email.monthly_limit · sms.monthly_limit ·
 whatsapp.monthly_limit · storage.bytes · ai.monthly_credits · projects.enabled ·
 helpdesk.enabled · marketing.enabled · api.enabled · white_label.enabled ·
 custom_domain.enabled
+
+## Payments (Phase 7)
+
+Code: `packages/payments` (provider port, Tap adapter, fake provider, service), API routes in
+`apps/api/src/modules/payments`, worker job `billing.maintenance`.
+
+### Principles
+
+- **Server-side truth.** Payment state changes only in `syncPayment`, which re-fetches the
+  payment from the provider API (`retrievePayment`). Return-page query strings are ignored;
+  webhook bodies are authenticated hints that trigger a re-fetch.
+- **Server-side pricing.** Checkout amounts come from the `prices` row; the payment row is
+  created before the provider call and its id is the provider idempotency key and merchant
+  reference.
+- **Integrity checks.** Fulfilment is refused (payment marked `failed`) when the provider's
+  amount, currency or reference differs from the stored payment.
+- **Forward-only status** (`state.ts`): `pending → requires_action/authorized → captured →
+partially_refunded/refunded`; failed/canceled/refunded are terminal. Stale or out-of-order
+  responses never regress a payment.
+- **Fulfil once.** The payment row is locked (`FOR UPDATE`) during sync; fulfilment runs only on
+  the transition into a paid state.
+- **Webhooks.** Raw-body signature verification; every notification is recorded in
+  `payment_webhook_events`, unique per `(provider, provider_event_id)` (replay protection and
+  idempotency); invalid signatures are recorded and rejected with 401.
+
+### Subscription lifecycle
+
+checkout (`open`) → payment captured → subscription `active` with `current_period_end =
+start + interval` (renewing early extends from the current end) → after the period:
+`past_due` (still entitled) → after 7 days grace: `paused` (fallback entitlements).
+`cancel_at_period_end` cancels at the end; stale open checkouts expire after 1 hour.
+Recurring card charging is not implemented yet: renewals are new checkouts (BENEFIT and Apple
+Pay do not support merchant-initiated recurring charges anyway — see provider capabilities).
+
+### Providers
+
+| Provider | Use                                                       | Status                                                                                   |
+| -------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `tap`    | Bahrain/GCC: cards, Apple Pay, BENEFIT (`src_bh.benefit`) | CONFIGURATION_REQUIRED (`TAP_SECRET_KEY`); verify against the Tap sandbox before go-live |
+| `fake`   | development and end-to-end tests (dev-only hosted page)   | refused in production                                                                    |

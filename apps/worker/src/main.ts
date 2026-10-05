@@ -37,6 +37,12 @@ function main(): void {
     concurrency: env.WORKER_CONCURRENCY,
     outboxPollMs: env.OUTBOX_POLL_MS,
   });
+  // Hourly subscription upkeep (past_due, paused, cancel at period end, expired checkouts).
+  queue
+    .schedule('billing-maintenance', 'billing.maintenance', {}, 3_600_000)
+    .catch((error: unknown) => {
+      logger.error({ err: error }, 'could not schedule billing maintenance');
+    });
   const health =
     env.WORKER_HEALTH_PORT > 0 ? startHealthServer(env.WORKER_HEALTH_PORT, db, redis) : null;
   logger.info(

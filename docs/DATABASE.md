@@ -83,6 +83,9 @@ Populated as phases land. See the schema files for the source of truth.
 | `subscriptions`, `subscription_items`                   | tenant read-only (write: system)                                            | 6     | cascade with organization; plan version RESTRICT                        |
 | `entitlement_overrides`, `billing_events`               | tenant read-only (write: system)                                            | 6     | cascade with organization                                               |
 | `usage_counters`, `usage_records`                       | tenant                                                                      | 6     | cascade with organization                                               |
+| `payments`                                              | tenant read-only (write: system)                                            | 7     | organization RESTRICT (financial record)                                |
+| `checkout_sessions`                                     | tenant read-only (write: system)                                            | 7     | cascade with organization; payment RESTRICT                             |
+| `payment_webhook_events`                                | system only                                                                 | 7     | organization set null                                                   |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.

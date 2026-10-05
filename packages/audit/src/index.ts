@@ -35,6 +35,8 @@ export const AUDIT_ACTIONS = [
   'role.updated',
   'role.deleted',
   'billing.profile_updated',
+  'billing.checkout_started',
+  'billing.subscription_activated',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

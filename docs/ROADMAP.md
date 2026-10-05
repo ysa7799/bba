@@ -13,7 +13,7 @@ Phases execute in order. A phase is complete only when its quality gate passes (
 | 4   | RBAC                                                    | Privilege-escalation tests                         | PASSED      |
 | 5   | Audit + events + jobs                                   | Reliable async execution tests                     | PASSED      |
 | 6   | Billing + entitlements                                  | Limits cannot be bypassed from the frontend        | PASSED      |
-| 7   | Payments (provider abstraction, Tap adapter, webhooks)  | Payment state cannot be forged                     | NOT_STARTED |
+| 7   | Payments (provider abstraction, Tap adapter, webhooks)  | Payment state cannot be forged                     | PASSED      |
 | 8   | CRM                                                     | CRM E2E + tenant isolation                         | NOT_STARTED |
 | 9   | Activity timeline                                       | Cross-module-ready architecture                    | NOT_STARTED |
 | 10  | Communications (inbox, email/WhatsApp/SMS architecture) | Normalized providers + isolation                   | NOT_STARTED |

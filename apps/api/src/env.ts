@@ -48,11 +48,39 @@ export const apiEnvSchema = z
       .string()
       .regex(/^[a-z0-9:_-]+$/)
       .default('bos'),
+    /** Public URL of this API (payment provider webhooks are sent here). */
+    API_PUBLIC_URL: z.url().default('http://localhost:4000'),
+    /** Payment provider for checkouts: none (disabled), fake (development/tests), tap. */
+    PAYMENTS_PROVIDER: z.enum(['none', 'fake', 'tap']).default('none'),
+    TAP_SECRET_KEY: z.string().min(10).optional(),
+    TAP_API_BASE_URL: z.url().optional(),
+    FAKE_PAYMENTS_WEBHOOK_SECRET: z.string().min(16).default('dev-fake-payments-webhook-secret'),
     PASSWORD_HASH_MEMORY_KIB: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
     PASSWORD_HASH_TIME_COST: z.coerce.number().int().min(1).max(10).default(2),
   })
   .superRefine((env, ctx) => {
+    if (env.PAYMENTS_PROVIDER === 'tap' && !env.TAP_SECRET_KEY && env.NODE_ENV === 'production') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TAP_SECRET_KEY'],
+        message: 'required when PAYMENTS_PROVIDER=tap in production',
+      });
+    }
     if (env.NODE_ENV !== 'production') return;
+    if (env.PAYMENTS_PROVIDER === 'fake') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['PAYMENTS_PROVIDER'],
+        message: 'the fake payment provider is not allowed in production',
+      });
+    }
+    if (!env.API_PUBLIC_URL.startsWith('https://')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['API_PUBLIC_URL'],
+        message: 'must use https in production',
+      });
+    }
     if (!env.APP_URL.startsWith('https://')) {
       ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'must use https in production' });
     }

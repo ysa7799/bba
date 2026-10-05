@@ -2,6 +2,20 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 7 — Payments (2026-10-05)
+
+- Schema: `payments`, `checkout_sessions`, `payment_webhook_events` (tenant read-only / system).
+- `@businessos/payments`: provider port with capabilities and normalized types, forward-only
+  status machine, registry, Tap adapter (charges, retrieval, refunds, `hashstring` webhooks,
+  CONFIGURATION_REQUIRED without keys), fake provider, checkout creation, `syncPayment`,
+  webhook handling, subscription activation and maintenance.
+- API: payments config, checkout create/status/verify, payment history, raw-body webhook
+  endpoint, dev-only fake completion route; env safety for providers.
+- Worker: hourly `billing.maintenance` scheduler.
+- Web: subscribe buttons (only when a provider is ready), checkout return page with server
+  verification polling, dev fake hosted page; E2E subscription flow.
+- Tooling: `scripts/db/generate.mjs` forwards flags to drizzle-kit.
+
 ## Phase 6 — Billing and entitlements (2026-10-05)
 
 - Schema: plan catalogue (`plans`, `plan_versions`, `plan_entitlements`, `prices`), tenant

@@ -51,6 +51,31 @@ export const EVENT_DEFINITIONS = {
     version: 1,
     schema: z.object({ subscriptionId: z.uuid() }),
   },
+  'payment.succeeded': {
+    version: 1,
+    schema: z.object({
+      paymentId: z.uuid(),
+      purpose: z.enum(['subscription', 'invoice']),
+      amountMinor: z.string().regex(/^\d+$/),
+      currency: z.string().length(3),
+    }),
+  },
+  'payment.failed': {
+    version: 1,
+    schema: z.object({
+      paymentId: z.uuid(),
+      purpose: z.enum(['subscription', 'invoice']),
+      failureCode: z.string().nullable(),
+    }),
+  },
+  'payment.refunded': {
+    version: 1,
+    schema: z.object({
+      paymentId: z.uuid(),
+      refundedMinor: z.string().regex(/^\d+$/),
+      currency: z.string().length(3),
+    }),
+  },
   'member.removed': {
     version: 1,
     schema: z.object({
