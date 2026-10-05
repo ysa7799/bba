@@ -13,15 +13,15 @@
 
 ## Ports (planned)
 
-| Port | Phase | First adapters | Live status |
-| --- | --- | --- | --- |
-| `PaymentProvider` | 7 | Tap Payments, Fake | CONFIGURATION_REQUIRED |
-| `EmailProvider` | 10/16 | SMTP, Postmark/Resend/SES-ready, Fake | CONFIGURATION_REQUIRED |
-| `WhatsAppProvider` | 10 | WhatsApp Cloud API-compatible, Fake | CONFIGURATION_REQUIRED |
-| `SmsProvider` | 10 | Generic HTTP, Fake | CONFIGURATION_REQUIRED |
-| `StorageProvider` | 16 | S3-compatible, local FS (dev) | CONFIGURATION_REQUIRED |
-| `CalendarProvider` | 11/18 | Google, Microsoft | CONFIGURATION_REQUIRED |
-| `AIProvider` | 20 | Anthropic-compatible, Fake | CONFIGURATION_REQUIRED |
+| Port               | Phase | First adapters                        | Live status            |
+| ------------------ | ----- | ------------------------------------- | ---------------------- |
+| `PaymentProvider`  | 7     | Tap Payments, Fake                    | CONFIGURATION_REQUIRED |
+| `EmailProvider`    | 10/16 | SMTP, Postmark/Resend/SES-ready, Fake | CONFIGURATION_REQUIRED |
+| `WhatsAppProvider` | 10    | WhatsApp Cloud API-compatible, Fake   | CONFIGURATION_REQUIRED |
+| `SmsProvider`      | 10    | Generic HTTP, Fake                    | CONFIGURATION_REQUIRED |
+| `StorageProvider`  | 16    | S3-compatible, local FS (dev)         | CONFIGURATION_REQUIRED |
+| `CalendarProvider` | 11/18 | Google, Microsoft                     | CONFIGURATION_REQUIRED |
+| `AIProvider`       | 20    | Anthropic-compatible, Fake            | CONFIGURATION_REQUIRED |
 
 ## Connection state machine (Phase 18)
 

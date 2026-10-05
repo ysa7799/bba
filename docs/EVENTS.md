@@ -4,12 +4,12 @@ _Infrastructure lands in Phase 5._
 
 ## Four separate concerns
 
-| Concern | Purpose | Storage | Audience |
-| --- | --- | --- | --- |
-| Domain events | Something happened in the domain; drives automation, timeline, webhooks | `outbox_events` | Internal subscribers |
-| Audit log | Who did what, for accountability | `audit_logs` (append-only) | Admins, compliance |
-| Outbound webhooks | Customer-facing integration contract | `webhook_deliveries` | Customer endpoints |
-| Notifications | Tell a person something | `notifications` | Users |
+| Concern           | Purpose                                                                 | Storage                    | Audience             |
+| ----------------- | ----------------------------------------------------------------------- | -------------------------- | -------------------- |
+| Domain events     | Something happened in the domain; drives automation, timeline, webhooks | `outbox_events`            | Internal subscribers |
+| Audit log         | Who did what, for accountability                                        | `audit_logs` (append-only) | Admins, compliance   |
+| Outbound webhooks | Customer-facing integration contract                                    | `webhook_deliveries`       | Customer endpoints   |
+| Notifications     | Tell a person something                                                 | `notifications`            | Users                |
 
 A domain event may cause an audit record, a webhook delivery and a notification, but each is
 produced by its own subscriber with its own retry semantics.

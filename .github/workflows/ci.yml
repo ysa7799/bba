@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: businessos
+          POSTGRES_PASSWORD: businessos
+          POSTGRES_DB: businessos_dev
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U businessos" --health-interval 5s --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -q && sudo apt-get install -yq postgresql-client
+      - name: Provision database roles
+        run: pnpm db:setup
+        env:
+          POSTGRES_ADMIN_URL: postgres://businessos:businessos@localhost:5432/postgres
+      - name: Format
+        run: pnpm format:check
+      - name: Migrations are in sync with the schema
+        run: |
+          pnpm --filter @businessos/database exec drizzle-kit check
+          pnpm db:generate
+          git diff --exit-code -- packages/database/migrations
+          test -z "$(git status --porcelain -- packages/database/migrations)"
+      - name: Lint
+        run: pnpm lint
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Test
+        run: pnpm test
+      - name: Build
+        run: pnpm build

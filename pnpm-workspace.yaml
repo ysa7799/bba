@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+
+onlyBuiltDependencies:
+  - '@node-rs/argon2'
+  - esbuild
+  - sharp
+  - unrs-resolver
+
+ignoredBuiltDependencies:
+  - msgpackr-extract

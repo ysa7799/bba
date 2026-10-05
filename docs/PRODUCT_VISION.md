@@ -24,13 +24,13 @@ helpdesks, schedulers, iPaaS/automation tools and SMB accounting tools.
 
 ## Who it is for
 
-| Persona | Needs |
-| --- | --- |
-| Owner / GM of an SMB (5–200 staff) | One system, clear numbers, low admin |
-| Sales manager / reps | Pipeline, follow-ups, WhatsApp-first communication |
-| Operations / support staff | Tickets, appointments, tasks, projects |
-| Finance / admin | Quotes, invoices, payments, BHD/VAT correctness |
-| Agencies (later) | Manage many client organizations under their own brand |
+| Persona                            | Needs                                                  |
+| ---------------------------------- | ------------------------------------------------------ |
+| Owner / GM of an SMB (5–200 staff) | One system, clear numbers, low admin                   |
+| Sales manager / reps               | Pipeline, follow-ups, WhatsApp-first communication     |
+| Operations / support staff         | Tickets, appointments, tasks, projects                 |
+| Finance / admin                    | Quotes, invoices, payments, BHD/VAT correctness        |
+| Agencies (later)                   | Manage many client organizations under their own brand |
 
 ## Product pillars
 

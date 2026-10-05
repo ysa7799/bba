@@ -6,8 +6,8 @@ _Implemented in Phase 4. This document defines the model._
 
 - **Permission**: a string `module.resource.action` from a code-defined catalogue
   (`packages/permissions`). Unknown permissions are rejected.
-- **Role**: a named set of permissions within an organization. *System roles* (Owner, Admin,
-  Manager, Member, Restricted) are seeded per organization and cannot be edited; *custom roles*
+- **Role**: a named set of permissions within an organization. _System roles_ (Owner, Admin,
+  Manager, Member, Restricted) are seeded per organization and cannot be edited; _custom roles_
   are organization-defined.
 - **Assignment**: a membership holds one or more roles. Effective permissions = union.
 - **Workspace restrictions** (later): an assignment may be limited to specific workspaces.

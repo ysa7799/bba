@@ -37,6 +37,7 @@ pnpm db:generate         # generate a migration after editing packages/database/
 ## Non-negotiable rules
 
 ### Tenancy
+
 - `Organization` is the tenant. Every tenant-owned row has `organization_id NOT NULL` with a FK.
 - Never trust an `organizationId` from the client as proof of access. Resolve access from the
   authenticated user → active membership → permissions (`requireOrgContext`).
@@ -49,6 +50,7 @@ pnpm db:generate         # generate a migration after editing packages/database/
   (read, list, search, update, delete, reference with a foreign ID).
 
 ### Auth & authorization
+
 - Authentication = identity (sessions, tokens). Authorization = permissions. Keep separate.
 - Permissions are checked server-side with `requirePermission('crm.contact.read')`.
   UI permission checks are convenience only.
@@ -56,6 +58,7 @@ pnpm db:generate         # generate a migration after editing packages/database/
 - Feature flags ≠ permissions ≠ entitlements.
 
 ### Data & money
+
 - Money: integer minor units (`bigint`) + explicit ISO currency on every monetary record.
   Use `packages/shared/src/money.ts`. Never use JS floats for money. BHD has 3 decimals.
   Never silently convert currencies. Never default to USD.
@@ -66,6 +69,7 @@ pnpm db:generate         # generate a migration after editing packages/database/
 - No unbounded queries: every list endpoint paginates (cursor or bounded limit).
 
 ### Input, errors, logging
+
 - Validate all external input with Zod (params, query, body, webhooks, env, CSV, AI tool args).
 - Never accept privileged fields from clients (user id, role, org id, totals, payment status).
   Use explicit allow-listed input schemas — no mass assignment.
@@ -76,6 +80,7 @@ pnpm db:generate         # generate a migration after editing packages/database/
   full card data. Use the redaction list in `packages/shared/src/logging.ts`.
 
 ### Payments & integrations
+
 - Payment state only from server-side verification or authenticated webhooks — never from
   client redirects. Webhooks: verify signature, idempotent, dedupe, tolerate out-of-order.
 - Provider-specific code lives only in its adapter (e.g. Tap). Domains use normalized types.
@@ -84,12 +89,14 @@ pnpm db:generate         # generate a migration after editing packages/database/
 - Integration secrets are encrypted at rest and never sent to the browser.
 
 ### Async work
+
 - Long-running work (email, messaging, imports, exports, workflows, webhooks delivery) runs in
   the worker. Jobs must be idempotent, retried with backoff, and visible when they fail.
 - Domain events are written to the transactional outbox in the same transaction as the change.
   Domain events, audit logs, outbound webhooks and notifications are separate concerns.
 
 ### Frontend
+
 - No business logic in UI. Every data view has loading, empty and error states.
 - No UI for features without a working backend (hide or feature-flag instead).
 - Strings go through the i18n layer; layouts must survive RTL (Arabic).

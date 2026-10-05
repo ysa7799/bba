@@ -1,31 +1,38 @@
-# Express.js on Vercel
+# BusinessOS
 
-Basic Express.js + Vercel example that serves html content, JSON data and simulates an api route.
+Multi-tenant Business Operating System SaaS — CRM, communications, automation, scheduling,
+commerce, projects, helpdesk and more in one account. Built for Bahrain/GCC first.
 
-## How to Use
+- Engineering rules: [`CLAUDE.md`](CLAUDE.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Roadmap and status: [`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/BUILD_PROGRESS.md`](docs/BUILD_PROGRESS.md)
 
-You can choose from one of the following two methods to use this repository:
+## Quick start
 
-### One-Click Deploy
-
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=vercel-examples):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/git/external?repository-url=https://github.com/vercel/examples/tree/main/solutions/express&project-name=express&repository-name=express)
-
-### Clone and Deploy
+Requirements: Node 22.12+, pnpm 10, PostgreSQL 16+, Redis 7+ (or Docker).
 
 ```bash
-git clone https://github.com/vercel/examples/tree/main/solutions/express
+cp .env.example .env
+pnpm install
+pnpm dev:deps        # Postgres + Redis via docker compose (skip if running locally)
+pnpm db:setup        # runtime DB role + dev/test databases (idempotent)
+pnpm db:migrate
+pnpm dev             # web :3000, api :4000, worker
 ```
 
-Install the Vercel CLI:
+## Quality gate
 
 ```bash
-npm i -g vercel
+pnpm check   # format:check, lint, typecheck, test
+pnpm build
 ```
 
-Then run the app at the root of the repository:
+## Layout
 
-```bash
-vercel dev
+```
+apps/web       Next.js frontend (UI only)
+apps/api       Fastify HTTP API
+apps/worker    BullMQ background jobs
+packages/*     shared infrastructure and domain services
+docs/          architecture, security, roadmap, decisions
 ```

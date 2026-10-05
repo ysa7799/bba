@@ -4,12 +4,13 @@ PostgreSQL 16+, Drizzle ORM (`packages/database`), node-postgres driver.
 
 ## Roles and connections
 
-| Variable | Role | Used by | Notes |
-| --- | --- | --- | --- |
-| `MIGRATION_DATABASE_URL` | owner (`businessos`) | `pnpm db:migrate`, seeds | Owns tables; runs DDL |
-| `DATABASE_URL` | `businessos_app` | api, worker, tests | `NOBYPASSRLS`; DML only |
+| Variable                 | Role                 | Used by                  | Notes                   |
+| ------------------------ | -------------------- | ------------------------ | ----------------------- |
+| `MIGRATION_DATABASE_URL` | owner (`businessos`) | `pnpm db:migrate`, seeds | Owns tables; runs DDL   |
+| `DATABASE_URL`           | `businessos_app`     | api, worker, tests       | `NOBYPASSRLS`; DML only |
 
-`scripts/db/setup-roles.sql` creates the runtime role and default privileges. Tests run
+`pnpm db:setup` (`scripts/db/setup.sh` + `grant-app-role.sql`) creates the runtime role, the
+dev/test databases and default privileges. Tests run
 against `businessos_test` as the runtime role, so RLS is exercised in every test.
 
 ## Conventions
@@ -56,6 +57,6 @@ CREATE POLICY tenant_isolation ON <t>
 
 Populated as phases land. See the schema files for the source of truth.
 
-| Table | Scope | Phase | Delete behaviour |
-| --- | --- | --- | --- |
-| _none yet_ | | | |
+| Table      | Scope | Phase | Delete behaviour |
+| ---------- | ----- | ----- | ---------------- |
+| _none yet_ |       |       |                  |

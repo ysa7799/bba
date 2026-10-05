@@ -4,43 +4,43 @@ Phases execute in order. A phase is complete only when its quality gate passes (
 `CLAUDE.md` and the Definition of Done in `docs/TESTING.md`). Live status per phase is in
 `docs/BUILD_PROGRESS.md`.
 
-| # | Phase | Quality gate | Status |
-| --- | --- | --- | --- |
-| 0 | Repository audit & documentation | Architecture internally consistent | PASSED |
-| 1 | Monorepo foundation | lint, typecheck, tests, build | NOT_STARTED |
-| 2 | Database + tenancy | Org A cannot access Org B | NOT_STARTED |
-| 3 | Authentication | Protected-route and API tests | NOT_STARTED |
-| 4 | RBAC | Privilege-escalation tests | NOT_STARTED |
-| 5 | Audit + events + jobs | Reliable async execution tests | NOT_STARTED |
-| 6 | Billing + entitlements | Limits cannot be bypassed from the frontend | NOT_STARTED |
-| 7 | Payments (provider abstraction, Tap adapter, webhooks) | Payment state cannot be forged | NOT_STARTED |
-| 8 | CRM | CRM E2E + tenant isolation | NOT_STARTED |
-| 9 | Activity timeline | Cross-module-ready architecture | NOT_STARTED |
-| 10 | Communications (inbox, email/WhatsApp/SMS architecture) | Normalized providers + isolation | NOT_STARTED |
-| 11 | Calendar | Double-booking concurrency tests | NOT_STARTED |
-| 12 | Forms | Spam / rate-limit / input validation | NOT_STARTED |
-| 13 | Automation V1 | Durable waits, retry, idempotency, loop protection | NOT_STARTED |
-| 14 | Commerce | Money precision and payment integrity | NOT_STARTED |
-| 15 | Dashboards + reporting | Permission-aware reports | NOT_STARTED |
-| 16 | Files + notifications | Production-grade shared services | NOT_STARTED |
-| 17 | Public API + webhooks | API-key isolation and signature tests | NOT_STARTED |
-| 18 | Integrations framework | Encrypted credentials, state machine | NOT_STARTED |
-| 19 | White label + custom domains | Host/domain security | NOT_STARTED |
-| 20 | AI platform | AI cannot exceed user permissions | NOT_STARTED |
-| 21 | Projects | — | NOT_STARTED |
-| 22 | Helpdesk | — | NOT_STARTED |
-| 23 | Marketing | — | NOT_STARTED |
-| 24 | Platform admin | Admin separation + audit | NOT_STARTED |
-| 25 | Security hardening | No open CRITICAL/HIGH | NOT_STARTED |
-| 26 | Performance | Evidence-based fixes | NOT_STARTED |
-| 27 | Full test pass | Critical flows covered | NOT_STARTED |
-| 28 | Deployment | CI/CD, staging/prod templates, runbooks | NOT_STARTED |
-| 29 | Release readiness | No BLOCKERs | NOT_STARTED |
-| 30 | Projects/helpdesk/marketing release gates | Module reliability reviews | NOT_STARTED |
-| 31 | HR foundation | — | NOT_STARTED |
-| 32 | Inventory / purchasing foundation | — | NOT_STARTED |
-| 33 | Accounting design (design before build; double-entry) | — | NOT_STARTED |
-| 34 | Custom app platform | — | NOT_STARTED |
+| #   | Phase                                                   | Quality gate                                       | Status      |
+| --- | ------------------------------------------------------- | -------------------------------------------------- | ----------- |
+| 0   | Repository audit & documentation                        | Architecture internally consistent                 | PASSED      |
+| 1   | Monorepo foundation                                     | lint, typecheck, tests, build                      | PASSED      |
+| 2   | Database + tenancy                                      | Org A cannot access Org B                          | NOT_STARTED |
+| 3   | Authentication                                          | Protected-route and API tests                      | NOT_STARTED |
+| 4   | RBAC                                                    | Privilege-escalation tests                         | NOT_STARTED |
+| 5   | Audit + events + jobs                                   | Reliable async execution tests                     | NOT_STARTED |
+| 6   | Billing + entitlements                                  | Limits cannot be bypassed from the frontend        | NOT_STARTED |
+| 7   | Payments (provider abstraction, Tap adapter, webhooks)  | Payment state cannot be forged                     | NOT_STARTED |
+| 8   | CRM                                                     | CRM E2E + tenant isolation                         | NOT_STARTED |
+| 9   | Activity timeline                                       | Cross-module-ready architecture                    | NOT_STARTED |
+| 10  | Communications (inbox, email/WhatsApp/SMS architecture) | Normalized providers + isolation                   | NOT_STARTED |
+| 11  | Calendar                                                | Double-booking concurrency tests                   | NOT_STARTED |
+| 12  | Forms                                                   | Spam / rate-limit / input validation               | NOT_STARTED |
+| 13  | Automation V1                                           | Durable waits, retry, idempotency, loop protection | NOT_STARTED |
+| 14  | Commerce                                                | Money precision and payment integrity              | NOT_STARTED |
+| 15  | Dashboards + reporting                                  | Permission-aware reports                           | NOT_STARTED |
+| 16  | Files + notifications                                   | Production-grade shared services                   | NOT_STARTED |
+| 17  | Public API + webhooks                                   | API-key isolation and signature tests              | NOT_STARTED |
+| 18  | Integrations framework                                  | Encrypted credentials, state machine               | NOT_STARTED |
+| 19  | White label + custom domains                            | Host/domain security                               | NOT_STARTED |
+| 20  | AI platform                                             | AI cannot exceed user permissions                  | NOT_STARTED |
+| 21  | Projects                                                | —                                                  | NOT_STARTED |
+| 22  | Helpdesk                                                | —                                                  | NOT_STARTED |
+| 23  | Marketing                                               | —                                                  | NOT_STARTED |
+| 24  | Platform admin                                          | Admin separation + audit                           | NOT_STARTED |
+| 25  | Security hardening                                      | No open CRITICAL/HIGH                              | NOT_STARTED |
+| 26  | Performance                                             | Evidence-based fixes                               | NOT_STARTED |
+| 27  | Full test pass                                          | Critical flows covered                             | NOT_STARTED |
+| 28  | Deployment                                              | CI/CD, staging/prod templates, runbooks            | NOT_STARTED |
+| 29  | Release readiness                                       | No BLOCKERs                                        | NOT_STARTED |
+| 30  | Projects/helpdesk/marketing release gates               | Module reliability reviews                         | NOT_STARTED |
+| 31  | HR foundation                                           | —                                                  | NOT_STARTED |
+| 32  | Inventory / purchasing foundation                       | —                                                  | NOT_STARTED |
+| 33  | Accounting design (design before build; double-entry)   | —                                                  | NOT_STARTED |
+| 34  | Custom app platform                                     | —                                                  | NOT_STARTED |
 
 ## Phase 1 implementation plan (monorepo foundation)
 

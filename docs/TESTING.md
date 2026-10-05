@@ -2,12 +2,12 @@
 
 ## Layers
 
-| Layer | Tool | Location | Needs |
-| --- | --- | --- | --- |
-| Unit (domain rules, money, permissions) | Vitest | `packages/*/src/**/*.test.ts` | nothing |
-| Integration (DB, services, HTTP via `app.inject`) | Vitest | `apps/api/test/**`, `packages/*/test/**` | Postgres + Redis |
-| Security (tenant isolation, RBAC escalation) | Vitest | `apps/api/test/security/**` | Postgres + Redis |
-| E2E (critical user flows) | Playwright | `apps/web/e2e/**` | full stack |
+| Layer                                             | Tool       | Location                                 | Needs            |
+| ------------------------------------------------- | ---------- | ---------------------------------------- | ---------------- |
+| Unit (domain rules, money, permissions)           | Vitest     | `packages/*/src/**/*.test.ts`            | nothing          |
+| Integration (DB, services, HTTP via `app.inject`) | Vitest     | `apps/api/test/**`, `packages/*/test/**` | Postgres + Redis |
+| Security (tenant isolation, RBAC escalation)      | Vitest     | `apps/api/test/security/**`              | Postgres + Redis |
+| E2E (critical user flows)                         | Playwright | `apps/web/e2e/**`                        | full stack       |
 
 ## Fixtures
 

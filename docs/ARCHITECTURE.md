@@ -67,13 +67,13 @@ primitives across more than one surface).
 ## 3. Multi-tenancy
 
 **Tenant = Organization.** Child scoping concepts (workspace/location/branch/department) are
-added only when a module needs them; they always sit *inside* an organization.
+added only when a module needs them; they always sit _inside_ an organization.
 
 Defense in depth, three layers:
 
 1. **Request layer** — `requireOrgContext` resolves `{ user, organization, membership,
-   permissions }` from the session and the `:orgId` route param. The param is only a
-   *selector*; access comes from an active membership. Non-members get `404`.
+permissions }` from the session and the `:orgId` route param. The param is only a
+   _selector_; access comes from an active membership. Non-members get `404`.
 2. **Service/repository layer** — every query on a tenant table includes
    `organization_id = ctx.organizationId`. Foreign references supplied by the client
    (e.g. `companyId` on a contact) are verified to belong to the same organization.
@@ -90,7 +90,7 @@ greppable and reviewed.
 
 Global (non-tenant) tables: `users`, `sessions`, auth tokens, `organizations` itself,
 platform plans/feature flags, platform admin tables. Memberships are tenant-owned but a user may
-also read their *own* memberships across organizations (policy: `user_id = app.user_id`).
+also read their _own_ memberships across organizations (policy: `user_id = app.user_id`).
 
 ## 4. Request lifecycle (API)
 

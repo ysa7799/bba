@@ -25,10 +25,10 @@ usage_metrics → usage_records                     billing_events
 Code asks entitlement questions, never plan names:
 
 ```ts
-canUseFeature(org, 'projects.enabled')
-getLimit(org, 'crm.contacts.max')
-checkUsage(org, 'email.monthly_limit', 1)
-consumeUsage(org, 'email.monthly_limit', 1)
+canUseFeature(org, 'projects.enabled');
+getLimit(org, 'crm.contacts.max');
+checkUsage(org, 'email.monthly_limit', 1);
+consumeUsage(org, 'email.monthly_limit', 1);
 ```
 
 Entitlement evaluation is independent of any payment provider. Subscription status changes

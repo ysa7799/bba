@@ -1,0 +1,27 @@
+{
+  "name": "@businessos/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tsconfig/*": "./tsconfig/*",
+    "./eslint": "./eslint/base.js",
+    "./eslint/next": "./eslint/next.js",
+    "./env": "./src/env.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.3.8",
+    "globals": "^17.0.0",
+    "typescript-eslint": "^8.71.0"
+  }
+}
