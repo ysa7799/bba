@@ -36,6 +36,14 @@ pnpm dev
 
 Without Docker, point `DATABASE_URL`/`REDIS_URL` at locally installed services.
 
+## Proxies and client IPs
+
+- `apps/web` proxies `/api/*` to `API_INTERNAL_URL` at runtime. Keep the API private (only
+  reachable from the web tier and trusted load balancers).
+- Set `TRUST_PROXY` on the API to the web tier's address range (or hop count) so per-IP rate
+  limits use real client IPs; set `TRUST_PROXY_HEADERS=true` on the web app only when its own
+  load balancer overwrites `X-Forwarded-For`.
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

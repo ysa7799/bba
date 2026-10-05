@@ -26,7 +26,7 @@ threat model and the control catalogue; it is updated whenever a control is adde
 - Mandatory isolation tests per resource: read, list, search, update, delete, reference,
   guessed-ID probing.
 
-### Authentication _(Phase 3)_
+### Authentication (Phase 3 — implemented)
 
 - Passwords: argon2id (memory-hard), min length 10, max 256, breached-pattern checks later.
 - Sessions: 256-bit random opaque token in `__Host-`/httpOnly/Secure/SameSite=Lax cookie; only
@@ -37,10 +37,27 @@ threat model and the control catalogue; it is updated whenever a control is adde
 - Prepared for OAuth (Google, Microsoft), MFA (TOTP/WebAuthn), passkeys, SAML via an
   `identities` table separate from `users`.
 
+- Registration never reveals existing accounts; an unverified email belongs to its latest
+  registrant (pre-hijack protection); verified accounts receive an "account exists" email.
+- Login: identical error + dummy argon2 verification for unknown emails; per-account failure
+  lockout (5 / 15 min) independent of IP; per-IP limits; fresh session on every login.
+- Reset: single-use 1-hour token bound to the email it was sent to; completing a reset revokes
+  all sessions and marks the email verified; only the newest token per purpose is valid.
+- Invitations: bound to the invited email; the token proves mailbox ownership.
+- Rate limiter fails open when Redis is unavailable (availability choice); argon2 cost still
+  throttles guessing. Revisit in Phase 25.
+
 ### CSRF
 
 - Session cookies are `SameSite=Lax`; all state-changing first-party requests must carry a
-  matching `Origin` (or `Referer`) from the allow-list, and JSON content type.
+  matching `Origin` (or `Referer`) from the allow-list, and JSON content type (other content
+  types get 415).
+
+### Client IP attribution
+
+- The API trusts `X-Forwarded-For` only from configured proxies (`TRUST_PROXY`: hops/CIDRs).
+- The web proxy forwards `X-Forwarded-For` only with `TRUST_PROXY_HEADERS=true` (set when the
+  web tier sits behind a load balancer that overwrites the header).
 
 ### Authorization _(Phase 4)_
 
@@ -97,9 +114,11 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 ## Findings log
 
-| Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                   |
-| ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| 2026-10-05 | 2     | HIGH     | Membership/organization RLS policies allowed a user's other-tenant rows to be visible inside a tenant context (user-scope clause applied in tenant scope). Caught by the isolation suite before release. | Fixed (migration 0003) + regression test |
+| Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                    |
+| ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| 2026-10-05 | 3     | MEDIUM   | Web proxy forwarded client `X-Forwarded-For` unconditionally; a directly exposed web server would let clients spoof IPs to evade per-IP limits.                                                          | Fixed: opt-in `TRUST_PROXY_HEADERS`; API `TRUST_PROXY` accepts hops/CIDRs |
+| 2026-10-05 | 3     | LOW      | Authenticated API responses lacked `Cache-Control: no-store`.                                                                                                                                            | Fixed + test                                                              |
+| 2026-10-05 | 2     | HIGH     | Membership/organization RLS policies allowed a user's other-tenant rows to be visible inside a tenant context (user-scope clause applied in tenant scope). Caught by the isolation suite before release. | Fixed (migration 0003) + regression test                                  |
 
 ## Reporting
 

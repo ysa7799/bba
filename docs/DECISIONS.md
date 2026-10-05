@@ -58,8 +58,10 @@ service-to-service tokens.
 
 ## ADR-009 — Same-origin API access from the web app
 
-The web app rewrites `/api/*` to the API so cookies are first-party and CORS stays strict. The
-API also supports a configured allow-list of origins for direct access.
+The web app proxies `/api/*` to the API so cookies are first-party and CORS stays strict. The
+API also supports a configured allow-list of origins for direct access. _Amended in Phase 3:_
+Next.js `rewrites` bake the destination at build time, so the proxy is a runtime route handler
+(`apps/web/src/app/api/[...path]/route.ts`) with header allow-lists in both directions.
 
 ## ADR-010 — Transactional outbox for domain events
 
@@ -89,3 +91,17 @@ set, so tenant queries can never return another tenant's rows even for multi-org
 `@businessos/testing` builds the standard two-tenant world through real domain code paths. It is
 a dev-only dependency; Turborepo tasks do not declare `^task` dependencies (internal packages
 are source-only, ADR-004), so the dev-only package cycle is harmless.
+
+## ADR-015 — Email verification required before sign-in
+
+Accounts must verify their email before password sign-in; verification does not sign the user
+in. Invitation acceptance and password reset prove mailbox ownership and therefore verify the
+email. Until the notification/email provider phase, auth emails go through an `AuthMailer` port
+with development transports only (log/file/memory); production refuses to start without a real
+provider (`CONFIGURATION_REQUIRED`).
+
+## ADR-016 — Identity providers prepared, not implemented
+
+`sessions.auth_method` and `sessions.mfa_verified_at` exist so OAuth (Google/Microsoft), MFA,
+passkeys and SAML can be added without reshaping sessions. External identities will live in a
+separate `user_identities` table; `users.password_hash` is nullable for passwordless accounts.

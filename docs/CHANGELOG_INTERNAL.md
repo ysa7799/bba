@@ -2,6 +2,22 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 3 — Authentication (2026-10-05)
+
+- `@businessos/auth`: argon2id passwords (policy, rehash-on-login, timing-safe unknown users),
+  opaque hashed sessions (absolute + idle expiry), registration with enumeration resistance
+  and pre-hijack protection, email verification, password reset/change with session
+  revocation, invitations (create/preview/accept/register), organization switching.
+- Schema: `sessions`, `auth_tokens`, `invitations` (RLS forced).
+- API: `/app/auth/*`, `/app/me/*`, `/app/orgs` (+ tenant-scoped detail/members),
+  `/app/invitations/*`; session cookie plugin, CSRF origin check, tenant resolver, Redis rate
+  limiter with per-IP and per-account policies, `no-store` for app responses, proxy trust config.
+- Web: runtime `/api` proxy, auth pages (login, register, check email, verify, forgot/reset,
+  invite), onboarding, tenant app shell with organization switcher, overview and members pages,
+  i18n catalogue scaffold (RTL-ready), UI primitives.
+- Playwright E2E for registration → organization → members → sign-out, password reset session
+  revocation, and open-redirect protection; added to CI.
+
 ## Phase 2 — Database + tenancy (2026-10-05)
 
 - Schema: `users`, `organizations`, `memberships`, `organization_settings` with check

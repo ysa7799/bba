@@ -2,9 +2,46 @@
 
 ## Current Phase
 
-Phase 3 — Authentication
+Phase 4 — RBAC
 
 Status: IN_PROGRESS
+
+---
+
+## Phase 3 — Authentication
+
+Status: PASSED
+
+### Completed
+
+- Registration, email verification, login, logout, sessions, forgot/reset password, change
+  password, invitation preview/acceptance (existing and new accounts), organization creation
+  and switching — API and web UI.
+- Hardening: enumeration-resistant responses, timing equalization, per-account lockout and
+  per-IP limits, session fixation prevention, token single-use and email binding, CSRF origin
+  check, `__Host-` cookies in production, open-redirect guard, `no-store`, proxy trust config.
+
+### Tests
+
+- auth package: 24 (registration branches, pre-hijack, verification, expiry, rehash, reset,
+  change password, invitations incl. cross-tenant invitation attempt).
+- API: 49 (protected-route matrix, cookie attributes, forged/revoked cookies, fixation, reset
+  revocation, CSRF, non-JSON refusal, org creation/switching, mass assignment, cross-tenant
+  404s, suspended membership, invitation flows, strict rate limits).
+- Web unit: 9 (redirect validation). E2E (Playwright): 3 full-stack flows.
+- Full suite: 138 unit/integration + 3 E2E passing.
+
+### Risks
+
+- Production cannot start until an email provider exists (by design, CONFIGURATION_REQUIRED).
+- Global rate limit is per IP; authenticated per-user limits are applied per sensitive route.
+- A one-off failure of the per-IP registration limit test was seen once and not reproduced in
+  9 further runs; the assertion now prints the full status list if it recurs.
+
+### Next
+
+- Phase 4: permission catalogue, system + custom roles, assignments, escalation guards,
+  member management and invitation endpoints with permission checks.
 
 ---
 
