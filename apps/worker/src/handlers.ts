@@ -13,6 +13,7 @@ import { loadEvent, type SubscriberRegistry } from '@businessos/events';
 import { pruneIdempotencyKeys } from '@businessos/api-keys';
 import { JOBS, UnrecoverableError, type JobHandlers } from '@businessos/jobs';
 import { pruneNotifications } from '@businessos/notifications';
+import { runIntegrationMaintenance, type IntegrationServices } from '@businessos/integrations';
 import { runSubscriptionMaintenance } from '@businessos/payments';
 import { attemptDelivery, runWebhookMaintenance, type WebhookServices } from '@businessos/webhooks';
 import type { Logger } from 'pino';
@@ -26,6 +27,7 @@ export interface HandlerDeps {
   automation: AutomationServices;
   files: FileServices;
   webhooks: WebhookServices;
+  integrations: IntegrationServices;
   /** Public web app URL for links in job-sent emails. */
   appUrl: string;
   registry: SubscriberRegistry;
@@ -58,6 +60,14 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
     'webhook.deliver': async (payload) => {
       const outcome = await attemptDelivery(deps.webhooks, payload);
       return { outcome };
+    },
+
+    'integrations.maintenance': async () => {
+      const result = await runIntegrationMaintenance(deps.integrations);
+      if (result.refreshed > 0 || result.failed > 0 || result.statesRemoved > 0) {
+        deps.logger.info(result, 'integration maintenance completed');
+      }
+      return result;
     },
 
     'developers.maintenance': async () => {

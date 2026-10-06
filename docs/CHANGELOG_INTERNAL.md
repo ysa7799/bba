@@ -2,6 +2,22 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 18 — Integrations framework (2026-10-06)
+
+- Schema: `integration_accounts`, `integration_oauth_states`; `calendar_connections.integration_account_id`
+  (migrations 0035–0036, FORCE RLS).
+- `@businessos/integrations`: OAuth providers (Google, Microsoft 365, development fake) with
+  PKCE, authorization start/complete, sealed tokens, refresh with per-account locking and the
+  connection state machine, disconnection with revocation, maintenance.
+- Calendar: connections can use a connected account (`AccessTokenSource`); tokens are fetched
+  before every provider call; disconnected accounts stop their calendars.
+- Permission `integrations.manage`; audit actions `integration.connected/disconnected`; job
+  `integrations.maintenance` (every 10 minutes); env for OAuth clients and the fake provider.
+- API: `/app/orgs/:orgId/integrations` (providers, accounts, start, disconnect) and
+  `/app/oauth/complete`.
+- Web: "Connect with …" on calendar settings, `/oauth/callback`, development consent page,
+  Connected accounts page; E2E.
+
 ## Phase 17 — Public API + webhooks (2026-10-06)
 
 - Schema: `api_keys`, `api_idempotency_keys`, `webhook_endpoints`, `webhook_deliveries`

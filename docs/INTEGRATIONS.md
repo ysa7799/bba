@@ -19,6 +19,7 @@
 | `ChannelProvider`  | 10    | Postmark (email), WhatsApp Cloud API, Twilio (SMS), Fakes (implemented) | CONFIGURATION_REQUIRED |
 | `FileStorage`      | 16    | S3-compatible (SigV4), local disk (dev), Memory (tests) (implemented)   | CONFIGURATION_REQUIRED |
 | `CalendarProvider` | 11/18 | Google Calendar, Microsoft 365, Fake (implemented)                      | CONFIGURATION_REQUIRED |
+| `OAuthProvider`    | 18    | Google, Microsoft 365, Fake (implemented)                               | CONFIGURATION_REQUIRED |
 | `AIProvider`       | 20    | Anthropic-compatible, Fake                                              | CONFIGURATION_REQUIRED |
 | `CaptchaVerifier`  | 12    | Cloudflare Turnstile, Fake (implemented)                                | CONFIGURATION_REQUIRED |
 
@@ -103,10 +104,12 @@ appointment and connection).
 | Microsoft 365 (`microsoft_calendar`) | OAuth access token ✱ | Graph `POST /me/calendar/getSchedule` (mailbox address as calendar id) | Graph `POST /me/events` with `transactionId` (Teams link for video bookings) |
 | Fake (`fake_calendar`, dev/tests)    | —                    | set by tests                                                           | in memory                                                                    |
 
-Live status: **CONFIGURATION_REQUIRED**. Access tokens expire within an hour; obtaining and
-refreshing them needs the OAuth integrations framework (Phase 18), so a pasted token works only
-until it expires. Zoom meetings also wait for Phase 18 (organization-level OAuth); video links
-come from the calendar providers (Meet, Teams) or the type's location text.
+Live status: **CONFIGURATION_REQUIRED** until the platform's Google and Microsoft OAuth clients
+are configured (see "Connected accounts" below). With them, members choose **Connect with
+Google / Microsoft 365** on a calendar: the connection uses their connected account and its
+tokens are refreshed automatically. Pasting an access token still works but only until it
+expires. Zoom meetings are not offered yet; video links come from the calendar providers
+(Meet, Teams) or the type's location text.
 
 ## Invoice payments (Phase 14)
 
@@ -178,9 +181,52 @@ delay email or automation. Every attempt is recorded (status, response code, dur
 and can be resent. No provider credentials are involved; endpoints are customer-owned URLs
 held to the same SSRF rules as workflow webhook actions.
 
-## Connection state machine (Phase 18)
+## Connected accounts — OAuth (Phase 18)
 
-`connecting → active → (refresh_required | error) → active | disconnected`
+`@businessos/integrations` connects accounts at external providers through the OAuth 2.0
+authorization-code flow with PKCE (S256) and a confidential client.
 
-Tracked fields: definition, provider, connection owner org, encrypted credentials, scopes,
-external account id, token expiry, sync state, webhook status, last error.
+States: `connecting → active → (refresh_required | error) → active | disconnected`.
+`refresh_required` means the provider refused the refresh token (revoked or expired grant) and
+only the member reconnecting fixes it; `error` is a temporary failure that clears itself on the
+next successful refresh.
+
+Each account records: provider, organization, the member who connected it, the provider's
+account id and label (email), granted scopes, sealed tokens (access + refresh), access-token
+expiry, last refresh and use, last error and a failure count.
+
+| Provider         | Key          | Endpoints                                                                                      | Calendar scopes                                             | Live status                                        |
+| ---------------- | ------------ | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------- |
+| Google           | `google`     | `accounts.google.com/o/oauth2/v2/auth`, `oauth2.googleapis.com/token`, OpenID userinfo, revoke | `openid email calendar.events calendar.freebusy`            | CONFIGURATION_REQUIRED without a client            |
+| Microsoft 365    | `microsoft`  | `login.microsoftonline.com/<tenant>/oauth2/v2.0/*`, Graph `/me`                                | `openid email offline_access User.Read Calendars.ReadWrite` | CONFIGURATION_REQUIRED without a client            |
+| Test (dev/tests) | `fake_oauth` | consent page `/dev/fake-oauth` in the web app; in-process token exchange                       | —                                                           | development and tests only (refused in production) |
+
+Flow: the member starts from a calendar (`POST …/integrations/oauth/start`); the API records the
+state (SHA-256 only) and the PKCE verifier (sealed) for 10 minutes and returns the provider's
+consent URL. The provider sends the member back to `APP_URL/oauth/callback`, which posts the
+answer with their session to `POST /app/oauth/complete`; the API consumes the state once,
+checks it belongs to the same person who is still a member, exchanges the code, stores the
+account and links the calendar. Tokens are refreshed on use (two minutes before expiry, one
+refresh at a time per account) and by the worker every 10 minutes for tokens about to expire,
+so revoked grants show up on the Connected accounts page within minutes.
+
+### Setup
+
+1. **Google**: in Google Cloud Console create an OAuth client of type _Web application_, add
+   the authorized redirect URI `https://<APP_URL host>/oauth/callback`, enable the Google
+   Calendar API and add the scopes above to the consent screen (verification is required before
+   external users can connect). Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
+2. **Microsoft 365**: in Microsoft Entra ID register an application (multitenant for
+   customers' tenants), add the _Web_ redirect URI `https://<APP_URL host>/oauth/callback`, the
+   delegated Graph permissions `User.Read` and `Calendars.ReadWrite`, and a client secret. Set
+   `MICROSOFT_OAUTH_CLIENT_ID`, `MICROSOFT_OAUTH_CLIENT_SECRET` and optionally
+   `MICROSOFT_OAUTH_TENANT` (default `common`).
+3. Set them on the API **and** the worker (the worker refreshes tokens). The secrets never
+   reach the browser; the redirect URI must match exactly.
+
+## Connection state machine
+
+Implemented in Phase 18 for OAuth accounts (above). Messaging channels, external calendars
+and payment connections keep their own status columns (`active`, `configuration_required`,
+`error`, `disconnected`); calendars now take their tokens from a connected account when one is
+linked.

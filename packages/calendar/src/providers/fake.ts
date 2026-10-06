@@ -12,6 +12,8 @@ export class FakeCalendarProvider implements CalendarProvider {
   readonly label = 'Test calendar (development)';
   readonly credentialFields = [] as const;
   readonly events = new Map<string, ExternalEventInput & { connectionId: string }>();
+  /** Access tokens the provider was called with (tests check connected accounts supply them). */
+  readonly seenAccessTokens: string[] = [];
   private readonly busy = new Map<string, Interval[]>();
   private failures = 0;
 
@@ -33,6 +35,9 @@ export class FakeCalendarProvider implements CalendarProvider {
 
   busyTimes(connection: ResolvedCalendarConnection, range: Interval): Promise<Interval[]> {
     this.maybeFail();
+    if (connection.credentials.accessToken) {
+      this.seenAccessTokens.push(connection.credentials.accessToken);
+    }
     return Promise.resolve(
       (this.busy.get(connection.externalCalendarId) ?? []).filter(
         (interval) => interval.start < range.end && range.start < interval.end,

@@ -4,7 +4,11 @@ import { and, eq, inArray, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Interval } from './availability';
 import { getCalendarRow } from './calendars';
-import type { CalendarProvider, ResolvedCalendarConnection } from './providers/types';
+import {
+  CalendarProviderError,
+  type CalendarProvider,
+  type ResolvedCalendarConnection,
+} from './providers/types';
 
 export class CalendarProviderRegistry {
   private readonly providers = new Map<string, CalendarProvider>();
@@ -26,10 +30,21 @@ export class CalendarProviderRegistry {
   }
 }
 
+/** Supplies OAuth access tokens of connected accounts (the integrations framework). */
+export interface AccessTokenSource {
+  /**
+   * A usable access token, refreshed as needed. Throws when the account must be reconnected
+   * (`retryable: false` on the error) or the provider is unavailable.
+   */
+  accessToken(organizationId: string, integrationAccountId: string): Promise<string>;
+}
+
 export interface CalendarServices {
   providers: CalendarProviderRegistry;
   /** Seals connection credentials; null when CREDENTIALS_ENCRYPTION_KEYS is not configured. */
   secretBox: SecretBox | null;
+  /** Access tokens for connections made through a connected account. */
+  tokens?: AccessTokenSource | undefined;
   /** Upper bound for one provider busy-time lookup. */
   providerTimeoutMs?: number;
 }
@@ -44,6 +59,8 @@ export interface CalendarConnectionSummary {
   providerLabel: string;
   externalCalendarId: string;
   status: CalendarConnection['status'];
+  /** The connected account supplying tokens, when connected through OAuth. */
+  integrationAccountId: string | null;
   checkConflicts: boolean;
   writeEvents: boolean;
   configuredFields: string[];
@@ -77,6 +94,7 @@ function toSummary(services: CalendarServices, row: CalendarConnection): Calenda
     providerLabel: provider?.label ?? row.provider,
     externalCalendarId: row.externalCalendarId,
     status: row.status,
+    integrationAccountId: row.integrationAccountId,
     checkConflicts: row.checkConflicts,
     writeEvents: row.writeEvents,
     configuredFields: configured,
@@ -238,7 +256,106 @@ export async function resolveConnections(
       calendarId: row.calendarId,
       externalCalendarId: row.externalCalendarId,
       credentials: decrypt(services, row),
+      integrationAccountId: row.integrationAccountId,
     }));
+}
+
+/**
+ * The connection with a fresh access token when it is backed by a connected account. Token
+ * problems surface as provider errors (an account needing reconnection is not retryable).
+ */
+export async function withAccessToken(
+  services: CalendarServices,
+  connection: ResolvedCalendarConnection,
+): Promise<ResolvedCalendarConnection> {
+  if (!connection.integrationAccountId) return connection;
+  if (!services.tokens) {
+    throw new CalendarProviderError(connection.provider, 'Connected accounts are not available', {
+      retryable: false,
+    });
+  }
+  try {
+    const accessToken = await services.tokens.accessToken(
+      connection.organizationId,
+      connection.integrationAccountId,
+    );
+    return { ...connection, credentials: { ...connection.credentials, accessToken } };
+  } catch (error) {
+    throw new CalendarProviderError(
+      connection.provider,
+      error instanceof Error ? error.message : 'The connected account is unavailable',
+      { retryable: (error as { retryable?: boolean }).retryable !== false },
+    );
+  }
+}
+
+/**
+ * Connects a calendar through a connected account (OAuth): the account supplies tokens, so no
+ * credentials are stored on the connection. Reconnecting replaces the previous link.
+ */
+export async function connectCalendarAccount(
+  tx: TenantTx,
+  organizationId: string,
+  services: CalendarServices,
+  calendarId: string,
+  input: { provider: string; integrationAccountId: string; externalCalendarId: string },
+): Promise<CalendarConnectionSummary> {
+  if (!services.providers.get(input.provider)) {
+    throw new ValidationError('Unknown provider', [{ path: 'provider', message: 'Not available' }]);
+  }
+  await getCalendarRow(tx, organizationId, calendarId);
+  const values = {
+    integrationAccountId: input.integrationAccountId,
+    externalCalendarId: input.externalCalendarId,
+    credentialsCiphertext: null,
+    status: 'active' as const,
+    lastError: null,
+    updatedAt: new Date(),
+  };
+  const [existing] = await tx
+    .select({ id: calendarConnections.id })
+    .from(calendarConnections)
+    .where(
+      and(
+        eq(calendarConnections.organizationId, organizationId),
+        eq(calendarConnections.calendarId, calendarId),
+        eq(calendarConnections.provider, input.provider),
+        ne(calendarConnections.status, 'disconnected'),
+      ),
+    )
+    .for('update');
+  const [row] = existing
+    ? await tx
+        .update(calendarConnections)
+        .set(values)
+        .where(eq(calendarConnections.id, existing.id))
+        .returning()
+    : await tx
+        .insert(calendarConnections)
+        .values({ ...values, organizationId, calendarId, provider: input.provider })
+        .returning();
+  if (!row) throw new Error('calendar connection was not saved');
+  return toSummary(services, row);
+}
+
+/** Stops the calendar connections that used an account that was disconnected. */
+export async function disconnectAccountCalendars(
+  tx: TenantTx,
+  organizationId: string,
+  integrationAccountId: string,
+): Promise<number> {
+  const rows = await tx
+    .update(calendarConnections)
+    .set({ status: 'disconnected', credentialsCiphertext: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(calendarConnections.organizationId, organizationId),
+        eq(calendarConnections.integrationAccountId, integrationAccountId),
+        ne(calendarConnections.status, 'disconnected'),
+      ),
+    )
+    .returning({ id: calendarConnections.id });
+  return rows.length;
 }
 
 /**
@@ -258,7 +375,9 @@ export async function externalBusyTimes(
       if (!provider) return;
       try {
         const busy = await Promise.race([
-          provider.busyTimes(connection, range),
+          withAccessToken(services, connection).then((authorized) =>
+            provider.busyTimes(authorized, range),
+          ),
           new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error('timeout')), timeoutMs).unref(),
           ),

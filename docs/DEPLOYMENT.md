@@ -132,6 +132,19 @@ re-enter them); keys belong in the secrets manager, never in the repository.
 - `WEBHOOKS_ALLOW_PRIVATE_NETWORK` (API and worker) lets endpoints use http:// and private
   addresses for local development and tests only; production refuses it.
 
+## Connected accounts (Phase 18)
+
+- `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET`, `MICROSOFT_OAUTH_CLIENT_ID` /
+  `MICROSOFT_OAUTH_CLIENT_SECRET` (each pair both or neither) and `MICROSOFT_OAUTH_TENANT`
+  (default `common`) on the API **and** the worker; register `APP_URL/oauth/callback` as the
+  redirect URI with each provider (`INTEGRATIONS.md`). Without them those providers are
+  CONFIGURATION_REQUIRED.
+- Tokens are sealed with `CREDENTIALS_ENCRYPTION_KEYS`.
+- The worker schedules `integrations.maintenance` every 10 minutes (refreshes tokens about to
+  expire, removes old OAuth states); it needs outbound HTTPS to the providers.
+- `INTEGRATIONS_FAKE_PROVIDERS` (API, worker) and `ENABLE_DEV_INTEGRATIONS` (web) are for
+  development and tests only; production refuses the former.
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

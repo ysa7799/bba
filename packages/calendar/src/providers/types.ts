@@ -14,6 +14,8 @@ export interface ResolvedCalendarConnection {
   /** Provider calendar id (e.g. `primary` or an email address). */
   externalCalendarId: string;
   credentials: Record<string, string>;
+  /** Connected account that supplies a fresh OAuth access token (instead of a pasted one). */
+  integrationAccountId: string | null;
 }
 
 export interface ExternalEventInput {

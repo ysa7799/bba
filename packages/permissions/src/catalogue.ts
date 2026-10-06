@@ -353,6 +353,14 @@ export const PERMISSION_DEFINITIONS = [
     roles: ['manager', 'member'],
   },
   {
+    key: 'integrations.manage',
+    module: 'integrations',
+    label: 'Manage connected accounts',
+    description:
+      'See and disconnect every account members have connected (Google, Microsoft…). Members can always manage their own.',
+    roles: [],
+  },
+  {
     key: 'api.manage',
     module: 'developers',
     label: 'Manage API keys and webhooks',

@@ -19,6 +19,7 @@ import type {
   CalendarSummary,
 } from '@/lib/calendar-types';
 import { requestTime } from '@/lib/clock';
+import type { OAuthProviderInfo } from '@/lib/integration-types';
 import { getOrgAccess } from '@/lib/org-data';
 import { getMe, serverGetJson } from '@/lib/server-api';
 import { zonedDate } from '@/lib/zoned-time';
@@ -56,7 +57,7 @@ export default async function SchedulingSettingsPage({
     (can('calendar.manage') ||
       (selected.user?.id === me.user.id && can('calendar.appointment.manage')));
   const today = zonedDate(requestTime(), selected?.timezone ?? timezone);
-  const [availability, connections, providers] = await Promise.all([
+  const [availability, connections, providers, oauthProviders] = await Promise.all([
     selected
       ? serverGetJson<{ availability: Availability }>(
           `${base}/calendars/${selected.id}/availability`,
@@ -71,6 +72,9 @@ export default async function SchedulingSettingsPage({
       ? serverGetJson<{ encryptionConfigured: boolean; data: CalendarProviderInfo[] }>(
           `${base}/calendar-providers`,
         )
+      : Promise.resolve(null),
+    canEditSelected
+      ? serverGetJson<{ data: OAuthProviderInfo[] }>(`/app/orgs/${orgId}/integrations/providers`)
       : Promise.resolve(null),
   ]);
 
@@ -103,6 +107,7 @@ export default async function SchedulingSettingsPage({
               connections={connections.data}
               providers={providers.data}
               encryptionConfigured={providers.encryptionConfigured}
+              oauthProviders={oauthProviders?.data ?? []}
             />
           </Section>
         ) : null}

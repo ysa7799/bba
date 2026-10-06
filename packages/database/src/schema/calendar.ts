@@ -17,6 +17,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { primaryId, tenantIsolationPolicy, timestamps } from './_helpers';
 import { crmContacts } from './crm';
+import { integrationAccounts } from './integrations';
 import { organizations } from './organizations';
 import { users } from './users';
 
@@ -467,6 +468,8 @@ export const calendarConnections = pgTable(
       .notNull()
       .default('configuration_required'),
     credentialsCiphertext: text(),
+    /** OAuth account that supplies (and refreshes) the access token, instead of pasted ones. */
+    integrationAccountId: uuid(),
     /** Read busy times into availability. */
     checkConflicts: boolean().notNull().default(true),
     /** Create events for new bookings. */
@@ -483,6 +486,14 @@ export const calendarConnections = pgTable(
     calendarFk('calendar_connections_calendar_fk', t.calendarId, t.organizationId).onDelete(
       'cascade',
     ),
+    foreignKey({
+      name: 'calendar_connections_integration_account_fk',
+      columns: [t.integrationAccountId, t.organizationId],
+      foreignColumns: [integrationAccounts.id, integrationAccounts.organizationId],
+    }),
+    index('calendar_connections_integration_account_idx')
+      .on(t.integrationAccountId)
+      .where(sql`${t.integrationAccountId} is not null`),
     check('calendar_connections_provider_check', sql`${t.provider} ~ '^[a-z][a-z0-9_]{1,39}$'`),
     check(
       'calendar_connections_status_check',

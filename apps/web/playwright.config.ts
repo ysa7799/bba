@@ -74,6 +74,9 @@ export default defineConfig({
         FILES_LOCAL_DIR,
         // Webhook endpoints on the test machine (a local receiver in the spec).
         WEBHOOKS_ALLOW_PRIVATE_NETWORK: 'true',
+        // Connected accounts through the fake OAuth provider and the fake calendar.
+        INTEGRATIONS_FAKE_PROVIDERS: 'true',
+        CALENDAR_FAKE_PROVIDERS: 'true',
         PASSWORD_HASH_MEMORY_KIB: '4096',
         PASSWORD_HASH_TIME_COST: '1',
       },
@@ -103,6 +106,8 @@ export default defineConfig({
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
         FILES_LOCAL_DIR,
         WEBHOOKS_ALLOW_PRIVATE_NETWORK: 'true',
+        INTEGRATIONS_FAKE_PROVIDERS: 'true',
+        CALENDAR_FAKE_PROVIDERS: 'true',
       },
     },
     {
@@ -116,6 +121,7 @@ export default defineConfig({
         // Each test acts as its own visitor (see `asDistinctVisitor` in e2e/helpers.ts).
         TRUST_PROXY_HEADERS: 'true',
         ENABLE_DEV_PAYMENTS: 'true',
+        ENABLE_DEV_INTEGRATIONS: 'true',
       },
     },
   ],

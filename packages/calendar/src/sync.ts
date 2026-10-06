@@ -7,7 +7,7 @@ import {
   type Database,
 } from '@businessos/database';
 import { and, eq } from 'drizzle-orm';
-import { resolveConnections, type CalendarServices } from './connections';
+import { resolveConnections, withAccessToken, type CalendarServices } from './connections';
 import { CalendarProviderError } from './providers/types';
 
 export interface SyncOutcome {
@@ -76,14 +76,15 @@ export async function syncAppointmentEvents(
     const upToDate = record?.syncedStartsAt?.getTime() === appointment.startsAt.getTime();
     let removed = false;
     try {
+      const authorized = await withAccessToken(services, connection);
       if (current && (!active || !upToDate)) {
-        await provider.cancelEvent(connection, current);
+        await provider.cancelEvent(authorized, current);
         removed = true;
         outcome.cancelled += 1;
       }
       let created: { externalEventId: string; joinUrl: string | null } | null = null;
       if (active && !(current && upToDate)) {
-        created = await provider.createEvent(connection, {
+        created = await provider.createEvent(authorized, {
           appointmentId: appointment.id,
           title: appointment.title,
           description: [appointment.inviteeName, appointment.inviteeNotes]

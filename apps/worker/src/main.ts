@@ -5,6 +5,11 @@ import { createDatabase } from '@businessos/database';
 import { createFileStorage } from '@businessos/files';
 import type { NotificationServices } from '@businessos/notifications';
 import type { WebhookServices } from '@businessos/webhooks';
+import {
+  createOAuthProviders,
+  getAccessToken,
+  type IntegrationServices,
+} from '@businessos/integrations';
 import { SecretBox } from '@businessos/shared';
 import { BullJobQueue } from '@businessos/jobs';
 import { createEmailTransport } from './email/transports';
@@ -68,6 +73,24 @@ function main(): void {
       ),
   };
   const registry = createSubscriberRegistry(db.db, automation, notifications, webhooks);
+  const integrations: IntegrationServices = {
+    db: db.db,
+    secretBox,
+    providers: createOAuthProviders({
+      appUrl: new URL(env.APP_URL).origin,
+      google: {
+        clientId: env.GOOGLE_OAUTH_CLIENT_ID,
+        clientSecret: env.GOOGLE_OAUTH_CLIENT_SECRET,
+      },
+      microsoft: {
+        clientId: env.MICROSOFT_OAUTH_CLIENT_ID,
+        clientSecret: env.MICROSOFT_OAUTH_CLIENT_SECRET,
+        tenant: env.MICROSOFT_OAUTH_TENANT,
+      },
+      fake: env.INTEGRATIONS_FAKE_PROVIDERS,
+    }),
+    redirectUri: `${new URL(env.APP_URL).origin}/oauth/callback`,
+  };
   const files = {
     db: db.db,
     storage: createFileStorage({
@@ -98,7 +121,12 @@ function main(): void {
       calendar: {
         providers: createCalendarProviders({ fake: env.CALENDAR_FAKE_PROVIDERS }),
         secretBox,
+        tokens: {
+          accessToken: (organizationId, accountId) =>
+            getAccessToken(integrations, organizationId, accountId),
+        },
       },
+      integrations,
       automation,
       files,
       webhooks,
@@ -139,6 +167,12 @@ function main(): void {
     .schedule('developers-maintenance', 'developers.maintenance', {}, 3_600_000)
     .catch((error: unknown) => {
       logger.error({ err: error }, 'could not schedule developer maintenance');
+    });
+  // Every 10 minutes: connected accounts' tokens refreshed before they expire.
+  queue
+    .schedule('integrations-maintenance', 'integrations.maintenance', {}, 10 * 60_000)
+    .catch((error: unknown) => {
+      logger.error({ err: error }, 'could not schedule integration maintenance');
     });
   // Hourly: notifications past their retention period.
   queue

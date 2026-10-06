@@ -24,6 +24,7 @@
     "@businessos/events": "workspace:*",
     "@businessos/files": "workspace:*",
     "@businessos/forms": "workspace:*",
+    "@businessos/integrations": "workspace:*",
     "@businessos/jobs": "workspace:*",
     "@businessos/notifications": "workspace:*",
     "@businessos/payments": "workspace:*",

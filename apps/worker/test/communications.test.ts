@@ -1,3 +1,4 @@
+import { OAuthProviderRegistry } from '@businessos/integrations';
 import { createCalendarProviders } from '@businessos/calendar';
 import {
   ChannelProviderRegistry,
@@ -68,6 +69,12 @@ describe('communications.send handler', () => {
       calendar: { providers: createCalendarProviders({ fake: true }), secretBox: null },
       automation: { allowPrivateNetwork: false, enqueue: () => Promise.resolve() },
       files: { db: handle.db, storage: new MemoryFileStorage() },
+      integrations: {
+        db: handle.db,
+        secretBox: null,
+        providers: new OAuthProviderRegistry(),
+        redirectUri: 'http://localhost:3000/oauth/callback',
+      },
       webhooks: {
         db: handle.db,
         secretBox: null,

@@ -347,6 +347,25 @@ Bearer` on `/api/v1` (cookies ignored there; sessions never authenticate the pub
 - Management needs `api.manage`; endpoints, deliveries and keys of another organization are 404
   (filters and RLS; tested for get, update, delete, rotate, test, deliveries).
 
+### Connected accounts (Phase 18)
+
+- OAuth 2.0 authorization code with PKCE (S256) and a confidential client; client secrets stay
+  on the server (API and worker env).
+- `state` is 256-bit, stored as SHA-256, single use (consumed atomically), valid 10 minutes and
+  bound to the member and organization that started it: a forwarded or replayed callback is
+  refused (403/400), and the member must still be active and allowed to use the purpose when it
+  completes. The organization comes from the stored state, never the callback.
+- Access and refresh tokens are sealed with the platform key and associated data binding them
+  to the organization and account; they never appear in API responses, logs or the browser.
+  Refreshes are serialized per account; a refused refresh token marks the account
+  `refresh_required` (no retry storms), outages mark it `error` and recover by themselves.
+  Disconnecting erases tokens, stops linked calendars and asks the provider to revoke the grant.
+- The callback page posts only to the API and redirects only to in-app paths it returns; the
+  fake provider and its consent page exist only when explicitly enabled outside production, and
+  that page only returns to this site's `/oauth/callback`.
+- Accounts are private to their member unless `integrations.manage`; other organizations get
+  404 (filters and RLS; tested for list, disconnect and token access).
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·

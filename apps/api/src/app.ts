@@ -17,6 +17,12 @@ import {
 } from '@businessos/commerce';
 import { createFileStorage, type FileServices, type FileStorage } from '@businessos/files';
 import type { WebhookServices } from '@businessos/webhooks';
+import {
+  createOAuthProviders,
+  getAccessToken,
+  type IntegrationServices,
+  type OAuthProviderRegistry,
+} from '@businessos/integrations';
 import { captchaFromEnv, type CaptchaVerifier } from '@businessos/forms';
 import type { JobQueue } from '@businessos/jobs';
 import {
@@ -46,6 +52,7 @@ import { commerceRoutes } from './modules/commerce/routes';
 import { publicBookingRoutes } from './modules/calendar/public-routes';
 import { crmRoutes } from './modules/crm/routes';
 import { developerRoutes } from './modules/developers/routes';
+import { integrationRoutes, oauthCompletionRoutes } from './modules/integrations/routes';
 import { fileRoutes } from './modules/files/routes';
 import { publicFormRoutes } from './modules/forms/public-routes';
 import { reportRoutes } from './modules/reports/routes';
@@ -94,6 +101,8 @@ export interface AppDependencies {
   secretBox?: SecretBox | null;
   /** External calendar providers (defaults to the live adapters, plus the fake when enabled). */
   calendarProviders?: CalendarProviderRegistry;
+  /** OAuth providers for connected accounts (tests inject controllable ones). */
+  oauthProviders?: OAuthProviderRegistry;
   /** Public-form captcha (defaults to Turnstile when configured, else none). */
   captcha?: CaptchaVerifier | null;
   /** Overrides for named rate-limit policies (tests use relaxed limits). */
@@ -116,6 +125,7 @@ declare module 'fastify' {
     commerce: CommerceServices;
     files: FileServices;
     webhooks: WebhookServices;
+    integrations: IntegrationServices;
     /** Public origin of the API (`API_PUBLIC_URL`, no trailing slash). */
     publicApiBaseUrl: string;
   }
@@ -185,10 +195,34 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
           : null,
     publicApiUrl: env.API_PUBLIC_URL,
   } satisfies CommunicationsServices);
+  app.decorate('integrations', {
+    db: deps.db.db,
+    secretBox: app.communications.secretBox,
+    providers:
+      deps.oauthProviders ??
+      createOAuthProviders({
+        appUrl: new URL(env.APP_URL).origin,
+        google: {
+          clientId: env.GOOGLE_OAUTH_CLIENT_ID,
+          clientSecret: env.GOOGLE_OAUTH_CLIENT_SECRET,
+        },
+        microsoft: {
+          clientId: env.MICROSOFT_OAUTH_CLIENT_ID,
+          clientSecret: env.MICROSOFT_OAUTH_CLIENT_SECRET,
+          tenant: env.MICROSOFT_OAUTH_TENANT,
+        },
+        fake: env.INTEGRATIONS_FAKE_PROVIDERS,
+      }),
+    redirectUri: `${new URL(env.APP_URL).origin}/oauth/callback`,
+  } satisfies IntegrationServices);
   app.decorate('calendar', {
     providers:
       deps.calendarProviders ?? createCalendarProviders({ fake: env.CALENDAR_FAKE_PROVIDERS }),
     secretBox: app.communications.secretBox,
+    tokens: {
+      accessToken: (organizationId, accountId) =>
+        getAccessToken(app.integrations, organizationId, accountId),
+    },
   } satisfies CalendarServices);
   app.decorate('forms', {
     captcha: deps.captcha !== undefined ? deps.captcha : captchaFromEnv(env),
@@ -306,6 +340,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(fileRoutes, { prefix: '/app/orgs/:orgId/files' });
   await app.register(notificationRoutes, { prefix: '/app/orgs/:orgId/notifications' });
   await app.register(developerRoutes, { prefix: '/app/orgs/:orgId/developers' });
+  await app.register(integrationRoutes, { prefix: '/app/orgs/:orgId/integrations' });
+  await app.register(oauthCompletionRoutes, { prefix: '/app/oauth' });
   await app.register(publicApiRoutes, { prefix: '/api/v1' });
   await app.register(publicCommerceRoutes, { prefix: '/public/commerce' });
   await app.register(commerceWebhookRoutes, { prefix: '/webhooks/commerce' });

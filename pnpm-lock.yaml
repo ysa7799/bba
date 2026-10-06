@@ -74,6 +74,9 @@ importers:
       '@businessos/forms':
         specifier: workspace:*
         version: link:../../packages/forms
+      '@businessos/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@businessos/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
@@ -235,6 +238,9 @@ importers:
       '@businessos/forms':
         specifier: workspace:*
         version: link:../../packages/forms
+      '@businessos/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@businessos/jobs':
         specifier: workspace:*
         version: link:../../packages/jobs
@@ -806,6 +812,34 @@ importers:
       '@businessos/organizations':
         specifier: workspace:*
         version: link:../organizations
+      '@businessos/testing':
+        specifier: workspace:*
+        version: link:../testing
+      eslint:
+        specifier: ^9.39.5
+        version: 9.39.5(jiti@2.7.0)
+
+  packages/integrations:
+    dependencies:
+      '@businessos/database':
+        specifier: workspace:*
+        version: link:../database
+      '@businessos/organizations':
+        specifier: workspace:*
+        version: link:../organizations
+      '@businessos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      drizzle-orm:
+        specifier: ^0.45.3
+        version: 0.45.3(@types/pg@8.23.1)(pg@8.23.1)
+      zod:
+        specifier: ^4.6.5
+        version: 4.6.5
+    devDependencies:
+      '@businessos/config':
+        specifier: workspace:*
+        version: link:../config
       '@businessos/testing':
         specifier: workspace:*
         version: link:../testing

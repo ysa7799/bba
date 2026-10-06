@@ -89,6 +89,8 @@ export const AUDIT_ACTIONS = [
   'webhook.updated',
   'webhook.deleted',
   'webhook.secret_rotated',
+  'integration.connected',
+  'integration.disconnected',
   'files.deleted',
   'automation.workflow.created',
   'automation.workflow.updated',

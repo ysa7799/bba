@@ -466,6 +466,28 @@ expiresAt, revokedAt, createdAt}`. `endpoint`: `{id, url, description, events, s
 attempts, responseStatus, lastError, durationMs, nextAttemptAt, lastAttemptAt, completedAt,
 createdAt}`.
 
+### Connected accounts (Phase 18)
+
+Under `/app/orgs/:orgId/integrations` (any member; managing others' accounts needs
+`integrations.manage`):
+
+| Method | Path            | Notes                                                                                                                                       |
+| ------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/providers`    | `{encryptionConfigured, data: [{key, label, configured}]}` — `configured: false` is CONFIGURATION_REQUIRED                                  |
+| GET    | `/accounts`     | `{data: [account]}` — everyone's with `integrations.manage`, otherwise the member's own                                                     |
+| POST   | `/oauth/start`  | `{provider, purpose: 'calendar', context: {calendarId}}` → `{authorizeUrl}`; needs the right to edit that calendar; 409 when not configured |
+| DELETE | `/accounts/:id` | 204; the member's own or with `integrations.manage`; linked calendar connections stop; audited `integration.disconnected`                   |
+
+`POST /app/oauth/complete` (signed in; called by the web app's `/oauth/callback` page) —
+`{state, code?, error?}` → `{account, redirectTo}`. The state must be unexpired, unused and
+started by the same person, who must still be a member and allowed to use the purpose; 400
+for expired, reused or refused authorizations, 403 for someone else's. Audited
+`integration.connected` (and `calendar.connection.connected`).
+
+`account`: `{id, provider, providerLabel, status, accountLabel, scopes, connectedBy,
+lastRefreshedAt, lastUsedAt, lastError, createdAt}` — never tokens. Calendar connections gain
+`integrationAccountId`.
+
 ## Public API v1
 
 Base URL: `API_PUBLIC_URL/api/v1` (server to server; the web app's `/api` proxy does not

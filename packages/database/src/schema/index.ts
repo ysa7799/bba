@@ -15,3 +15,4 @@ export * from './automation';
 export * from './commerce';
 export * from './files';
 export * from './developers';
+export * from './integrations';

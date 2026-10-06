@@ -189,7 +189,13 @@ Developers specifics (Phase 17):
   the key stops working when they are no longer an active member — a key never does more than
   its creator could do now. Revoking keys of people who leave is still recommended.
 
+Connected accounts specifics (Phase 18):
+
+- Members connect accounts for things they may already change (a calendar they may edit) and
+  can always see and disconnect their own accounts. `integrations.manage` (owners and admins)
+  sees and disconnects everyone's.
+
 ## Planned additions (by phase)
 
-`integrations.manage` (18), `white_label.manage` (19),
+`white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

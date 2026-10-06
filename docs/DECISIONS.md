@@ -486,3 +486,25 @@ internal jobs; each job names its attempt number so duplicate or stale jobs do n
 hourly sweep re-queues attempts whose job was lost. Endpoints answering 410 or failing 15
 deliveries in a row are turned off rather than retried forever. The SSRF guard of workflow
 actions moved into `@businessos/safe-http` so both use one implementation.
+
+## ADR-057 — Connected accounts are separate from the features that use them
+
+An OAuth grant (who authorized, which provider account, which scopes, the tokens and their
+state) is stored once as an `integration_account`; features such as calendar connections
+reference it and ask for an access token when they call the provider. This keeps token
+handling, refresh, revocation and the connection state machine in one place
+(`@businessos/integrations`), lets one account serve several features later (calendar, mail,
+meetings) and lets the calendar package stay ignorant of OAuth (it depends on a small
+`AccessTokenSource` port). The callback runs through the web app so the session cookie proves
+who is finishing the authorization; the state is bound to that person and organization, single
+use and short lived. Pasted tokens remain possible for testing but expire.
+
+## ADR-058 — Tokens are refreshed on demand under a per-account lock, plus a background sweep
+
+Access tokens are refreshed when used (two minutes before expiry) inside a transaction holding
+a per-account advisory lock, so concurrent requests produce one refresh — required for
+providers that rotate refresh tokens (Microsoft invalidates the old one). The provider call
+happens while the lock is held (bounded by a 10-second timeout) instead of with a lease, because
+the lock is per account and contention is rare. The worker refreshes tokens about to expire
+every 10 minutes so revoked grants are noticed before someone books, and permanent refusals
+stop further attempts until the member reconnects.

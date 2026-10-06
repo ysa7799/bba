@@ -61,6 +61,7 @@ packages/
   safe-http/   SSRF-guarded outbound HTTP (workflow actions, customer webhooks)
   api-keys/    public API keys (hash-only storage, scopes bound to the creator), idempotency
   webhooks/    endpoints, signing, event fan-out, signed delivery attempts with retries
+  integrations/ OAuth providers (Google, Microsoft, fake), connected accounts, token refresh
   testing/     dev-only fixtures (two-tenant world), Vitest global setup
   …            further packages are added only when code needs them (see ROADMAP)
 ```

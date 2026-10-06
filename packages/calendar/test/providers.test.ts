@@ -5,6 +5,10 @@ import {
   GoogleCalendarProvider,
   MicrosoftCalendarProvider,
   type ResolvedCalendarConnection,
+  CalendarProviderRegistry,
+  externalBusyTimes,
+  FakeCalendarProvider,
+  withAccessToken,
 } from '../src';
 
 const connection = (
@@ -17,6 +21,7 @@ const connection = (
   provider: 'x',
   externalCalendarId,
   credentials: accessToken ? { accessToken } : {},
+  integrationAccountId: null,
 });
 
 /** JSON body a mocked fetch was called with. */
@@ -187,5 +192,52 @@ describe('provider registry', () => {
         .map((p) => p.key),
     ).toEqual(['google_calendar', 'microsoft_calendar']);
     expect(createCalendarProviders({ fake: true }).get('fake_calendar')).toBeDefined();
+  });
+});
+
+describe('connected-account tokens', () => {
+  const services = (accessToken: (org: string, id: string) => Promise<string>) => ({
+    providers: new CalendarProviderRegistry([fake]),
+    secretBox: null,
+    tokens: { accessToken },
+  });
+  const fake = new FakeCalendarProvider();
+  const linked = {
+    ...connection('primary', ''),
+    provider: 'fake_calendar',
+    integrationAccountId: 'acct-1',
+  };
+
+  it('reads busy times with a fresh token from the connected account', async () => {
+    const calls: string[] = [];
+    const busy = await externalBusyTimes(
+      services((org, id) => {
+        calls.push(`${org}/${id}`);
+        return Promise.resolve('fresh-token');
+      }),
+      [linked],
+      { start: 0, end: 1 },
+    );
+    expect(calls).toEqual(['org-1/acct-1']);
+    expect(fake.seenAccessTokens.at(-1)).toBe('fresh-token');
+    expect(busy.get('cal-1')).toEqual([]);
+  });
+
+  it('treats a calendar whose account needs reconnecting as unavailable, not free', async () => {
+    const reconnect = Object.assign(new Error('The connected account must be reconnected'), {
+      retryable: false,
+    });
+    const busy = await externalBusyTimes(
+      services(() => Promise.reject(reconnect)),
+      [linked],
+      { start: 0, end: 1 },
+    );
+    expect(busy.get('cal-1')).toBeNull();
+    await expect(
+      withAccessToken(
+        services(() => Promise.reject(reconnect)),
+        linked,
+      ),
+    ).rejects.toMatchObject({ retryable: false });
   });
 });

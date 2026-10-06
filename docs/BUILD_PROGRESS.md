@@ -2,9 +2,75 @@
 
 ## Current Phase
 
-Phase 18 — Integrations framework
+Phase 19 — White label + custom domains
 
 Status: NOT_STARTED
+
+---
+
+## Phase 18 — Integrations framework
+
+Status: PASSED
+
+### Completed
+
+- Schema: `integration_accounts` (provider, account id and label, scopes, sealed tokens,
+  expiry, state, failure count) and `integration_oauth_states` (hashed state, sealed PKCE
+  verifier, member, purpose, context, 10-minute single use); `calendar_connections` can
+  reference an account. FORCE RLS, composite same-tenant FK. Migrations 0035–0036.
+- `@businessos/integrations`: OAuth providers — Google, Microsoft 365 (CONFIGURATION_REQUIRED
+  without platform clients) and a development fake with its own consent page — using the
+  authorization-code flow with PKCE; start and completion bound to the member and organization;
+  account creation or update on reconnect (another member's account refused); token refresh
+  on use with a per-account lock (rotating refresh tokens kept consistent), `refresh_required`
+  for refused grants and `error` for outages with automatic recovery; disconnection erasing
+  tokens and revoking at the provider; maintenance every 10 minutes.
+- Calendar: an `AccessTokenSource` port; busy-time lookups and event sync fetch a fresh token
+  from the connected account; an account needing reconnection makes the calendar unavailable
+  (never free); disconnecting an account stops its calendar connections.
+- Permission `integrations.manage`; audit actions `integration.connected/disconnected`.
+- API: providers, accounts (own or all), start, disconnect; `/app/oauth/complete` with
+  membership and purpose permission re-checks. Env: Google and Microsoft OAuth clients (pairs
+  enforced), fake provider refused in production.
+- Web: "Connect with …" buttons on calendar settings (only for configured providers),
+  `/oauth/callback` (completes once, returns to the calendar), development consent page that can
+  only return to this site, Connected accounts page (state, who connected, last refresh,
+  provider availability, disconnect).
+
+### Tests
+
+- integrations (9): Google authorization request (PKCE, offline access, no secret in the URL)
+  and code exchange with identity; revoked grants vs outages (Microsoft); unconfigured providers;
+  **state stored only hashed, verifier sealed**; **reused, expired, someone else's, refused and
+  ex-member authorizations rejected**; reconnect updates the member's own account and another
+  member's is refused; fresh tokens reused and **one refresh for five concurrent requests**
+  (refresh token kept when not reissued); outage → `error` → recovery, revoked →
+  `refresh_required` with no further provider calls until reconnection; **accounts stay inside
+  their organization** and member; disconnection erases tokens and revokes; maintenance.
+- calendar (+2): busy times read with the account's fresh token; an account needing
+  reconnection makes the calendar unavailable (not free).
+- API (4): providers with CONFIGURATION_REQUIRED, Google refused without a client, full fake
+  OAuth round trip linking a calendar, token supplied on demand, no tokens in responses,
+  disconnect stops the calendar, audit; **calendar edit rights required to start**, foreign
+  calendars 404, **another member cannot finish someone's authorization**, single use; members
+  see and remove only their own accounts, other organizations 404, sessions required;
+  production refuses the fake provider and half-configured clients.
+- E2E: calendar settings → consent → callback → connected calendar; Connected accounts page
+  (no tokens on the page), disconnect; a refused consent connects nothing.
+- Full suite (uncached): 621 unit/integration + 17 E2E passing.
+
+### Risks
+
+- Google requires app verification before external users can grant calendar scopes; plan the
+  review before launch. Microsoft multitenant apps may need admin consent in some tenants.
+- Zoom and other organization-level OAuth apps are not connected yet (the framework supports
+  more providers and purposes).
+- Refreshes run with a database transaction open for the provider call (bounded by 10 s);
+  revisit with a lease if contention appears (Phase 26).
+
+### Next
+
+- Phase 19: white label and custom domains.
 
 ---
 

@@ -9,7 +9,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { SelectField, TextField } from '@/components/ui/field';
 import { apiRequest } from '@/lib/api-client';
+import { format } from '@/i18n';
 import type { CalendarConnectionSummary, CalendarProviderInfo } from '@/lib/calendar-types';
+import type { OAuthProviderInfo } from '@/lib/integration-types';
 
 /** External calendars whose busy times block bookings (credentials are write-only). */
 export function ConnectionsPanel({
@@ -17,11 +19,14 @@ export function ConnectionsPanel({
   connections,
   providers,
   encryptionConfigured,
+  oauthProviders,
 }: {
   calendarId: string;
   connections: CalendarConnectionSummary[];
   providers: CalendarProviderInfo[];
   encryptionConfigured: boolean;
+  /** Providers members can sign in with (only those the server is set up for). */
+  oauthProviders: OAuthProviderInfo[];
 }) {
   const m = useMessages();
   const { organizationId } = useOrg();
@@ -32,6 +37,22 @@ export function ConnectionsPanel({
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const provider = providers.find((entry) => entry.key === providerKey) ?? null;
   const base = `/app/orgs/${organizationId}/calendar`;
+
+  /** Sends the member to the provider's consent screen; they come back to `/oauth/callback`. */
+  async function connectWith(provider: string) {
+    const target: { url: string | null } = { url: null };
+    const ok = await run(
+      async () => {
+        const result = await apiRequest<{ authorizeUrl: string }>(
+          `/app/orgs/${organizationId}/integrations/oauth/start`,
+          { body: { provider, purpose: 'calendar', context: { calendarId } } },
+        );
+        target.url = result.authorizeUrl;
+      },
+      { refresh: false },
+    );
+    if (ok && target.url) window.location.assign(target.url);
+  }
 
   async function connect(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -53,10 +74,27 @@ export function ConnectionsPanel({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-slate-500">{m.calendar.connectionsHint}</p>
-        <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
-          {m.calendar.connect}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {oauthProviders
+            .filter((entry) => entry.configured)
+            .map((entry) => (
+              <Button
+                key={entry.key}
+                size="sm"
+                loading={pending}
+                onClick={() => void connectWith(entry.key)}
+              >
+                {format(m.calendar.connectWith, { provider: entry.label })}
+              </Button>
+            ))}
+          <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
+            {m.calendar.connect}
+          </Button>
+        </div>
       </div>
+      {oauthProviders.some((entry) => entry.configured) ? (
+        <p className="text-xs text-slate-500">{m.calendar.oauthHint}</p>
+      ) : null}
       {error && !open ? <Alert tone="error">{error.message}</Alert> : null}
       {connections.length === 0 ? (
         <p className="text-sm text-slate-500">{m.calendar.noConnections}</p>
@@ -73,6 +111,7 @@ export function ConnectionsPanel({
                 </p>
                 <p className="text-xs text-slate-500">
                   {m.calendar.connectionStatus[connection.status]}
+                  {connection.integrationAccountId ? ` · ${m.calendar.viaAccount}` : ''}
                   {connection.lastError ? ` · ${connection.lastError}` : ''}
                 </p>
               </div>

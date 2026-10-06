@@ -107,10 +107,33 @@ export const apiEnvSchema = z
     AUTOMATION_ALLOW_PRIVATE_NETWORK: booleanFromEnv.default(false),
     /** Development/test: webhook endpoints may be http:// and private addresses. */
     WEBHOOKS_ALLOW_PRIVATE_NETWORK: booleanFromEnv.default(false),
+    /** OAuth clients for connected accounts (set both or neither; secrets stay server-side). */
+    GOOGLE_OAUTH_CLIENT_ID: z.string().trim().min(1).optional(),
+    GOOGLE_OAUTH_CLIENT_SECRET: z.string().trim().min(1).optional(),
+    MICROSOFT_OAUTH_CLIENT_ID: z.string().trim().min(1).optional(),
+    MICROSOFT_OAUTH_CLIENT_SECRET: z.string().trim().min(1).optional(),
+    MICROSOFT_OAUTH_TENANT: z.string().trim().min(1).max(100).default('common'),
+    /** Development/test: a fake OAuth provider with a consent page in the web app. */
+    INTEGRATIONS_FAKE_PROVIDERS: booleanFromEnv.default(false),
     PASSWORD_HASH_MEMORY_KIB: z.coerce.number().int().min(1024).max(1_048_576).default(19_456),
     PASSWORD_HASH_TIME_COST: z.coerce.number().int().min(1).max(10).default(2),
   })
   .superRefine((env, ctx) => {
+    for (const [id, secret] of [
+      ['GOOGLE_OAUTH_CLIENT_ID', 'GOOGLE_OAUTH_CLIENT_SECRET'],
+      ['MICROSOFT_OAUTH_CLIENT_ID', 'MICROSOFT_OAUTH_CLIENT_SECRET'],
+    ] as const) {
+      if (Boolean(env[id]) !== Boolean(env[secret])) {
+        ctx.addIssue({ code: 'custom', path: [secret], message: `set both ${id} and ${secret}` });
+      }
+    }
+    if (env.NODE_ENV === 'production' && env.INTEGRATIONS_FAKE_PROVIDERS) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['INTEGRATIONS_FAKE_PROVIDERS'],
+        message: 'the fake OAuth provider is not allowed in production',
+      });
+    }
     if (env.PAYMENTS_PROVIDER === 'tap' && !env.TAP_SECRET_KEY && env.NODE_ENV === 'production') {
       ctx.addIssue({
         code: 'custom',

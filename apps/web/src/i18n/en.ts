@@ -105,6 +105,7 @@ export const en = {
       commerceSettings: 'Invoicing setup',
       adminSection: 'Organization',
       developers: 'API & webhooks',
+      integrations: 'Connected accounts',
     },
     billing: {
       title: 'Billing',
@@ -629,6 +630,10 @@ export const en = {
     externalCalendarId: 'Calendar id or mailbox',
     credentials: 'Credentials',
     credentialsHint: 'Stored encrypted and never shown again.',
+    connectWith: 'Connect with {provider}',
+    viaAccount: 'through a connected account',
+    oauthHint:
+      'Connecting signs you in with the provider; BusinessOS keeps the access it grants up to date and never shows it.',
     noConnections: 'No connected calendars.',
     disconnect: 'Disconnect',
     connectionStatus: {
@@ -1508,6 +1513,39 @@ export const en = {
     hint: 'Images, PDF, text, CSV and Office documents up to 10 MB.',
     tooLarge: '“{name}” is larger than 10 MB.',
     loadFailed: 'Could not load attachments.',
+  },
+  integrations: {
+    title: 'Connected accounts',
+    intro:
+      'Accounts members connected at Google, Microsoft and other providers. Their access is stored encrypted and refreshed automatically.',
+    empty: 'No connected accounts yet. Connect one from calendar settings.',
+    providers: 'Providers',
+    notConfigured: 'Not set up on this server yet',
+    available: 'Available',
+    connectedBy: 'Connected by {name}',
+    lastRefreshed: 'Refreshed {time}',
+    disconnect: 'Disconnect',
+    disconnectConfirm:
+      'Disconnect {account}? Calendars using it stop syncing until it is connected again.',
+    status: {
+      connecting: 'Connecting',
+      active: 'Connected',
+      refresh_required: 'Reconnect needed',
+      error: 'Temporarily failing',
+      disconnected: 'Disconnected',
+    },
+    callbackTitle: 'Connecting your account',
+    callbackWorking: 'Finishing the connection…',
+    callbackFailed: 'The connection could not be completed.',
+    callbackSignIn: 'Sign in to finish connecting your account.',
+    signIn: 'Sign in',
+    backToApp: 'Back to BusinessOS',
+    fakeTitle: 'Test sign-in (development)',
+    fakeIntro:
+      'This stands in for a provider’s consent screen in development and tests. Choose the account to connect.',
+    fakeEmail: 'Account email',
+    approve: 'Allow access',
+    deny: 'Deny',
   },
   developers: {
     title: 'API & webhooks',

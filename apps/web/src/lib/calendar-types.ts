@@ -91,6 +91,8 @@ export interface CalendarConnectionSummary {
   providerLabel: string;
   externalCalendarId: string;
   status: 'active' | 'configuration_required' | 'error' | 'disconnected';
+  /** Set when a connected account (OAuth) supplies the tokens. */
+  integrationAccountId: string | null;
   checkConflicts: boolean;
   writeEvents: boolean;
   configuredFields: string[];

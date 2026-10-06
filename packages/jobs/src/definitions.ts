@@ -106,6 +106,12 @@ export const JOBS = {
     schema: z.object({}),
     attempts: 3,
   }),
+  /** Refreshes connected accounts' tokens before they expire; removes old OAuth states. */
+  'integrations.maintenance': defineJob({
+    queue: 'system',
+    schema: z.object({}),
+    attempts: 3,
+  }),
   /** Removes abandoned uploads and retries deferred object deletions. */
   'files.maintenance': defineJob({
     queue: 'system',
