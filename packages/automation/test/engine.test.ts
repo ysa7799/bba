@@ -330,7 +330,7 @@ describe('webhook action network guard (SSRF)', () => {
       checkWebhookUrl('https://API.BusinessOS.example/webhooks/automation/x', false, [
         'api.businessos.example',
       ]),
-    ).toThrow('Workflows cannot call BusinessOS itself');
+    ).toThrow('This URL points at BusinessOS itself');
   });
 
   it('refuses names that resolve to private addresses at connect time', async () => {
@@ -353,7 +353,7 @@ describe('webhook action network guard (SSRF)', () => {
     // Allowed only when explicitly enabled for development and tests.
     await expect(
       postJson(`http://127.0.0.1:${port}/hook`, {}, { allowPrivateNetwork: true }),
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       status: 204,
     });
   });

@@ -121,6 +121,17 @@ re-enter them); keys belong in the secrets manager, never in the repository.
   `notifications.maintenance` (retention) hourly. Notification emails use the existing email
   transport and `APP_URL` for links.
 
+## Public API and webhooks (Phase 17)
+
+- The public API is served by the API process at `API_PUBLIC_URL/api/v1`; expose it publicly
+  (it is not proxied by the web app). It needs no new variables.
+- Webhook signing secrets use `CREDENTIALS_ENCRYPTION_KEYS` (API and worker).
+- The worker consumes the new `webhooks` queue and schedules `developers.maintenance` hourly
+  (re-queues lost attempts, prunes deliveries after 30 days and idempotency records after a
+  day). Outbound HTTPS to customer endpoints must be allowed from the worker.
+- `WEBHOOKS_ALLOW_PRIVATE_NETWORK` (API and worker) lets endpoints use http:// and private
+  addresses for local development and tests only; production refuses it.
+
 ## Migrations in deployment
 
 Migrations run as a separate release step with the owner role before new code is rolled out.

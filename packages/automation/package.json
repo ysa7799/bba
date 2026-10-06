@@ -17,6 +17,7 @@
     "@businessos/crm": "workspace:*",
     "@businessos/database": "workspace:*",
     "@businessos/events": "workspace:*",
+    "@businessos/safe-http": "workspace:*",
     "@businessos/shared": "workspace:*",
     "drizzle-orm": "^0.45.3",
     "zod": "^4.6.5"

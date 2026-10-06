@@ -4,6 +4,7 @@ import { createChannelProviders } from '@businessos/communications';
 import { createDatabase } from '@businessos/database';
 import { createFileStorage } from '@businessos/files';
 import type { NotificationServices } from '@businessos/notifications';
+import type { WebhookServices } from '@businessos/webhooks';
 import { SecretBox } from '@businessos/shared';
 import { BullJobQueue } from '@businessos/jobs';
 import { createEmailTransport } from './email/transports';
@@ -47,7 +48,26 @@ function main(): void {
         { jobId, ...(correlationId ? { correlationId } : {}) },
       ),
   };
-  const registry = createSubscriberRegistry(db.db, automation, notifications);
+  const secretBox = env.CREDENTIALS_ENCRYPTION_KEYS
+    ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
+    : null;
+  const webhooks: WebhookServices = {
+    db: db.db,
+    secretBox,
+    allowPrivateNetwork: env.WEBHOOKS_ALLOW_PRIVATE_NETWORK,
+    ownHosts: [new URL(env.API_PUBLIC_URL).hostname, new URL(env.APP_URL).hostname],
+    enqueueAttempt: (job) =>
+      queue.enqueue(
+        'webhook.deliver',
+        { organizationId: job.organizationId, deliveryId: job.deliveryId, attempt: job.attempt },
+        {
+          organizationId: job.organizationId,
+          jobId: job.jobId,
+          ...(job.delayMs > 0 ? { delayMs: job.delayMs } : {}),
+        },
+      ),
+  };
+  const registry = createSubscriberRegistry(db.db, automation, notifications, webhooks);
   const files = {
     db: db.db,
     storage: createFileStorage({
@@ -63,9 +83,6 @@ function main(): void {
     }),
     logger,
   };
-  const secretBox = env.CREDENTIALS_ENCRYPTION_KEYS
-    ? SecretBox.fromConfig(env.CREDENTIALS_ENCRYPTION_KEYS)
-    : null;
   const runtime = startRuntime({
     db: db.db,
     redis,
@@ -84,6 +101,7 @@ function main(): void {
       },
       automation,
       files,
+      webhooks,
       appUrl: env.APP_URL,
       registry,
       email: createEmailTransport(env, logger),
@@ -115,6 +133,12 @@ function main(): void {
     .schedule('files-maintenance', 'files.maintenance', {}, 3_600_000)
     .catch((error: unknown) => {
       logger.error({ err: error }, 'could not schedule file maintenance');
+    });
+  // Hourly: lost webhook attempts re-queued, old deliveries and idempotency records pruned.
+  queue
+    .schedule('developers-maintenance', 'developers.maintenance', {}, 3_600_000)
+    .catch((error: unknown) => {
+      logger.error({ err: error }, 'could not schedule developer maintenance');
     });
   // Hourly: notifications past their retention period.
   queue

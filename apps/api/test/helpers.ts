@@ -63,6 +63,10 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
     'reportRunUser',
     'reportExportUser',
     'fileUploadUser',
+    'publicApiKey',
+    'publicApiOrg',
+    'publicApiAuthFailureIp',
+    'webhookSendUser',
   ].map((name) => [name, { limit: 10_000, windowSeconds: 60 }]),
 );
 
@@ -73,6 +77,8 @@ const RELAXED_LIMITS: Partial<RateLimitPolicies> = Object.fromEntries(
 export async function createTestContext(options?: {
   env?: Partial<Record<string, string>>;
   strictRateLimits?: boolean;
+  /** Specific limits for this context (on top of the relaxed or strict defaults). */
+  rateLimits?: Partial<RateLimitPolicies>;
   /** Use the production queue-backed mailer instead of the in-memory mailer. */
   queueMailer?: boolean;
   /** Messaging providers (defaults to the real adapters plus fakes). */
@@ -121,7 +127,10 @@ export async function createTestContext(options?: {
     captcha: options?.captcha ?? null,
     channelProviders: options?.channelProviders ?? createChannelProviders({ fake: true }),
     secretBox: new SecretBox([{ id: 'test', key: randomBytes(32) }]),
-    ...(options?.strictRateLimits ? {} : { rateLimits: RELAXED_LIMITS }),
+    rateLimits: {
+      ...(options?.strictRateLimits ? {} : RELAXED_LIMITS),
+      ...options?.rateLimits,
+    },
     ...(options?.logStream ? { logStream: options.logStream } : {}),
   });
   if (options?.configure) {

@@ -181,7 +181,15 @@ Files and notifications specifics (Phase 16, no new permissions):
   `commerce.invoice.read`, `automation.workflow.read`), checked again when it is delivered;
   members only see preferences for types they can receive.
 
+Developers specifics (Phase 17):
+
+- `api.manage` (owners and admins) manages API keys and webhook endpoints.
+- An API key's scopes are permission keys from the public API's list, and must be held by the
+  person creating it. On every request they are narrowed to what that person still holds, and
+  the key stops working when they are no longer an active member — a key never does more than
+  its creator could do now. Revoking keys of people who leave is still recommended.
+
 ## Planned additions (by phase)
 
-`api.manage` (17), `integrations.manage` (18), `white_label.manage` (19),
+`integrations.manage` (18), `white_label.manage` (19),
 `ai.use` (20), `projects.*` (21), `support.ticket.*` (22), `marketing.*` (23).

@@ -70,6 +70,8 @@ export const workerEnvSchema = z
     CALENDAR_FAKE_PROVIDERS: booleanFromEnv.default(false),
     /** Development/test: workflow webhook actions may target http:// and private addresses. */
     AUTOMATION_ALLOW_PRIVATE_NETWORK: booleanFromEnv.default(false),
+    /** Development/test: webhook endpoints may be http:// and private addresses. */
+    WEBHOOKS_ALLOW_PRIVATE_NETWORK: booleanFromEnv.default(false),
     /** Public URL of the web app (links in emails sent by jobs, e.g. appointment reminders). */
     APP_URL: z.url().default('http://localhost:3000'),
     OUTBOX_POLL_MS: z.coerce.number().int().min(50).max(60_000).default(500),
@@ -101,6 +103,13 @@ export const workerEnvSchema = z
         code: 'custom',
         path: ['AUTOMATION_ALLOW_PRIVATE_NETWORK'],
         message: 'private network access for workflows is not allowed in production',
+      });
+    }
+    if (env.NODE_ENV === 'production' && env.WEBHOOKS_ALLOW_PRIVATE_NETWORK) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['WEBHOOKS_ALLOW_PRIVATE_NETWORK'],
+        message: 'private network access for webhooks is not allowed in production',
       });
     }
     if (env.NODE_ENV === 'production' && env.CALENDAR_FAKE_PROVIDERS) {

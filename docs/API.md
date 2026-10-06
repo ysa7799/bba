@@ -435,6 +435,108 @@ inside the same organization. Types: `task.assigned`, `conversation.assigned`, `
 `appointment.booked`, `quote.accepted`, `quote.declined`, `invoice.paid`, `invoice.overdue`,
 `workflow.failed`.
 
+### Developers: API keys and webhooks (Phase 17)
+
+All under `/app/orgs/:orgId/developers`, permission `api.manage` (owners and admins). Creating
+keys, endpoints, test events and redeliveries also needs the plan's `api.enabled` (402
+otherwise); existing keys and endpoints stay listable, revocable and deletable after a
+downgrade.
+
+| Method | Path                                             | Notes                                                                                                                                                    |
+| ------ | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/`                                              | `{enabled, apiBaseUrl, scopes: [{scope, label}], eventTypes}` — only scopes this member holds                                                            |
+| GET    | `/api-keys`                                      | `{data: [apiKey]}` newest first (≤ 100), revoked and expired included                                                                                    |
+| POST   | `/api-keys`                                      | `{name, scopes[], expiresInDays?}` → 201 `{apiKey, key}` — `key` is shown **only here**; scopes beyond the member's own permissions → 403; 25 active max |
+| POST   | `/api-keys/:id/revoke`                           | `{apiKey}` (idempotent); audited `api_key.revoked`                                                                                                       |
+| GET    | `/webhooks`                                      | `{data: [endpoint]}` (≤ 20)                                                                                                                              |
+| POST   | `/webhooks`                                      | `{url, description?, events[]}` → 201 `{endpoint, secret}` — the signing `secret` is shown **only here**; unsafe URLs → 400; 20 per organization         |
+| GET    | `/webhooks/:id`                                  | `{endpoint}`                                                                                                                                             |
+| PATCH  | `/webhooks/:id`                                  | `{url?, description?, events?, enabled?}` → `{endpoint}`; turning on clears the failure count; audited `webhook.updated`                                 |
+| DELETE | `/webhooks/:id`                                  | 204, with its delivery history; audited                                                                                                                  |
+| POST   | `/webhooks/:id/rotate-secret`                    | `{endpoint, secret}`; the previous secret keeps signing for 24 hours; audited                                                                            |
+| POST   | `/webhooks/:id/test`                             | 202 `{deliveryId}` — a `webhook.test` delivery (rate limited `webhookSendUser`)                                                                          |
+| GET    | `/webhooks/:id/deliveries`                       | `?status&cursor&limit` (≤ 50) → `{data: [delivery], nextCursor}` newest first                                                                            |
+| GET    | `/webhooks/:id/deliveries/:deliveryId`           | `{delivery}` including the exact `body` sent                                                                                                             |
+| POST   | `/webhooks/:id/deliveries/:deliveryId/redeliver` | 202; sends it again (rate limited)                                                                                                                       |
+
+`apiKey`: `{id, name, prefix, scopes, status (active|expired|revoked), createdBy, lastUsedAt,
+expiresAt, revokedAt, createdAt}`. `endpoint`: `{id, url, description, events, status
+(active|disabled), disabledReason (manual|failing), consecutiveFailures, createdAt, updatedAt}`
+— never the secret. `delivery`: `{id, eventId, eventType, status (pending|succeeded|failed),
+attempts, responseStatus, lastError, durationMs, nextAttemptAt, lastAttemptAt, completedAt,
+createdAt}`.
+
+## Public API v1
+
+Base URL: `API_PUBLIC_URL/api/v1` (server to server; the web app's `/api` proxy does not
+forward `Authorization`, and no CORS is offered). Authenticate every request with
+`Authorization: Bearer <key>`; cookies are ignored. The key alone decides the organization —
+nothing in the request can choose another one. Requests need the plan's `api.enabled` (402).
+
+- **Scopes**: each operation needs the scope named after its permission (403 `forbidden`
+  naming the missing scope). A key's scopes are fixed at creation and narrowed on every request
+  to what its creator still holds; if the creator is no longer an active member, the key stops
+  working (401).
+- **Errors** follow the standard envelope; records of another organization are 404.
+- **Rate limits**: 600 requests per minute per key, 1,200 per organization, 30 failed
+  authentications per minute per IP (429 with `retry-after`).
+- **Idempotency**: `POST` creates accept `Idempotency-Key` (1–255 printable characters). The
+  first successful response is replayed for 24 hours with `Idempotent-Replayed: true`; the same
+  key with a different method, path or body → 422; while the first is still running → 409.
+- Pagination, filters, bodies and response shapes are the same as the app's CRM API above
+  (`{data, nextCursor}` lists, money as decimal strings with currency).
+
+| Method                    | Path                         | Scope                                                                                |
+| ------------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| GET                       | `/me`                        | any (key and organization summary)                                                   |
+| GET                       | `/contacts`                  | `crm.contact.read`                                                                   |
+| POST                      | `/contacts`                  | `crm.contact.create` (linking a company needs `crm.company.read`)                    |
+| GET                       | `/contacts/:id`              | `crm.contact.read`                                                                   |
+| PATCH                     | `/contacts/:id`              | `crm.contact.update`                                                                 |
+| DELETE                    | `/contacts/:id`              | `crm.contact.delete` (audited, actor `api_key`)                                      |
+| GET/POST/GET/PATCH/DELETE | `/companies…`                | `crm.company.read/create/update/delete`                                              |
+| GET/POST/GET/PATCH/DELETE | `/deals…`                    | `crm.deal.read/create/update/delete`; `POST /deals/:id/move` needs `crm.deal.update` |
+| GET/POST/GET/PATCH/DELETE | `/tasks…`                    | `crm.task.read` (read), `crm.task.manage` (write)                                    |
+| GET                       | `/invoices`, `/invoices/:id` | `commerce.invoice.read`                                                              |
+
+Changes made with a key emit the same domain events as the app, with the actor
+`{type: 'api_key', id: <key id>}`.
+
+## Outbound webhooks
+
+Endpoints receive `POST` requests with a JSON body:
+
+```json
+{
+  "id": "<event id>",
+  "type": "contact.created",
+  "version": 1,
+  "createdAt": "2026-10-05T12:00:00.000Z",
+  "organizationId": "<organization id>",
+  "subject": { "type": "contact", "id": "<contact id>" },
+  "data": { "contactId": "<contact id>" }
+}
+```
+
+Headers: `BusinessOS-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256>` (one `v1` per active
+secret), `BusinessOS-Event-Id`, `BusinessOS-Event-Type`, `BusinessOS-Delivery-Id`,
+`BusinessOS-Delivery-Attempt`, `User-Agent: BusinessOS-Webhooks/1`.
+
+Verifying (receivers must): compute `HMAC-SHA256(secret, "<t>.<raw body>")` over the **raw**
+request body, compare it in constant time with each `v1` value, and refuse timestamps more than
+5 minutes away from now (replay protection). Deduplicate on `BusinessOS-Event-Id` (deliveries
+are at least once and may arrive out of order). Answer 2xx within 10 seconds; anything else is
+retried after 1 min, 5 min, 30 min, 2 h, 6 h, 12 h and 24 h (8 attempts). `410 Gone` turns the
+endpoint off at once; 15 deliveries in a row that fail completely turn it off too.
+
+Payloads carry ids and small facts only (no contact details or message text); fetch details
+with the API. Event types: `contact.created|updated|deleted|tag_added|tag_removed`,
+`company.created|updated|deleted`, `deal.created|updated|stage_changed|won|lost|deleted`,
+`task.created|completed`, `note.created`, `conversation.created|assigned|status_changed`,
+`message.received|sent|failed`, `appointment.booked|rescheduled|cancelled|status_changed`,
+`form.submitted`, `quote.sent|accepted|declined`,
+`invoice.created|sent|paid|overdue|voided`, plus `webhook.test` from "Send test event".
+
 ### Invitations
 
 | Method | Path                        | Notes                                                        |

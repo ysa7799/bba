@@ -26,19 +26,24 @@ export function canRead(ctx: CrmContext, type: 'contact' | 'company' | 'deal'): 
 }
 
 export interface CrmActor {
-  type: 'user' | 'system' | 'workflow';
-  /** Acting user (the import/export requester for worker jobs). */
+  type: 'user' | 'system' | 'workflow' | 'api_key';
+  /** Acting user (the import/export requester for worker jobs); null for API keys. */
   userId: string | null;
   /** The workflow whose run is acting (`workflow` actors). */
   workflowId?: string | null | undefined;
+  /** The public API key making the request (`api_key` actors). */
+  apiKeyId?: string | null | undefined;
   correlationId?: string | null | undefined;
 }
 
 export function eventActor(ctx: CrmContext): EventActor {
-  return {
-    type: ctx.actor.type,
-    id: ctx.actor.type === 'workflow' ? (ctx.actor.workflowId ?? null) : ctx.actor.userId,
-  };
+  const id =
+    ctx.actor.type === 'workflow'
+      ? (ctx.actor.workflowId ?? null)
+      : ctx.actor.type === 'api_key'
+        ? (ctx.actor.apiKeyId ?? null)
+        : ctx.actor.userId;
+  return { type: ctx.actor.type, id };
 }
 
 /** Common options for emitting events from a CRM change. */

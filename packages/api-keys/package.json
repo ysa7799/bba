@@ -1,0 +1,27 @@
+{
+  "name": "@businessos/api-keys",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@businessos/database": "workspace:*",
+    "@businessos/organizations": "workspace:*",
+    "@businessos/permissions": "workspace:*",
+    "@businessos/shared": "workspace:*",
+    "drizzle-orm": "^0.45.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@businessos/config": "workspace:*",
+    "@businessos/testing": "workspace:*",
+    "eslint": "^9.39.5"
+  }
+}

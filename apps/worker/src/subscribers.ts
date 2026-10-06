@@ -8,16 +8,18 @@ import { crmTimelineProjectors } from '@businessos/crm';
 import { createNotificationSubscriber, type NotificationServices } from '@businessos/notifications';
 import type { Database } from '@businessos/database';
 import { SubscriberRegistry } from '@businessos/events';
+import { createWebhookSubscriber, type WebhookServices } from '@businessos/webhooks';
 
 /**
  * Event subscribers. The activity timeline projects CRM, messaging, appointment, form, quote and
  * invoice events; automation starts workflow runs from trigger events; notifications reach the
- * members concerned. Outbound webhooks register here in their own phase.
+ * members concerned; outbound webhooks fan events out to customer endpoints.
  */
 export function createSubscriberRegistry(
   db: Database,
   automation?: AutomationServices,
   notifications?: NotificationServices,
+  webhooks?: WebhookServices,
 ): SubscriberRegistry {
   const registry = new SubscriberRegistry().register(
     createTimelineSubscriber(db, {
@@ -32,5 +34,7 @@ export function createSubscriberRegistry(
   if (automation) registry.register(createAutomationSubscriber(db, automation));
   // Member notifications (needs the job queue for emails).
   if (notifications) registry.register(createNotificationSubscriber(notifications));
+  // Customer webhook deliveries (needs the job queue for attempts).
+  if (webhooks) registry.register(createWebhookSubscriber(webhooks));
   return registry;
 }

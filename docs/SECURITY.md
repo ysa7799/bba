@@ -323,6 +323,30 @@ threat model and the control catalogue; it is updated whenever a control is adde
   constrained to the same organization (database check, and the UI links nothing else).
   Read notifications are deleted after 90 days, unread ones after a year.
 
+### Public API and webhooks (Phase 17)
+
+- API keys: 256-bit random, shown once, stored as SHA-256 (unique index, looked up by hash),
+  revocable, optional expiry, 25 active per organization. Accepted only as `Authorization:
+Bearer` on `/api/v1` (cookies ignored there; sessions never authenticate the public API).
+  The organization comes from the key alone. Scopes are a subset of the creator's permissions
+  at creation (no escalation) and are re-narrowed to the creator's current permissions on every
+  request; suspended or removed creators disable their keys. Requires the plan's `api.enabled`
+  on every request. Rate limited per key, per organization and per IP for failed
+  authentications. Changes are attributed to the key (events, audit, timeline).
+- Idempotency keys are scoped to the API key, fingerprinted by method, path and body (a reused
+  key with another request is refused), and only successful results are stored.
+- Webhook endpoints: the same SSRF guard as workflow actions (https only, no credentials in the
+  URL, no private/loopback/link-local/reserved addresses checked again at connect time, no
+  redirects, BusinessOS's own hosts refused), 10-second overall deadline, response bodies
+  discarded. Signing secrets are 256-bit, shown once, encrypted at rest with associated data
+  binding them to the organization and endpoint; rotation keeps the previous secret signing
+  for 24 hours. Deliveries are signed over `<timestamp>.<raw body>` with HMAC-SHA256; receivers
+  are told to verify in constant time and refuse timestamps older than 5 minutes. Payloads
+  carry ids and small facts only (a public subset of event types; no platform billing,
+  membership or workflow internals). Endpoint URLs are recorded in audit logs by host only.
+- Management needs `api.manage`; endpoints, deliveries and keys of another organization are 404
+  (filters and RLS; tested for get, update, delete, rotate, test, deliveries).
+
 ## Review checklist (run every phase)
 
 authentication · sessions · authorization · tenant isolation · IDOR · SQL injection · XSS ·
@@ -334,6 +358,7 @@ limiting · cache leakage · payment manipulation · AI prompt injection · AI t
 
 | Date       | Phase | Severity | Finding                                                                                                                                                                                                  | Status                                                                            |
 | ---------- | ----- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 2026-10-06 | 17    | MEDIUM   | API keys kept their scopes after their creator was demoted, suspended or removed, so a departed admin's key kept working with the admin's former reach. Found in phase review before release.            | Fixed: scopes narrowed to the creator's current permissions per request + tests   |
 | 2026-10-05 | 16    | MEDIUM   | The web app's global `Content-Security-Policy: frame-ancestors 'none'` replaced the API's `default-src 'none'; sandbox` on attachment downloads, so files were served without the sandbox. Found by E2E. | Fixed: download path exempt from the page policy; proxy forwards it + E2E check   |
 | 2026-10-05 | 16    | LOW      | Stored file names kept the uploader's extension and bidirectional overrides: an image/HTML polyglot could be downloaded as `.html`, and `x<RLO>fdp.exe` displayed as a PDF. Found in phase review.       | Fixed: overrides stripped, extension matches the detected type + regression tests |
 | 2026-10-05 | 14    | LOW      | `?includeArchived=false` on the product list was coerced to `true` (`z.coerce.boolean` treats any non-empty string as true), showing archived products. Found in phase review.                           | Fixed: explicit `true`/`false` parsing                                            |

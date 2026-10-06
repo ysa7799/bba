@@ -352,6 +352,14 @@ export const PERMISSION_DEFINITIONS = [
       'See dashboards and reports, and download them as CSV. Each report also needs read access to its data (deals, invoices, contacts…).',
     roles: ['manager', 'member'],
   },
+  {
+    key: 'api.manage',
+    module: 'developers',
+    label: 'Manage API keys and webhooks',
+    description:
+      'Create and revoke API keys (limited to the permissions you hold) and manage webhook endpoints, which receive notifications of business events.',
+    roles: [],
+  },
 ] as const satisfies readonly PermissionDefinition[];
 
 export type Permission = (typeof PERMISSION_DEFINITIONS)[number]['key'];

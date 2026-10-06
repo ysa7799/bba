@@ -102,6 +102,9 @@ describe('worker production configuration', () => {
     expect(() => loadWorkerEnv({ ...secure, APP_URL: 'http://app.example.com' })).toThrow(
       /APP_URL/,
     );
+    expect(() => loadWorkerEnv({ ...secure, WEBHOOKS_ALLOW_PRIVATE_NETWORK: 'true' })).toThrow(
+      /WEBHOOKS_ALLOW_PRIVATE_NETWORK/,
+    );
     expect(() => loadWorkerEnv({ ...secure, CALENDAR_FAKE_PROVIDERS: 'true' })).toThrow(
       /CALENDAR_FAKE_PROVIDERS/,
     );

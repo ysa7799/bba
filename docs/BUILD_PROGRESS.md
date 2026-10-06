@@ -2,9 +2,99 @@
 
 ## Current Phase
 
-Phase 17 — Public API + webhooks
+Phase 18 — Integrations framework
 
 Status: NOT_STARTED
+
+---
+
+## Phase 17 — Public API + webhooks
+
+Status: PASSED
+
+### Completed
+
+- Schema: `api_keys` (SHA-256 only, display prefix, scopes, creator, expiry, revocation),
+  `api_idempotency_keys`, `webhook_endpoints` (sealed signing secret plus the previous one
+  during rotation, subscribed events, on/off with reason, failure count) and
+  `webhook_deliveries` (exact body, status, attempts, next attempt, last response); FORCE RLS;
+  composite same-tenant FKs. Migrations 0033–0034.
+- `@businessos/safe-http`: the SSRF-guarded client (https only, public addresses checked at
+  connect time, no credentials, no redirects, own hosts refused) moved out of automation and
+  shared; posts exact bodies; overall deadline.
+- `@businessos/api-keys`: 256-bit keys shown once; scopes from a fixed public list, held by the
+  creator at creation and narrowed to the creator's **current** permissions on every request
+  (suspended or removed creators disable their keys); 25 active keys per organization;
+  expiry; revocation; throttled last-used tracking; idempotency records (claim, replay,
+  mismatch, in-progress, takeover, release, prune).
+- `@businessos/webhooks`: endpoints (URL safety, 20 per organization, encrypted secrets,
+  rotation with a 24-hour overlap, on/off), public catalogue of 36 event types with a versioned
+  envelope, HMAC-SHA256 signatures over `<timestamp>.<body>` and a verification helper,
+  `webhooks` subscriber (fan-out when the plan includes the API), signed attempts with
+  retries (1 min → 24 h, 8 attempts; per-attempt job ids so stale jobs do nothing), 410 and
+  15 consecutive failures turn an endpoint off, test events, redelivery, delivery log,
+  maintenance (lost attempts re-queued, 30-day retention).
+- Permission `api.manage`; audit actions for keys and endpoints; CRM actor `api_key`.
+- API: `/api/v1` — me, contacts, companies, deals (+ move), tasks, invoices (read) with scope
+  checks, link-read checks, audit of deletions, `Idempotency-Key` on creates, per-key,
+  per-organization and failed-auth rate limits, `no-store`; `/app/orgs/:orgId/developers`
+  management (keys, endpoints, rotation, test, deliveries, redeliver).
+- Worker: dedicated `webhooks` queue, `webhook.deliver` and hourly `developers.maintenance`.
+- Web: "API & webhooks" page (base URL and usage notes, keys with one-time reveal and revoke,
+  endpoints with one-time secret) and endpoint page (test event, on/off, edit, rotate, delete,
+  delivery log with payloads, resend, paging); plan gate explained with a link to billing.
+
+### Tests
+
+- safe-http (3): exact bodies and headers, non-2xx reporting, overall deadline against a slow
+  drip, private destinations refused.
+- api-keys (11): key shown once and stored only as its hash, **no escalation** through scopes,
+  unknown/revoked/expired/suspended-organization keys refused, **scopes narrowed to the
+  creator's current permissions and suspended creators disable their keys**, throttled
+  last-used, **keys stay inside their organization** (filters and RLS), active-key limit,
+  bearer parsing; idempotency replay, mismatch (422), in progress (409), release, takeover,
+  per-key scoping, validation and pruning.
+- webhooks (15): **signatures** (exact body, tolerance, replay and forged timestamps, wrong
+  secret, rotation with two secrets); endpoints (secret once and encrypted, unsafe URLs and
+  unknown events refused, on/off, rotation overlap, **cross-tenant 404s** for every action);
+  deliveries (fan-out only to the organization's subscribed endpoints, once; nothing without
+  the API in the plan; exact signed body; retries on schedule, stale jobs skipped, final
+  failure counted, redelivery; 410 and repeated failures turn endpoints off; **private
+  destinations refused at send time** (DNS rebinding); test events; private delivery log;
+  maintenance).
+- API (9): key management per permission and plan, revocation, audit without the key;
+  **key-only authentication** (no header, bad key, Basic, a session cookie all 401); scopes per
+  operation; **a key never reaches another organization** (get, update, delete, search, links,
+  smuggled `organizationId`); idempotent creates; `api_key` actor on events and audit; per-key
+  rate limit; webhook management, signed test delivery, delivery log and payload, rotation,
+  on/off, cross-tenant 404s, audit; unsafe URLs refused in a strict configuration. Production
+  configuration refuses `WEBHOOKS_ALLOW_PRIVATE_NETWORK` (API and worker).
+- E2E: the plan gate, a key created in the UI creating a contact through the public API
+  (idempotent replay, scope refusal, no key → 401), the new contact delivered to a local
+  receiver as a correctly signed `contact.created` (verified independently with HMAC), a test
+  event shown in the delivery log, revocation taking effect immediately.
+- Full suite (uncached): 606 unit/integration + 16 E2E passing.
+
+### Risks
+
+- The public API covers CRM records and invoices (read); other modules follow as they need
+  integrations. No OpenAPI document yet (planned with the API hardening in Phase 25).
+- Entitlement and creator checks add a few queries per API request; cache them if the API
+  becomes hot (Phase 26).
+- Workflow `http.request` steps are still unsigned (signed endpoints are the supported way to
+  receive events).
+
+### Fixed during the phase
+
+- API keys outlived their creator's access (security finding, MEDIUM): scopes are now
+  narrowed to the creator's current permissions per request.
+- The endpoint page called a client-only helper from a server component (found by E2E).
+- A calendar isolation test built an empty slot range on dates whose next workdays fall on the
+  same day after the Friday–Saturday weekend (date-dependent failure); it now asks for one day.
+
+### Next
+
+- Phase 18: integrations framework (encrypted credentials, connection state machine).
 
 ---
 

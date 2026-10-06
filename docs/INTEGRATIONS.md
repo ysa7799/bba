@@ -131,8 +131,9 @@ come from the calendar providers (Meet, Teams) or the type's location text.
 - **Outbound** (`http.request` step): `POST` JSON `{workflowId, runId, trigger: {type, data},
 contact?, deal}` with `Idempotency-Key: <runId>:<step>`, `X-BusinessOS-Workflow-Id` and
   `X-BusinessOS-Run-Id`. 2xx is success; 408/429/5xx and network errors are retried after 1, 5
-  and 30 minutes; other answers fail the run. Requests are not signed yet — receivers should
-  use an unguessable URL until signed outbound webhooks arrive (Phase 17).
+  and 30 minutes; other answers fail the run. These requests are not signed — receivers should
+  use an unguessable URL. For signed event notifications use webhook endpoints (Phase 17,
+  below); signing workflow steps is a follow-up.
 - **Inbound** (`webhook.received` trigger): `POST /webhooks/automation/<token>` with a JSON
   object; the body is available to steps as `{{trigger.body.<field>}}`. Send an
   `Idempotency-Key` header to make retries safe.
@@ -167,6 +168,15 @@ production) and `MemoryFileStorage` for tests. Without a bucket and keys the S3 
 3. Set `FILES_STORAGE=s3`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`,
    `S3_SECRET_ACCESS_KEY` (and `S3_ENDPOINT` for non-AWS providers) on the API **and** the
    worker. The keys stay server-side.
+
+## Outbound webhooks (Phase 17)
+
+Customers add endpoints under **API & webhooks**; BusinessOS posts signed JSON for the event
+types they choose (format, headers, signature verification and retry schedule in `API.md`).
+Deliveries run in the worker on their own `webhooks` queue so slow customer servers cannot
+delay email or automation. Every attempt is recorded (status, response code, duration, error)
+and can be resent. No provider credentials are involved; endpoints are customer-owned URLs
+held to the same SSRF rules as workflow webhook actions.
 
 ## Connection state machine (Phase 18)
 

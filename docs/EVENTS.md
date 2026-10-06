@@ -59,6 +59,11 @@ tenant transaction; the unique `source_event_id` makes at-least-once delivery ex
 `workflow.failed` into member notifications. It re-checks every recipient at delivery (active
 membership, the type's read permission, not the actor, their channel choices); the unique
 (user, type, event) row and deterministic email job ids make redelivery harmless.
+`webhooks` (Phase 17) creates one delivery per active endpoint subscribed to a public event type
+(when the organization's plan includes the API) and queues its first attempt on the `webhooks`
+queue; the unique (endpoint, event) row and per-attempt job ids make redelivery harmless.
+Customer webhooks are a separate contract from domain events (see `API.md`): a public subset,
+an envelope with a version, signed bodies.
 
 Who emits: domain services emit inside their transactions (organizations, invitations). Audit
 records are written by the API layer (or auth services) in the same transaction, because they

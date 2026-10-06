@@ -450,3 +450,39 @@ email per type (defaults per type). Rows are private to their member (owner-only
 tenant RLS). Redelivery is harmless: one row per (user, type, event) and deterministic email
 job ids. The bell polls the unread count once a minute while visible; push (SSE/WebSocket)
 waits until there is a second real-time feature to share the connection.
+
+## ADR-054 — API keys are organization keys whose reach is bounded by their creator, now
+
+Public API keys belong to the organization (integrations survive staff changes in the common
+case) but are created by a person, and a key must never be a way around that person's limits.
+Scopes are permission keys from a fixed public list and must be held by the creator at
+creation; on every request they are narrowed to what the creator still holds, and the key stops
+working when the creator is no longer an active member (or the organization is not active, or
+the plan no longer includes the API). Only the SHA-256 of a 256-bit key is stored and keys are
+found by that hash (no prefix lookup, no timing-sensitive comparison); the first 12 characters
+are kept for display. Alternatives rejected: per-user tokens with the user's full permissions
+(too broad for integrations) and keys independent of any person (a departed admin's key would
+keep working until someone noticed).
+
+## ADR-055 — Idempotency for public API creates is stored per key, results replayed for a day
+
+`POST` creates accept `Idempotency-Key`. The key is claimed in its own transaction before the
+work (so a concurrent retry sees "in progress", 409), fingerprinted by method, path and body (a
+reused key with a different request is refused, 422), and the first **successful** response is
+stored and replayed for 24 hours; failures release the key so a corrected retry can run.
+Claims left "processing" by a crashed server are taken over after two minutes. Stored per API
+key, in the tenant's RLS scope, pruned hourly.
+
+## ADR-056 — Customer webhooks: a public event subset, exact signed bodies, own retry schedule
+
+Outbound webhooks are fed by the outbox like every other subscriber but are a separate,
+versioned contract: only a public subset of event types (no platform billing, membership or
+workflow internals), an envelope with id, type, version and time, and data limited to ids and
+small facts. The body is rendered once and stored, so every attempt and manual resend carries
+identical bytes; each attempt signs `<timestamp>.<body>` with HMAC-SHA256 (Stripe-style
+header, all active secrets during a rotation). Attempts run on a dedicated queue and schedule
+their own retries (1 min → 24 h, 8 attempts) because the queue's global backoff is tuned for
+internal jobs; each job names its attempt number so duplicate or stale jobs do nothing, and an
+hourly sweep re-queues attempts whose job was lost. Endpoints answering 410 or failing 15
+deliveries in a row are turned off rather than retried forever. The SSRF guard of workflow
+actions moved into `@businessos/safe-http` so both use one implementation.

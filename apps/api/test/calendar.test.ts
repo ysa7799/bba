@@ -26,6 +26,11 @@ function workdaySlot(daysAhead = 3): string {
   return `${day.toISOString().slice(0, 10)}T07:00:00.000Z`;
 }
 
+/** A day later (two `workdaySlot` calls can land on the same day across a weekend). */
+function dayAfter(iso: string): string {
+  return new Date(Date.parse(iso) + 86_400_000).toISOString();
+}
+
 beforeAll(async () => {
   ctx = await createTestContext();
   world = await createTestWorld(ctx.db.db);
@@ -247,7 +252,7 @@ describe('public booking', () => {
     const { type, page, client } = await bookingSetup();
     const other = await bookingSetup(B, world.orgB.users.admin);
     const slotsUrl = (slug: string, typeId: string) =>
-      `/public/booking/pages/${slug}/types/${typeId}/slots?from=${encodeURIComponent(workdaySlot())}&to=${encodeURIComponent(workdaySlot(4))}`;
+      `/public/booking/pages/${slug}/types/${typeId}/slots?from=${encodeURIComponent(workdaySlot())}&to=${encodeURIComponent(dayAfter(workdaySlot()))}`;
     // A's type through B's page.
     expect(
       (await ctx.app.inject({ method: 'GET', url: slotsUrl(other.page.slug, type.id) })).statusCode,
@@ -351,7 +356,7 @@ describe('tenant isolation', () => {
       ['PATCH', `/appointment-types/${type.id}`, { name: 'Hijack' }],
       [
         'GET',
-        `/appointment-types/${type.id}/slots?from=${encodeURIComponent(workdaySlot())}&to=${encodeURIComponent(workdaySlot(4))}`,
+        `/appointment-types/${type.id}/slots?from=${encodeURIComponent(workdaySlot())}&to=${encodeURIComponent(dayAfter(workdaySlot()))}`,
         undefined,
       ],
       ['GET', `/booking-pages/${page.id}`, undefined],

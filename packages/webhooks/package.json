@@ -1,0 +1,28 @@
+{
+  "name": "@businessos/webhooks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@businessos/billing": "workspace:*",
+    "@businessos/database": "workspace:*",
+    "@businessos/events": "workspace:*",
+    "@businessos/safe-http": "workspace:*",
+    "@businessos/shared": "workspace:*",
+    "drizzle-orm": "^0.45.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@businessos/config": "workspace:*",
+    "@businessos/testing": "workspace:*",
+    "eslint": "^9.39.5"
+  }
+}

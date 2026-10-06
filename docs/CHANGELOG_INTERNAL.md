@@ -2,6 +2,27 @@
 
 Engineering-facing log of what landed per phase. Newest first.
 
+## Phase 17 — Public API + webhooks (2026-10-06)
+
+- Schema: `api_keys`, `api_idempotency_keys`, `webhook_endpoints`, `webhook_deliveries`
+  (migrations 0033–0034, FORCE RLS, composite same-tenant FKs).
+- `@businessos/safe-http`: the SSRF-guarded HTTP client moved out of automation; exact-body
+  posts and an overall deadline.
+- `@businessos/api-keys`: key issuance (hash only, shown once), scopes bounded by the creator
+  now, authentication, revocation, expiry, idempotency records.
+- `@businessos/webhooks`: endpoints (encrypted secrets, rotation with overlap), public event
+  catalogue and envelope, HMAC signing and verification, delivery fan-out subscriber, attempts
+  with retries and auto-disable, delivery log, maintenance.
+- Permission `api.manage`; audit actions `api_key.created/revoked`,
+  `webhook.created/updated/deleted/secret_rotated`; CRM actor `api_key`.
+- API: `/api/v1` (me, contacts, companies, deals, tasks, invoices) with per-key, per-org and
+  failed-auth rate limits and `Idempotency-Key`; `/app/orgs/:orgId/developers` management;
+  env `WEBHOOKS_ALLOW_PRIVATE_NETWORK` (development only).
+- Worker: `webhooks` queue, `webhook.deliver` and `developers.maintenance` jobs, `webhooks`
+  subscriber.
+- Web: "API & webhooks" page (keys and endpoints, secrets shown once), endpoint page (test
+  event, on/off, edit, rotate, delete, delivery log with payloads and resend); E2E.
+
 ## Phase 16 — Files + notifications (2026-10-05)
 
 - Schema: `files`, `notifications`, `notification_preferences` (migrations 0030–0032; owner-only

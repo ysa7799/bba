@@ -129,6 +129,10 @@ Populated as phases land. See the schema files for the source of truth.
 | `files`                                                                | tenant; pending/ready/deleted, size, SHA-256, unique storage key; attached record (contact, company or deal)                       | 16    | soft delete, object purged by the worker; cascade with organization; uploader set null      |
 | `notifications`                                                        | **owner only** (organization + user); unique per (user, type, source event); in-app link must start with `/o/<id>/`                | 16    | read ones kept 90 days, unread one year (worker); cascade with organization and user        |
 | `notification_preferences`                                             | **owner only**; one row per (organization, user, type): in-app and email switches                                                  | 16    | cascade with organization and user                                                          |
+| `api_keys`                                                             | tenant; SHA-256 of the key (unique; the key is never stored), display prefix, scopes, creator, expiry                              | 17    | revoked, never deleted; cascade with organization                                           |
+| `api_idempotency_keys`                                                 | tenant; unique per (key, idempotency key); request fingerprint and the first successful response                                   | 17    | pruned after 24 hours (worker); cascade with the API key                                    |
+| `webhook_endpoints`                                                    | tenant; URL, subscribed events, sealed signing secret (and the previous one during a rotation), on/off with reason, failure count  | 17    | deleted with their deliveries; cascade with organization                                    |
+| `webhook_deliveries`                                                   | tenant; unique per (endpoint, event); the exact body sent, status, attempts, next attempt, last response                           | 17    | pruned after 30 days (worker); cascade with endpoint (composite same-tenant FK)             |
 
 \* Members see their organizations only in user scope (no organization selected); inside a
 tenant context only that tenant is visible.
@@ -156,6 +160,11 @@ closed_at|completed_at|issue_date)` on deals, tasks and invoices. Built with pla
 app_current_user())` — a member's notifications are invisible to other members of the same
   organization, not just to other tenants (FORCE RLS like every tenant table).
   `notifications_created_idx` serves the retention sweep.
+- Developers (migrations 0033–0034, FORCE RLS): API keys are looked up by the SHA-256 of the
+  presented key in system scope (the key is what identifies the tenant, like a session);
+  everything else runs in the key's tenant scope. Idempotency records reference their key
+  through a composite `(api_key_id, organization_id)` FK; deliveries reference their endpoint
+  the same way.
 - A transaction is one connection: never run queries concurrently on it (`Promise.all` over
   `tx` queries); `pg` serializes them anyway and will reject it in its next major version.
 

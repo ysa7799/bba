@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@businessos/activities": "workspace:*",
+    "@businessos/api-keys": "workspace:*",
     "@businessos/automation": "workspace:*",
     "@businessos/calendar": "workspace:*",
     "@businessos/commerce": "workspace:*",
@@ -27,6 +28,7 @@
     "@businessos/notifications": "workspace:*",
     "@businessos/payments": "workspace:*",
     "@businessos/shared": "workspace:*",
+    "@businessos/webhooks": "workspace:*",
     "bullmq": "^5.81.5",
     "drizzle-orm": "^0.45.3",
     "ioredis": "^5.11.1",

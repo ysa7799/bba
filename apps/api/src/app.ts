@@ -16,6 +16,7 @@ import {
   type CommerceServices,
 } from '@businessos/commerce';
 import { createFileStorage, type FileServices, type FileStorage } from '@businessos/files';
+import type { WebhookServices } from '@businessos/webhooks';
 import { captchaFromEnv, type CaptchaVerifier } from '@businessos/forms';
 import type { JobQueue } from '@businessos/jobs';
 import {
@@ -44,6 +45,7 @@ import {
 import { commerceRoutes } from './modules/commerce/routes';
 import { publicBookingRoutes } from './modules/calendar/public-routes';
 import { crmRoutes } from './modules/crm/routes';
+import { developerRoutes } from './modules/developers/routes';
 import { fileRoutes } from './modules/files/routes';
 import { publicFormRoutes } from './modules/forms/public-routes';
 import { reportRoutes } from './modules/reports/routes';
@@ -58,6 +60,7 @@ import { healthRoutes } from './modules/health/routes';
 import { invitationRoutes } from './modules/invitations/routes';
 import { meRoutes } from './modules/me/routes';
 import { notificationRoutes } from './modules/notifications/routes';
+import { publicApiRoutes } from './modules/public-api/routes';
 import { organizationRoutes } from './modules/organizations/routes';
 import {
   devPaymentRoutes,
@@ -112,6 +115,9 @@ declare module 'fastify' {
     automation: AutomationServices;
     commerce: CommerceServices;
     files: FileServices;
+    webhooks: WebhookServices;
+    /** Public origin of the API (`API_PUBLIC_URL`, no trailing slash). */
+    publicApiBaseUrl: string;
   }
 }
 
@@ -234,12 +240,34 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
       }),
     logger: app.log,
   } satisfies FileServices);
+  app.decorate('webhooks', {
+    db: deps.db.db,
+    secretBox: app.communications.secretBox,
+    allowPrivateNetwork: env.WEBHOOKS_ALLOW_PRIVATE_NETWORK,
+    ownHosts: [new URL(env.API_PUBLIC_URL).hostname, new URL(env.APP_URL).hostname],
+    enqueueAttempt: (job) =>
+      deps.jobs.enqueue(
+        'webhook.deliver',
+        { organizationId: job.organizationId, deliveryId: job.deliveryId, attempt: job.attempt },
+        {
+          organizationId: job.organizationId,
+          jobId: job.jobId,
+          ...(job.delayMs > 0 ? { delayMs: job.delayMs } : {}),
+        },
+      ),
+  } satisfies WebhookServices);
+  app.decorate('publicApiBaseUrl', env.API_PUBLIC_URL.replace(/\/+$/, ''));
   app.decorateRequest('tenant', null);
+  app.decorateRequest('apiCaller', null);
 
   app.addHook('onRequest', (request, reply, done) => {
     void reply.header('x-request-id', request.id);
     // Personal/tenant data must never be stored by browsers or shared caches.
-    if (request.url.startsWith('/app/') || request.url.startsWith('/public/')) {
+    if (
+      request.url.startsWith('/app/') ||
+      request.url.startsWith('/public/') ||
+      request.url.startsWith('/api/')
+    ) {
       void reply.header('cache-control', 'no-store');
     }
     done();
@@ -277,6 +305,8 @@ export async function buildApp(deps: AppDependencies): Promise<FastifyInstance> 
   await app.register(reportRoutes, { prefix: '/app/orgs/:orgId/reports' });
   await app.register(fileRoutes, { prefix: '/app/orgs/:orgId/files' });
   await app.register(notificationRoutes, { prefix: '/app/orgs/:orgId/notifications' });
+  await app.register(developerRoutes, { prefix: '/app/orgs/:orgId/developers' });
+  await app.register(publicApiRoutes, { prefix: '/api/v1' });
   await app.register(publicCommerceRoutes, { prefix: '/public/commerce' });
   await app.register(commerceWebhookRoutes, { prefix: '/webhooks/commerce' });
   if (env.NODE_ENV !== 'production' && app.commerce.providers.has('fake')) {

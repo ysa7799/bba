@@ -86,6 +86,13 @@ describe('API environment validation', () => {
     expect(() =>
       loadApiEnv({ ...secure, CREDENTIALS_ENCRYPTION_KEYS: keys, COMMERCE_FAKE_PAYMENTS: 'true' }),
     ).toThrow(/COMMERCE_FAKE_PAYMENTS/);
+    expect(() =>
+      loadApiEnv({
+        ...secure,
+        CREDENTIALS_ENCRYPTION_KEYS: keys,
+        WEBHOOKS_ALLOW_PRIVATE_NETWORK: 'true',
+      }),
+    ).toThrow(/WEBHOOKS_ALLOW_PRIVATE_NETWORK/);
   });
 
   it('validates credential encryption keys without echoing them', () => {

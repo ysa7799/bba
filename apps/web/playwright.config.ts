@@ -72,6 +72,8 @@ export default defineConfig({
         CREDENTIALS_ENCRYPTION_KEYS,
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
         FILES_LOCAL_DIR,
+        // Webhook endpoints on the test machine (a local receiver in the spec).
+        WEBHOOKS_ALLOW_PRIVATE_NETWORK: 'true',
         PASSWORD_HASH_MEMORY_KIB: '4096',
         PASSWORD_HASH_TIME_COST: '1',
       },
@@ -100,6 +102,7 @@ export default defineConfig({
         CREDENTIALS_ENCRYPTION_KEYS,
         COMMUNICATIONS_FAKE_PROVIDERS: 'true',
         FILES_LOCAL_DIR,
+        WEBHOOKS_ALLOW_PRIVATE_NETWORK: 'true',
       },
     },
     {

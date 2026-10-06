@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@businessos/activities": "workspace:*",
+    "@businessos/api-keys": "workspace:*",
     "@businessos/audit": "workspace:*",
     "@businessos/auth": "workspace:*",
     "@businessos/automation": "workspace:*",
@@ -33,6 +34,7 @@
     "@businessos/permissions": "workspace:*",
     "@businessos/reporting": "workspace:*",
     "@businessos/shared": "workspace:*",
+    "@businessos/webhooks": "workspace:*",
     "@fastify/cookie": "^11.1.2",
     "@fastify/cors": "^11.3.0",
     "@fastify/helmet": "^13.1.1",

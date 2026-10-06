@@ -53,6 +53,13 @@ export const DEFAULT_RATE_LIMITS = {
   reportExportUser: { limit: 30, windowSeconds: 3600 },
   /** File uploads per user. */
   fileUploadUser: { limit: 120, windowSeconds: 3600 },
+  /** Public API: per key and per organization (all its keys together). */
+  publicApiKey: { limit: 600, windowSeconds: 60 },
+  publicApiOrg: { limit: 1_200, windowSeconds: 60 },
+  /** Requests with an unknown, revoked or expired key, per client IP. */
+  publicApiAuthFailureIp: { limit: 30, windowSeconds: 60 },
+  /** Test events and manual redeliveries, per member. */
+  webhookSendUser: { limit: 60, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitName = keyof typeof DEFAULT_RATE_LIMITS;

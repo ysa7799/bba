@@ -68,6 +68,13 @@ describe('communications.send handler', () => {
       calendar: { providers: createCalendarProviders({ fake: true }), secretBox: null },
       automation: { allowPrivateNetwork: false, enqueue: () => Promise.resolve() },
       files: { db: handle.db, storage: new MemoryFileStorage() },
+      webhooks: {
+        db: handle.db,
+        secretBox: null,
+        allowPrivateNetwork: false,
+        ownHosts: [],
+        enqueueAttempt: () => Promise.resolve(),
+      },
       appUrl: 'http://localhost:3000',
       registry: new SubscriberRegistry(),
       email: new FileEmailTransport('/dev/null'),

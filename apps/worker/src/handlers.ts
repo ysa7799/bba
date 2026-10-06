@@ -10,9 +10,11 @@ import { runFilesMaintenance, type FileServices } from '@businessos/files';
 import { processExport, processImport, runCrmMaintenance } from '@businessos/crm';
 import type { Database } from '@businessos/database';
 import { loadEvent, type SubscriberRegistry } from '@businessos/events';
+import { pruneIdempotencyKeys } from '@businessos/api-keys';
 import { JOBS, UnrecoverableError, type JobHandlers } from '@businessos/jobs';
 import { pruneNotifications } from '@businessos/notifications';
 import { runSubscriptionMaintenance } from '@businessos/payments';
+import { attemptDelivery, runWebhookMaintenance, type WebhookServices } from '@businessos/webhooks';
 import type { Logger } from 'pino';
 import { renderEmail } from './email/templates';
 import type { EmailTransport } from './email/transports';
@@ -23,6 +25,7 @@ export interface HandlerDeps {
   calendar: CalendarServices;
   automation: AutomationServices;
   files: FileServices;
+  webhooks: WebhookServices;
   /** Public web app URL for links in job-sent emails. */
   appUrl: string;
   registry: SubscriberRegistry;
@@ -49,6 +52,21 @@ export function buildHandlers(deps: HandlerDeps): JobHandlers {
     'billing.maintenance': async () => {
       const result = await runSubscriptionMaintenance(deps.db);
       deps.logger.info(result, 'subscription maintenance completed');
+      return result;
+    },
+
+    'webhook.deliver': async (payload) => {
+      const outcome = await attemptDelivery(deps.webhooks, payload);
+      return { outcome };
+    },
+
+    'developers.maintenance': async () => {
+      const webhooks = await runWebhookMaintenance(deps.webhooks);
+      const idempotencyKeys = await pruneIdempotencyKeys(deps.db);
+      const result = { ...webhooks, idempotencyKeys };
+      if (webhooks.requeued > 0 || webhooks.pruned > 0 || idempotencyKeys > 0) {
+        deps.logger.info(result, 'developer maintenance completed');
+      }
       return result;
     },
 
